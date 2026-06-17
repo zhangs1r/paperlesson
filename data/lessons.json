@@ -1,0 +1,80 @@
+{
+  "site": {
+    "title": "PaperLesson · 论文精读",
+    "subtitle": "E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models",
+    "description": "面向移动机器人方向组会报告的论文精读课程，从全景概览到组会讲解全覆盖。"
+  },
+  "lessons": [
+    {
+      "id": "0001",
+      "path": "lessons/0001-paper-overview.html",
+      "title": "论文全景概览",
+      "subtitle": "背景、动机与贡献",
+      "emoji": "📖",
+      "duration": "15 分钟",
+      "tags": ["背景", "动机", "贡献"],
+      "description": "理解论文解决了什么问题、为什么这个问题重要、以及论文的核心贡献是什么。"
+    },
+    {
+      "id": "0002",
+      "path": "lessons/0002-e2map-method-core.html",
+      "title": "E2Map 核心技术",
+      "subtitle": "地图构建与情绪建模",
+      "emoji": "🔧",
+      "duration": "20 分钟",
+      "tags": ["方法", "数学", "情绪建模"],
+      "description": "深入理解 E2Map 的数学定义、情绪建模方法（多元高斯分布）、以及E2Map的更新机制。"
+    },
+    {
+      "id": "0003",
+      "path": "lessons/0003-navigation-experiments.html",
+      "title": "导航系统与实验分析",
+      "subtitle": "系统流程与三场景评估",
+      "emoji": "🤖",
+      "duration": "20 分钟",
+      "tags": ["系统", "实验", "结果"],
+      "description": "理解 E2Map 如何融入完整的导航系统，以及实验三大场景的设计和结果分析。"
+    },
+    {
+      "id": "0004",
+      "path": "lessons/0004-presentation-guide.html",
+      "title": "组会报告组织与讲解",
+      "subtitle": "PPT 结构、讲解词与 QA 准备",
+      "emoji": "🎤",
+      "duration": "15 分钟",
+      "tags": ["汇报", "PPT", "QA"],
+      "description": "学会如何组织一次完整、清晰、有深度的 E2Map 组会报告。"
+    }
+  ],
+  "references": [
+    {
+      "path": "reference/glossary.html",
+      "title": "论文术语表",
+      "emoji": "📖",
+      "description": "50+ 中英对照术语，覆盖方法、系统组件、数学、实验场景。"
+    }
+  ],
+  "resources": [
+    {
+      "path": "RESOURCES.md",
+      "title": "拓展资源",
+      "emoji": "📚",
+      "description": "论文、代码、参考文献、社区资源汇总。"
+    },
+    {
+      "path": "MISSION.md",
+      "title": "学习使命",
+      "emoji": "🎯",
+      "description": "本教学项目的目标、学习路径和成功标准。"
+    }
+  ],
+  "learningRecords": [
+    {
+      "path": "learning-records/0001-e2map-core-insights.md",
+      "title": "E2Map 核心要点",
+      "emoji": "📝",
+      "date": "2025",
+      "description": "第一篇学习记录：问题、解决方案、实验结果、关键洞察。"
+    }
+  ]
+}

@@ -30,38 +30,62 @@
     └── 0001-e2map-core-insights.md   # 第1篇：核心要点
 ```
 
-## 快速开始
+## 📦 快速开始
 
-用浏览器打开课程（在命令行中运行）：
+### 在线浏览（推荐）
+
+直接将项目部署到 GitHub Pages，或打开 **`index.html`** ——这是网站的入口主页，包含课程导航、参考资料和学习记录。
+
+### 本地浏览
+
+直接在浏览器打开主页：
 
 ```bash
 # Windows
-start lessons\0001-paper-overview.html
+start index.html
 
-# 或直接双击 lessons 目录下的 HTML 文件
+# macOS
+open index.html
+
+# 或双击 index.html
 ```
 
-建议按照编号顺序学习（0001 → 0004），每课约 15-20 分钟。
+从主页可以链接到所有课程。也可以直接打开单课：
 
-## 课程内容
+```bash
+start lessons\0001-paper-overview.html   # 第1课
+```
 
-| 课程 | 内容 | 对应组会 PPT |
-|------|------|------------|
-| **第1课** 论文全景概览 | 背景、动机、贡献、相关工作对比 | PPT Part I |
-| **第2课** E2Map核心技术 | 地图定义、情绪建模、更新机制 | PPT Part II |
-| **第3课** 导航系统与实验 | 系统流程、三场景实验、结果分析 | PPT Part III+IV |
-| **第4课** 组会报告要点 | PPT 结构、讲解词、QA准备 | PPT 全部 |
+## 🏗️ 网站结构
 
-## PPT 建议结构（20-25 分钟）
+```
+├── index.html                         # 🌐 网站主页（课程导航 + 参考 + 笔记）
+├── shared/
+│   └── theme.css                      # 🎨 全局共享主题样式
+├── data/
+│   └── lessons.json                   # 📋 课程数据清单（新增课程时编辑此文件）
+├── lessons/                           # 📚 精读课程
+│   ├── 0001-paper-overview.html       # 第1课：论文全景概览
+│   ├── 0002-e2map-method-core.html    # 第2课：E2Map核心技术
+│   ├── 0003-navigation-experiments.html # 第3课：导航系统与实验
+│   └── 0004-presentation-guide.html   # 第4课：组会报告要点
+├── reference/
+│   └── glossary.html                  # 📖 术语表（中英对照）
+├── learning-records/                  # 📝 学习记录
+│   └── 0001-e2map-core-insights.md
+├── 资料/                              # 原始论文（双语对照 + 图片资源）
+├── MISSION.md                         # 教学使命 —— 学习目标与路径
+├── RESOURCES.md                       # 拓展资源 —— 论文、代码、社区
+├── NOTES.md                           # 教学笔记
+└── README.md                          # 本文件
+```
 
-1. **标题 + 大纲**（1页）
-2. **背景与动机**（3页，4-5分钟）— LLM 导航现状、随机环境问题、人类情绪启发
-3. **方法核心**（5页，7-8分钟）— E2Map 定义、情绪建模、事件处理、地图更新
-4. **系统流程**（1页，3-4分钟）— 目标选择→规划→控制→更新
-5. **实验分析**（5页，5-6分钟）— 设置、场景、结果、可视化
-6. **讨论与总结**（3页，3分钟）— 贡献、局限、个人思考
+## 📝 如何添加新课程
 
-具体讲解词和 QA 准备见 [第4课](lessons/0004-presentation-guide.html)。
+1. 创建新的课程 HTML 文件到 `lessons/` 目录，引用 `../shared/theme.css` 保持风格统一
+2. 编辑 `data/lessons.json`，在 `lessons` 数组中添加新条目（含路径、标题、标签、描述）
+3. 更新 `index.html` 中的 `SITE_DATA` 对象（添加对应课程条目）
+4. 运行 `git add -A && git commit -m "feat: add lesson X"` 提交
 
 ## 引用
 
