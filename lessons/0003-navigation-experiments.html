@@ -63,7 +63,12 @@
 </style>
 <script>
 MathJax = {
-  tex: { inlineMath: [['
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
 <body>
 <a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
   ← 返回主页
