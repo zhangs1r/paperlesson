@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 5 · 深入答疑与对比分析 — E2Map 组会精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
+  .lesson-header .meta { display: flex; gap: 1rem; font-size: .85rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.2rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-size: 1rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+  h4 { font-size: .92rem; color: var(--ink); margin: 1rem 0 .4rem; }
+  .highlight { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .highlight strong { color: var(--accent-deep); }
+  .quote { background: #fff9e6; border-left: 4px solid #f7b731; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .formula { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: center; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); }
+  .qa-block { background: white; border: 1px solid var(--border); border-radius: 10px; margin: 1.5rem 0; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+  .qa-block .q { background: var(--accent-dim); padding: .8rem 1rem; font-weight: 600; font-size: .95rem; color: var(--accent-deep); border-bottom: 1px solid var(--border); }
+  .qa-block .q::before { content: "❓ "; }
+  .qa-block .a { padding: .8rem 1rem; font-size: .9rem; line-height: 1.7; }
+  .qa-block .a .inner-label { font-weight: 600; color: var(--success); display: block; margin-bottom: .3rem; }
+  .key-point { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .key-point .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+  .key-point .card .num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .key-point .card .label { font-size: .85rem; color: var(--ink-60); }
+  .comparison-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .88rem; }
+  .comparison-table th, .comparison-table td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; }
+  .comparison-table th { background: var(--accent-dim); color: var(--accent-deep); }
+  .diagram-box { background: var(--ink); color: #e0e0e0; border-radius: 10px; padding: 1rem; margin: 1rem 0; font-family: "Menlo", "Consolas", monospace; font-size: .8rem; line-height: 1.6; }
+  .diagram-box .title { color: #4cc9f0; font-weight: 600; margin-bottom: .5rem; font-size: .9rem; }
+  .diagram-box .comment { color: var(--ink-40); }
+  .quiz { background: var(--paper); border-radius: 8px; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--border); }
+  .quiz h4 { color: var(--accent-deep); margin-bottom: .5rem; font-size: .95rem; }
+  .quiz ol { padding-left: 1.2rem; font-size: .9rem; }
+  .quiz ol li { margin-bottom: .4rem; }
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav a { color: var(--accent-deep); text-decoration: none; }
+  .nav a:hover { text-decoration: underline; color: var(--accent); }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .tip strong { color: #155724; }
+  .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .warning strong { color: #856404; }
+  @media (max-width: 768px) { .key-point { grid-template-columns: 1fr; } }
+</style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>🔍 第 5 课：深入答疑与对比分析</h1>
+  <div class="meta">
+    <span>符号澄清 · 数学直觉 · 势场法对比 · D* 代价讨论</span>
+    <span>⏱ 阅读时间：20 分钟</span>
+    <span>📄 组会精读课程 · 第 5 课</span>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>🎯 本课目标：</strong>回答你在学习中提出的<strong>真实问题</strong>——从符号含义到深层原理。这些问题恰恰表明你已经在进行批判性思考，这正是组会上最需要的能力！
+</div>
+
+<!-- ====================================================================== -->
+<h2>Q1: "Ped 是啥？"—— 论文中的符号澄清</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">论文公式里的 $p_{ed}$、$p_{ee}$ 这些下标到底代表什么？</div>
+  <div class="a">
+    <p>你看到的 <strong>$p_{ed}$</strong> 是两个部分的组合：</p>
+    <ul>
+      <li>$p$ = <strong>prompt</strong>（提示词）—— 即你喂给 LLM/LMM 的指令文本</li>
+      <li>$ed$ = <strong>E</strong>vent <strong>D</strong>escriptor（事件描述器）</li>
+    </ul>
+    <div class="formula">
+      $l_{evt} = \mathcal{F}_{ed}(I_{t_{evt}-h},\ I_{t_{evt}},\ I_{t_{evt}+h},\ p_{ed})$
+    </div>
+    <p><strong>含义：</strong>事件描述器 $\mathcal{F}_{ed}$ 接收三张图像和一段提示词 $p_{ed}$，输出事件描述 $l_{evt}$。</p>
+    <p>同样地，$p_{ee}$ 中 $ee$ = <strong>E</strong>motion <strong>E</strong>valuator（情绪评估器）。</p>
+
+    <h4>📋 论文符号速查表</h4>
+    <table>
+      <tr><th>符号</th><th>含义</th><th>说明</th></tr>
+      <tr><td>$p_{ed}$</td><td>事件描述器的提示词</td><td>告诉 LMM 如何描述三张图像序列</td></tr>
+      <tr><td>$p_{ee}$</td><td>情绪评估器的少样本提示</td><td>包含评分示例，引导 LLM 输出 0-3 分</td></tr>
+      <tr><td>$\mathcal{F}_{ed}$</td><td>事件描述器函数</td><td>实际使用 GPT-4o (LMM)</td></tr>
+      <tr><td>$\mathcal{F}_{ee}$</td><td>情绪评估器函数</td><td>实际使用 Llama3 (LLM)</td></tr>
+      <tr><td>$s_{emo}$</td><td>情绪分数</td><td>$s_{emo} = s_{upsetness} + s_{guiltiness}$</td></tr>
+      <tr><td>$l_{evt}$</td><td>事件文本描述</td><td>事件描述器的输出</td></tr>
+      <tr><td>$\mathbf{p}_{update}$</td><td>需要更新的网格坐标</td><td>事件发生时物体所在的 $n$ 个网格</td></tr>
+      <tr><td>$\Vec{\mathbf{v}}$</td><td>朝向单位向量</td><td>机器人事件发生时的朝向</td></tr>
+    </table>
+
+    <p><em>另外提一下论文中你可能会看到的另一个 "ped"—— <strong>quadruped</strong>（四足机器人）。论文使用的机器人平台是 Unitree Go1，一种四足机器人（四条腿的机器狗）。不过你在公式中看到的应该就是 $p_{ed}$。</em></p>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>Q2: "权重为啥是倒数？"—— 高斯加权的归一化原理</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">为什么 $w_{\mathbf{p}_i} = 1 / N^{val}_{\mathbf{p}_i}$，权重是有效高斯分布数量的倒数？</div>
+  <div class="a">
+    <div class="formula">
+      $E(\mathbf{x}) = \sum_{\mathbf{p}_i \in \mathcal{O}} w_{\mathbf{p}_i} \mathcal{N}_{\mathbf{p}_i}(\mathbf{x})$
+    </div>
+
+    <h4>🔑 核心原因：避免区域之间的不公平</h4>
+
+    <p>想象两个不同的场景：</p>
+    <ul>
+      <li><strong>场景 A</strong>：开阔走廊，只有 1 个占据网格 → 1 个高斯分布</li>
+      <li><strong>场景 B</strong>：拥挤区域，有 10 个占据网格 → 10 个高斯分布叠加</li>
+    </ul>
+
+    <p>如果每个高斯分布权重都是 1（不加权），那么：</p>
+    <ul>
+      <li>场景 A 的总情绪值 = 该高斯分布的值</li>
+      <li>场景 B 的总情绪值 = 10 个高斯分布的值叠加 ≈ 场景 A 的 10 倍</li>
+    </ul>
+
+    <p><strong>这不公平！</strong> 场景 B 的情绪值高不是因为它"真的更危险"，仅仅是因为它格子多、高斯分布多。</p>
+
+    <div class="highlight">
+      <strong>🎯 倒数权重的效果：</strong>每个格子上的总情绪值被 <strong>归一化</strong> 到 $\sum w_{\mathbf{p}_i} \approx 1$ 的水平。这样，一个格子上的情绪值只取决于"事件有多严重"，而不取决于"这个格子附近有多少物体"。
+    </div>
+
+    <h4>🤔 但是——为什么用"有效"分布数量？</h4>
+
+    <p>论文中用到的是 $N^{val}_{\mathbf{p}_i}$ 而不是简单的 $N$。$val$ 表示 <strong>valid</strong>，即只有"有效的"（占据的、有语义标签的）网格单元才被计入。这是因为：</p>
+    <ul>
+      <li>机器人建图时，并不是地图上所有格子都有语义信息</li>
+      <li>只有那些被 LSeg 识别出"这里有物体"的格子（占据网格）才有意义</li>
+      <li>空的/未知的格子不参与情绪计算</li>
+    </ul>
+
+    <div class="tip">
+      <strong>💡 一句话记忆：</strong>权重取倒数 = "每个物体的情绪影响力是平等的，不会因为物体密集就放大情绪"。
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>Q3: "协方差矩阵为什么初始化为单位矩阵乘系数？"</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">每个高斯分布的协方差矩阵初始化：$\bm{\Sigma}_{\mathbf{p}_i} = \begin{bmatrix} \sigma_x^2 & 0 \\ 0 & \sigma_y^2 \end{bmatrix}$，为什么 $\sigma_x = \sigma_y$ 是同一个系数？</div>
+  <div class="a">
+    <h4>🔬 这叫"各向同性高斯分布"</h4>
+
+    <p>当协方差矩阵是单位矩阵的倍数时：</p>
+    <ul>
+      <li>$x$ 方向和 $y$ 方向的方差相同 ($\sigma_x^2 = \sigma_y^2$)</li>
+      <li>非对角线元素为 0（$x$ 和 $y$ 不相关）</li>
+    </ul>
+
+    <p>这意味着一开始的"情绪场"是一个<strong>完美的圆形</strong>——向各个方向均匀扩散：</p>
+
+    <div class="diagram-box">
+      <div class="title">🔍 各向同性 vs 各向异性高斯</div>
+      <br>
+      <span class="comment">各向同性 (σ_x = σ_y)        各向异性 (σ_x &gt; σ_y)</span><br>
+      <br>
+      <span class="comment">     ╱‾‾‾╲                    ╱═════════╲</span><br>
+      <span class="comment">    │   ●   │                   ╱     ●     ╲</span><br>
+      <span class="comment">     ╲_____╱                  ╱_____________╲</span><br>
+      <br>
+      <span class="comment">    圆形：各方向相同          椭圆：x方向延伸更远</span><br>
+    </div>
+
+    <h4>🤔 为什么初始设为各向同性？</h4>
+
+    <ol>
+      <li><strong>先验无知</strong>：在没有任何事件发生前，我们不知道哪个方向更"危险"。所以让情绪在所有方向上均匀扩散是最合理的初始假设。</li>
+      <li><strong>减少初始参数</strong>：如果一开始就用各向异性（不同 $\sigma_x$ 和 $\sigma_y$），需要引入额外超参数，增加调参难度。</li>
+      <li><strong>更新会改变形状</strong>：记住，当事件发生后，Weber-Fechner 更新会<strong>乘以朝向向量</strong> $\mathbf{v} = (v_x, v_y)$，使机器人面向的方向 ($v_k$) 上的 $\sigma_k$ 变得更大——<strong>从圆形变成椭圆</strong>，这正是我们想要的效果。</li>
+    </ol>
+
+    <div class="formula">
+      初始: $\sigma_x = \sigma_y = \sigma_0$ &nbsp;→&nbsp; 圆形<br>
+      事件后: $\sigma_k^{new} = \sigma_k \cdot v_k \cdot \log(s_{emo}/T)$ &nbsp;→&nbsp; 沿 $v_k$ 方向拉长
+    </div>
+
+    <div class="highlight">
+      <strong>💡 系数 $\sigma_0$ 的值：</strong>论文中设定为 1 个网格单元对应的实际距离。如果网格分辨率是 0.1m/格，那么初始 $\sigma_0 \approx 0.1$m。这意味着初始的高斯分布在约 0.1m × 3 = 0.3m 半径内产生影响。事件发生后，这个范围会扩大。
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>Q4: "势场法的局部极小值问题是什么？"</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">论文说 E2Map 情绪代价"看起来像势场法的斥力"，但为了规避势场法的局部极小值问题，使用了独立规划器（D*）。局部极小值到底是什么？</div>
+  <div class="a">
+    <h4>🎯 先理解势场法的基本思想</h4>
+
+    <p>传统的人工势场法（Artificial Potential Field, APF）把机器人导航看作一个<strong>力场</strong>问题：</p>
+    <ul>
+      <li><strong>目标</strong> → 产生 <strong>吸引力</strong>（把机器人拉向目标）</li>
+      <li><strong>障碍物</strong> → 产生 <strong>排斥力</strong>（把机器人推开）</li>
+      <li>机器人沿着<strong>合力方向</strong>移动</li>
+    </ul>
+
+    <h4>⚠️ 问题：局部极小值</h4>
+
+    <div class="diagram-box">
+      <div class="title">🔍 局部极小值示意</div>
+      <br>
+      <span class="comment">       🎯 目标</span><br>
+      <span class="comment">        |</span><br>
+      <span class="comment">    ┌───┴───┐      ← 过道被障碍物挡住</span><br>
+      <span class="comment">    │       │</span><br>
+      <span class="comment">    │  🤖   │      ← 机器人卡在这里</span><br>
+      <span class="comment">    │       │         ↑ 吸引力向前 ←→ 排斥力向两侧</span><br>
+      <span class="comment">    │       │         合力 ≈ 0 → 静止不动!</span><br>
+      <span class="comment">    └───────┘</span><br>
+      <br>
+      <span class="comment">机器人在势场中陷入"平衡点"——既不是目标也不是障碍物，而是卡住了。</span><br>
+    </div>
+
+    <p><strong>局部极小值</strong>（local minimum）是指：在势场中存在一些位置，机器人在这些位置受到的合力为零或者达到一个"伪平衡"状态，但它既没有到达目标，也没有撞到障碍物。<strong>机器人就卡在那里不动了。</strong></p>
+
+    <div class="key-point">
+      <div class="card">
+        <div class="num">U 形</div>
+        <div class="label"><strong>U 形障碍物</strong>：机器人被吸进 U 形区域后，三面都是斥力，一面是吸引力指向U形深处，无法脱困</div>
+      </div>
+      <div class="card">
+        <div class="num">窄道</div>
+        <div class="label"><strong>狭窄通道</strong>：两侧墙壁的排斥力在通道中间形成"斥力脊"，机器人被推得左右摇摆</div>
+      </div>
+      <div class="card">
+        <div class="num">障碍物前</div>
+        <div class="label"><strong>正对障碍物</strong>：吸引力指向目标方向，斥力来自障碍物前方，在某些位置正好抵消</div>
+      </div>
+      <div class="card">
+        <div class="num">走廊尽头</div>
+        <div class="label"><strong>死胡同</strong>：吸引力指向墙后的目标，斥力来自前方墙壁，机器人对着墙反复试探进退两难</div>
+      </div>
+    </div>
+
+    <h4>💡 为什么 E2Map 没有这个问题？</h4>
+
+    <div class="highlight">
+      <strong>关键区别：E2Map 的情绪"场"只作为代价输入给独立规划器，而非直接作为力。</strong>
+    </div>
+
+    <p>E2Map 的工作方式是：</p>
+    <ol>
+      <li>E2Map 情绪值 → 作为 D* 的<strong>代价地图</strong>（cost map）</li>
+      <li>D* 规划器 → 在<strong>离散网格上搜索</strong>最小代价路径</li>
+      <li>D* 是<strong>图搜索算法</strong>（类似 Dijkstra 的启发式版本）——<strong>它能保证找到全局最优路径</strong></li>
+    </ol>
+
+    <p><strong>而势场法是连续力场的梯度下降</strong>——没有全局视野，只依赖局部合力，所以会陷入局部极小值。</p>
+
+    <div class="tip">
+      <strong>🔑 一个类比：</strong>势场法像"蒙眼走路"——只感受到脚下的力，不知道整体地形。D* 像"拿着地图看"——可以看到全局，规划出最优路线。
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>Q5: "D* 规划全局路径时，不也要考虑代价地图的势场吗？"</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">这是一个非常深刻的问题！D* 规划器以 E2Map 的情绪值为代价，那 E2Map 的情绪值本质上也是一种"势场"。D* 为什么就不会陷入局部极小值？</div>
+  <div class="a">
+    <h4>🤔 你的直觉是对的——但区别在于"怎么用"</h4>
+
+    <p>E2Map 情绪值和势场法的"斥力势场"在<strong>数值表现上确实等价</strong>——都是给某些位置赋予更高的"代价"让机器人避开。但<strong>使用方式</strong>完全不同：</p>
+
+    <table class="comparison-table">
+      <tr><th style="width:28%">对比维度</th><th style="width:36%">传统势场法 (APF)</th><th style="width:36%">E2Map + D*</th></tr>
+      <tr>
+        <td><strong>表示形式</strong></td>
+        <td>连续函数（可微势场）</td>
+        <td>离散网格（代价地图）</td>
+      </tr>
+      <tr>
+        <td><strong>规划方式</strong></td>
+        <td>梯度下降（沿合力方向走）</td>
+        <td>图搜索（D* 在节点间搜索）</td>
+      </tr>
+      <tr>
+        <td><strong>全局视野</strong></td>
+        <td>❌ 无——只感知当前位置的力</td>
+        <td>✅ 有——评估从起点到终点的整条路径</td>
+      </tr>
+      <tr>
+        <td><strong>跳出局部极小值的能力</strong></td>
+        <td>❌ 无——卡住就是卡住</td>
+        <td>✅ 有——D* 的启发函数引导搜索走出"伪陷阱"</td>
+      </tr>
+      <tr>
+        <td><strong>增量更新</strong></td>
+        <td>需要重新计算整个势场</td>
+        <td>D* 的增量特性：代价变化后只重新规划受影响部分</td>
+      </tr>
+    </table>
+
+    <h4>🔬 具体解释：为什么 D* 能在"有势场"的地图上避免局部极小值</h4>
+
+    <p>考虑一个场景：机器人到达目标需要经过一条走廊，但走廊里发生了碰撞事件，E2Map 给走廊区域赋了很高的情绪代价。</p>
+
+    <div class="diagram-box">
+      <div class="title">🔍 势场法 vs D* 在 E2Map 上的对比</div>
+      <br>
+      <span class="comment">场景：起点 S → 走廊（高代价⛔） → 目标 G</span><br>
+      <br>
+      <span class="comment">势场法：                                   D* 搜索：</span><br>
+      <span class="comment">  S → 走一步 → 感受到前方高斥力         S ─┬─→ 左边绕行 (代价 15)</span><br>
+      <span class="comment">         ↕ 吸引力向前 ↕ 斥力向后            └─→ 右边绕行 (代价 12) ✅</span><br>
+      <span class="comment">         = 卡在走廊入口                      └─→ 直穿走廊 (代价 50) ❌</span><br>
+      <span class="comment">  ❌ 局部极小值！                       ✅ D* 选出右边绕行</span><br>
+      <br>
+      <span class="comment">D* 不"感受力"，它"比较路径"——左边、右边、中间，哪条总代价最小就走哪条。</span><br>
+    </div>
+
+    <div class="highlight">
+      <strong>🎯 所以E2Map + D* 的组合拳是：</strong>
+      <ol>
+        <li><strong>情绪代价</strong> → 让高代价区域变成"绕路动机"（类似于让某些路更"难走"）</li>
+        <li><strong>D* 搜索</strong> → 找到绕过这些高代价区域的全局最优路径（而不是傻傻地往里冲）</li>
+      </ol>
+      两者结合，既<strong>保留了情绪对行为的影响</strong>（避开危险区域），又<strong>规避了势场法的局部极小值陷阱</strong>。
+    </div>
+
+    <h4>🎯 组会汇报建议</h4>
+    <p>如果有人问"这不就是势场法吗"，你可以这样回答：</p>
+    <div class="tip">
+      <strong>"E2Map 的代价和势场法的斥力在数值上看起来像，但本质区别在于使用方式。势场法把代价梯度当作力来驱动运动，会产生局部极小值。我们把代价作为离散图搜索的边权，由 D* 来做全局最优规划。这是两个完全不同的范式——一个是<strong>反应式控制</strong>（reactive control），一个是<strong>规划式搜索</strong>（planning-based search）。"</strong>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>Q6: "Fig. 6b 和 Fig. 7 没正常显示"</h2>
+<!-- ====================================================================== -->
+
+<div class="qa-block">
+  <div class="q">图 6b（事件后 E2Map）和图 7（真实世界实验设置）在浏览器中无法显示。</div>
+  <div class="a">
+    <h4>🔧 问题排查</h4>
+    <p>图片文件本身是存在的（确认了 <code>after_e2map_gazebo.png</code> 和 <code>209_realworld.png</code> 都在 assets 目录下）。问题很可能出在以下原因之一：</p>
+    <ul>
+      <li><strong>路径编码问题</strong>：assets 目录名包含中文和空格，URL 编码在某些浏览器本地打开时可能解析失败</li>
+      <li><strong>本地安全限制</strong>：某些浏览器限制本地 HTML 文件跨目录访问资源</li>
+    </ul>
+
+    <h4>✅ 解决方案</h4>
+    <p>解决方法：直接在浏览器中打开图片文件，或使用完整路径。下面是在你电脑上查看的方式：</p>
+    <div class="formula">
+      <code>start "资料\E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.assets\after_e2map_gazebo.png"</code>
+    </div>
+    <p><em>或者将整个项目目录作为一个本地服务器托管（推荐用 VS Code 的 Live Server 插件），这样可以避免路径问题。</em></p>
+
+    <p>另外，为了确保后续课程图片显示正常，<strong>后续课程将使用 HTML <code>&lt;img&gt;</code> 标签的备用方案</strong>：</p>
+    <ul>
+      <li>保留原有图片引用的同时，添加 <code>onerror</code> 回调显示文字说明</li>
+      <li>重要图片同时提供文字描述作为后备</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>7. 知识拓展：从势场法到 E2Map 的完整对比</h2>
+<!-- ====================================================================== -->
+
+<p>为了让你在组会上能回答"这和势场法有什么区别"这一经典问题，下面给你做一个完整的对比总结：</p>
+
+<table class="comparison-table">
+  <tr><th style="width:18%">维度</th><th style="width:27%">传统势场法</th><th style="width:27%">E2Map 情绪代价</th><th style="width:28%">为什么重要</th></tr>
+  <tr>
+    <td><strong>场的来源</strong></td>
+    <td>人工设计（预先定义障碍物→斥力、目标→引力）</td>
+    <td>从真实经验中<strong>学习</strong>（LLM 评估情绪→更新参数）</td>
+    <td>E2Map 的"场"不是固定的，会随着经验自适应变化</td>
+  </tr>
+  <tr>
+    <td><strong>规划方式</strong></td>
+    <td>梯度下降（连续空间中的力导向运动）</td>
+    <td>离散图搜索（D* 在网格上搜索最小代价路径）</td>
+    <td>D* 有全局视野，势场法只有局部视野</td>
+  </tr>
+  <tr>
+    <td><strong>局部极小值</strong></td>
+    <td>固有缺陷</td>
+    <td>不存在的（D* 保证找到可行路径）</td>
+    <td>这是论文选择 D* 而非势场法的核心工程动机</td>
+  </tr>
+  <tr>
+    <td><strong>更新方式</strong></td>
+    <td>静态（必须重新设计才能改变）</td>
+    <td>增量更新（D* 只重规划受影响部分）</td>
+    <td>E2Map 更新后，D* 可以快速重规划，适合实时导航</td>
+  </tr>
+  <tr>
+    <td><strong>学习能力</strong></td>
+    <td>无</td>
+    <td>有——单次经验驱动调整，下次自动避开</td>
+    <td>这是 E2Map 的核心贡献：少样本学习、一次调整</td>
+  </tr>
+  <tr>
+    <td><strong>LLM 参与</strong></td>
+    <td>无</td>
+    <td>LLM 负责目标选择、事件描述、情绪评估</td>
+    <td>E2Map 利用 LLM 的语义理解能力理解事件</td>
+  </tr>
+</table>
+
+<div class="highlight">
+  <strong>💡 组会亮点回答：</strong><br>
+  "E2Map 和势场法最根本的区别不是'场'的形态，而是<strong>范式</strong>的不同。势场法是反应式的——机器人对局部的力做出反应；E2Map + D* 是基于规划的——机器人用全局搜索做决策。情绪代价只是让规划器'知道哪里不好走'，而不是直接推着机器人走。这就好比开车导航——高德地图告诉你'前方拥堵'（代价高），它会帮你重新规划一条绕路，而不是逼你倒车。"
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>📝 复习与思考</h2>
+<!-- ====================================================================== -->
+
+<div class="quiz">
+  <h4>✏️ 检验你的理解</h4>
+  <ol>
+    <li>符号 $p_{ed}$ 和 $p_{ee}$ 分别代表什么？它们的区别是什么？</li>
+    <li>权重的初始化为什么使用 $1/N^{val}_{\mathbf{p}_i}$ 而不是 $1/N$？如果不是倒数会有啥问题？</li>
+    <li>协方差矩阵初始化为单位矩阵的倍数，这是"各向同性"还是"各向异性"？事件发生后会变成什么？</li>
+    <li>用你自己的话解释：为什么 D* 在 E2Map 上不会陷入局部极小值？（提示：离散搜索 vs 梯度下降）</li>
+    <li>如果有人说"E2Map 不就是势场法换了个名字吗"，你怎么反驳？</li>
+  </ol>
+  <div style="margin-top:.8rem; font-size:.85rem; color:#6c757d;">
+    <p>💡 这些是组会高频问题！想不清楚可以随时问我。</p>
+  </div>
+</div>
+
+
+<!-- ====================================================================== -->
+<h2>🔗 拓展阅读</h2>
+<!-- ====================================================================== -->
+
+<ul style="font-size:.9rem; margin-left:1.2rem;">
+  <li><strong>势场法原始论文</strong>：Khatib, "Real-Time Obstacle Avoidance for Manipulators and Mobile Robots" (1986) — 局部极小值问题的经典论述</li>
+  <li><strong>D* 算法</strong>：Stentz, "The D* Algorithm for Real-Time Planning of Optimal Traverses" (1994) — E2Map 实际使用的规划器</li>
+  <li><strong>Weber-Fechner 定律</strong>：Dehaene, "The neural basis of the Weber-Fechner law" (2003) [35]</li>
+  <li><strong>各向同性高斯分布</strong>：任何多元统计教材的基础章节</li>
+  <li><strong>组会推荐</strong>：将本课回答的这些问题整理成一页"常见问答"放在 PPT 附录中</li>
+</ul>
+
+<p style="font-size:.85rem; color:var(--ink-40); text-align:center; margin-top:2rem;">
+  💡 遇到更多问题随时问我！下一课预告：深入代码实现与工程细节
+</p>
+
+<div class="nav">
+  <a href="0004-presentation-guide.html">← 上一课：组会报告要点</a>
+  <span></span>
+</div>
+
+</body>
+</html>
