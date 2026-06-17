@@ -26,6 +26,457 @@
   .abbr .en::before { content: "缩写 "; font-size: .7rem; background: #4cc9f0; color: white; padding: .1rem .4rem; border-radius: 3px; margin-right: .4rem; vertical-align: middle; }
   @media print { .term { box-shadow: none; border: 1px solid var(--border); break-inside: avoid; } }
 </style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<h1>E2Map 论文术语表</h1>
+<p class="sub">Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models</p>
+<div class="meta">
+  <span>📄 英文 &amp; 中文术语对照</span>
+  <span>🔗 附论文出处</span>
+  <span>🖨️ 可打印</span>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">A · 方法核心</div>
+
+<div class="term">
+  <div class="en"><strong>E2Map</strong> (Experience-and-Emotion Map)</div>
+  <div class="cn"><strong>经验-情绪地图</strong> — 一种空间网格地图，同时捕获环境的视觉-语言特征和智能体对自身经验产生的情绪反应。数学定义为 \(\mathcal{M} \in \mathcal{R}^{\bar{H} \times \bar{W} \times (C_{lang} + C_{emo})}\)。</div>
+  <div class="detail">核心创新点：将 LLM 的通用知识与智能体的真实经验统一锚定到空间地图中，用情绪作为代价函数引导导航规划。</div>
+  <div class="ref">§3.1 | Fig. 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion</strong> (in E2Map context)</div>
+  <div class="cn"><strong>情绪</strong> — 定义为反映智能体为了维持稳态（homeostasis）而如何感知空间的空间范围。被建模为高斯分布的加权求和 \(E(\mathbf{x})=\sum w_{\mathbf{p}_i} \mathcal{N}_{\mathbf{p}_i}(\mathbf{x})\)。</div>
+  <div class="detail">受 Damasio [10] 启发：情绪通过引导避开危险来帮助维持稳态。不是人类情感，而是机器人"空间感受"的量化。</div>
+  <div class="ref">§3.1 | Eq. 1-3</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>One-shot behavior adjustment</strong></div>
+  <div class="cn"><strong>单次经验驱动的行为调整</strong> — 智能体仅基于一次经验即能调整自身行为，无需大量数据或迭代训练。</div>
+  <div class="detail">区别于强化学习的多轮交互。E2Map 更新后，D* 算法立即重规划路径，实现"一次碰撞，永久避开"。</div>
+  <div class="ref">§1 Contributions | Algorithm 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Self-reflection</strong></div>
+  <div class="cn"><strong>自反思</strong> — 机器人利用自身经历（碰撞/意外事件）来修正初始计划的能力。</div>
+  <div class="detail">表 1 中，这是 E2Map 相较于其他方法的独特特性。</div>
+  <div class="ref">Table 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Stochastic environment</strong></div>
+  <div class="cn"><strong>随机环境</strong> — 包含动态物体和条件变化（如突然开门、人走出墙角）的不确定环境。区别于传统 LLM 方法假设的静态环境。</div>
+  <div class="ref">§1</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">B · 系统组件</div>
+
+<div class="term">
+  <div class="en"><strong>Goal selector</strong></div>
+  <div class="cn"><strong>目标选择器</strong> — 一个 LLM（使用 Llama3），将用户自由形式的语言指令转换为代码，调用目标选择 API 确定目标位置。</div>
+  <div class="detail">通过计算视觉-语言特征与 CLIP 文本嵌入之间的相似度来定位物体。</div>
+  <div class="ref">§3.3 | Supplementary Material</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Event descriptor</strong></div>
+  <div class="cn"><strong>事件描述器</strong> — 一个 LMM（使用 GPT-4o），输入事件前/中/后三张图像，输出该情境的自然语言描述。</div>
+  <div class="detail">采用零样本逐步推理（step-by-step reasoning）：先分述每个场景，再整合为完整解释。</div>
+  <div class="ref">§3.2.1 | Eq. 6</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion evaluator</strong></div>
+  <div class="cn"><strong>情绪评估器</strong> — 一个 LLM（使用 Llama3），基于事件描述的语言输出，评估两个维度的情绪分数并加总。</div>
+  <div class="detail">少样本提示（few-shot prompting），输出 3 分制的 upsetness + guiltiness 评分及原因。</div>
+  <div class="ref">§3.2.2 | Fig. 3 | Eq. 7</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>VLMap</strong> (Visual Language Map)</div>
+  <div class="cn"><strong>视觉语言地图</strong> — 存储像素级视觉-语言特征的空间地图。E2Map 在 VLMap 基础上增加了"情绪通道"。</div>
+  <div class="detail">区别于 VLM (Vision-Language Model)。论文优先使用 LMM 指代多模态模型，用 VLMap 指代视觉语言地图。</div>
+  <div class="ref">Fig. 1 caption | §2.2</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">C · 情绪评估维度</div>
+
+<div class="term">
+  <div class="en"><strong>Upsetness</strong></div>
+  <div class="cn"><strong>受挫程度</strong> — 评估智能体在给定情境中感受到的影响程度（如碰撞、受阻）。</div>
+  <div class="detail">3 分制评分。分值越高表示情境对智能体越不利。受人类回避行为情绪启发 [32]。</div>
+  <div class="ref">§3.2.2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Guiltiness</strong></div>
+  <div class="cn"><strong>内疚程度</strong> — 评估智能体行为对环境造成的影响程度（如机器人撞坏物品）。</div>
+  <div class="detail">3 分制评分。分值越高表示智能体行为对环境负面影响越大。受人类补偿行为情绪启发 [33, 34]。</div>
+  <div class="ref">§3.2.2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion score</strong></div>
+  <div class="cn"><strong>情绪分数</strong> — Upsetness + Guiltiness 两个分数的加总，用于 E2Map 的更新。</div>
+  <div class="detail">\(s_{emo} = s_{upsetness} + s_{guiltiness}\)</div>
+  <div class="ref">§3.2.2</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">D · 数学与算法</div>
+
+<div class="term">
+  <div class="en"><strong>Multivariate Gaussian distribution</strong></div>
+  <div class="cn"><strong>多元高斯分布</strong> — 为每个被占据网格单元定义，用于建模情绪的"空间扩散"效应。</div>
+  <div class="detail">\(\mathcal{N}(\mathbf{x} \mid \bm{\mu}_{\mathbf{p}_i}, \bm{\Sigma}_{\mathbf{p}_i})\)，协方差控制情绪扩散范围。</div>
+  <div class="ref">§3.1 | Eq. 1-2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Weber–Fechner law</strong></div>
+  <div class="cn"><strong>韦伯-费希纳定律</strong> — 感觉强度随刺激的'对数'增长。E2Map 以此更新高斯分布的协方差。</div>
+  <div class="detail">\(\sigma_{k}^{new}=\sigma_{k}v_k\log(s_{emo}/T)\) — 情绪分数取对数后成比例扩大标准差，模拟人类"情绪越强，影响范围越广"。</div>
+  <div class="ref">§3.2.2 | Eq. 4</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>D* algorithm</strong></div>
+  <div class="cn"><strong>D* 算法</strong> — 动态 A*，一种在部分已知环境中高效的增量式路径规划算法。</div>
+  <div class="detail">E2Map 用情绪值作为路径代价，D* 找到最小代价路径。E2Map 更新后，D* 能高效地增量重规划。</div>
+  <div class="ref">§3.3 | [36]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>MPPI</strong> (Model Predictive Path Integral)</div>
+  <div class="cn"><strong>模型预测路径积分控制</strong> — 一种基于采样的模型预测控制方法，计算控制量以跟随 D* 规划出的路径。</div>
+  <div class="ref">§3.3 | [37]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Homeostasis</strong></div>
+  <div class="cn"><strong>稳态</strong> — 生物体维持内部稳定的机制。在本文中，情绪被定义为帮助维持稳态的空间边界（避害趋利）。</div>
+  <div class="ref">§1 | [10]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Affordance</strong></div>
+  <div class="cn"><strong>可供性</strong> — 环境为智能体提供的行为可能性（如"可坐"、"可推"）。</div>
+  <div class="ref">§1, §2 | [7]</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">E · 模型与工具</div>
+
+<div class="term">
+  <div class="en"><strong>LLM</strong> (Large Language Model)</div>
+  <div class="cn"><strong>大语言模型</strong> — 在互联网规模数据上预训练的语言模型。本文用于：目标选择、情绪评估。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LMM</strong> (Large Multi-modal Model)</div>
+  <div class="cn"><strong>大型多模态模型</strong> — 能同时处理文本和图像等模态的模型。本文用于事件描述（GPT-4o）。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>VLM</strong> (Vision-Language Model)</div>
+  <div class="cn"><strong>视觉-语言模型</strong> — 本文尽量避免使用该缩写（因与 VLMap 混淆）。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LSeg</strong></div>
+  <div class="cn">语言驱动的语义分割模型 — 用于将 RGB 图像编码为视觉-语言特征，嵌入 E2Map 网格。</div>
+  <div class="ref">[28] | §3.1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>CLIP</strong></div>
+  <div class="cn">对比语言-图像预训练模型 — 用于目标选择器中计算物体文本嵌入与视觉特征的相似度。</div>
+  <div class="ref">[24] | Supplementary</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>GPT-4o</strong></div>
+  <div class="cn">OpenAI 多模态模型 — 用作事件描述器（LMM）。</div>
+  <div class="ref">[29]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Llama3</strong></div>
+  <div class="cn">Meta 开源大语言模型 — 用作目标选择器和情绪评估器。</div>
+  <div class="ref">[30]</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">F · 实验场景</div>
+
+<div class="term">
+  <div class="en"><strong>Danger sign</strong></div>
+  <div class="cn"><strong>危险标志</strong> — 静态障碍物场景。环境变化后引入新的障碍物（危险标志），测试适应能力。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Human-wall</strong></div>
+  <div class="cn"><strong>人-墙</strong> — 动态事件场景。人形物体从墙后突然走出，测试对动态事件的响应。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Dynamic door</strong></div>
+  <div class="cn"><strong>动态门</strong> — 动态事件场景。机器人靠近时门意外打开，测试行为调整能力。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+</div>
+
+</body>
+</html>
+, '
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<h1>E2Map 论文术语表</h1>
+<p class="sub">Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models</p>
+<div class="meta">
+  <span>📄 英文 &amp; 中文术语对照</span>
+  <span>🔗 附论文出处</span>
+  <span>🖨️ 可打印</span>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">A · 方法核心</div>
+
+<div class="term">
+  <div class="en"><strong>E2Map</strong> (Experience-and-Emotion Map)</div>
+  <div class="cn"><strong>经验-情绪地图</strong> — 一种空间网格地图，同时捕获环境的视觉-语言特征和智能体对自身经验产生的情绪反应。数学定义为 \(\mathcal{M} \in \mathcal{R}^{\bar{H} \times \bar{W} \times (C_{lang} + C_{emo})}\)。</div>
+  <div class="detail">核心创新点：将 LLM 的通用知识与智能体的真实经验统一锚定到空间地图中，用情绪作为代价函数引导导航规划。</div>
+  <div class="ref">§3.1 | Fig. 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion</strong> (in E2Map context)</div>
+  <div class="cn"><strong>情绪</strong> — 定义为反映智能体为了维持稳态（homeostasis）而如何感知空间的空间范围。被建模为高斯分布的加权求和 \(E(\mathbf{x})=\sum w_{\mathbf{p}_i} \mathcal{N}_{\mathbf{p}_i}(\mathbf{x})\)。</div>
+  <div class="detail">受 Damasio [10] 启发：情绪通过引导避开危险来帮助维持稳态。不是人类情感，而是机器人"空间感受"的量化。</div>
+  <div class="ref">§3.1 | Eq. 1-3</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>One-shot behavior adjustment</strong></div>
+  <div class="cn"><strong>单次经验驱动的行为调整</strong> — 智能体仅基于一次经验即能调整自身行为，无需大量数据或迭代训练。</div>
+  <div class="detail">区别于强化学习的多轮交互。E2Map 更新后，D* 算法立即重规划路径，实现"一次碰撞，永久避开"。</div>
+  <div class="ref">§1 Contributions | Algorithm 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Self-reflection</strong></div>
+  <div class="cn"><strong>自反思</strong> — 机器人利用自身经历（碰撞/意外事件）来修正初始计划的能力。</div>
+  <div class="detail">表 1 中，这是 E2Map 相较于其他方法的独特特性。</div>
+  <div class="ref">Table 1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Stochastic environment</strong></div>
+  <div class="cn"><strong>随机环境</strong> — 包含动态物体和条件变化（如突然开门、人走出墙角）的不确定环境。区别于传统 LLM 方法假设的静态环境。</div>
+  <div class="ref">§1</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">B · 系统组件</div>
+
+<div class="term">
+  <div class="en"><strong>Goal selector</strong></div>
+  <div class="cn"><strong>目标选择器</strong> — 一个 LLM（使用 Llama3），将用户自由形式的语言指令转换为代码，调用目标选择 API 确定目标位置。</div>
+  <div class="detail">通过计算视觉-语言特征与 CLIP 文本嵌入之间的相似度来定位物体。</div>
+  <div class="ref">§3.3 | Supplementary Material</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Event descriptor</strong></div>
+  <div class="cn"><strong>事件描述器</strong> — 一个 LMM（使用 GPT-4o），输入事件前/中/后三张图像，输出该情境的自然语言描述。</div>
+  <div class="detail">采用零样本逐步推理（step-by-step reasoning）：先分述每个场景，再整合为完整解释。</div>
+  <div class="ref">§3.2.1 | Eq. 6</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion evaluator</strong></div>
+  <div class="cn"><strong>情绪评估器</strong> — 一个 LLM（使用 Llama3），基于事件描述的语言输出，评估两个维度的情绪分数并加总。</div>
+  <div class="detail">少样本提示（few-shot prompting），输出 3 分制的 upsetness + guiltiness 评分及原因。</div>
+  <div class="ref">§3.2.2 | Fig. 3 | Eq. 7</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>VLMap</strong> (Visual Language Map)</div>
+  <div class="cn"><strong>视觉语言地图</strong> — 存储像素级视觉-语言特征的空间地图。E2Map 在 VLMap 基础上增加了"情绪通道"。</div>
+  <div class="detail">区别于 VLM (Vision-Language Model)。论文优先使用 LMM 指代多模态模型，用 VLMap 指代视觉语言地图。</div>
+  <div class="ref">Fig. 1 caption | §2.2</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">C · 情绪评估维度</div>
+
+<div class="term">
+  <div class="en"><strong>Upsetness</strong></div>
+  <div class="cn"><strong>受挫程度</strong> — 评估智能体在给定情境中感受到的影响程度（如碰撞、受阻）。</div>
+  <div class="detail">3 分制评分。分值越高表示情境对智能体越不利。受人类回避行为情绪启发 [32]。</div>
+  <div class="ref">§3.2.2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Guiltiness</strong></div>
+  <div class="cn"><strong>内疚程度</strong> — 评估智能体行为对环境造成的影响程度（如机器人撞坏物品）。</div>
+  <div class="detail">3 分制评分。分值越高表示智能体行为对环境负面影响越大。受人类补偿行为情绪启发 [33, 34]。</div>
+  <div class="ref">§3.2.2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Emotion score</strong></div>
+  <div class="cn"><strong>情绪分数</strong> — Upsetness + Guiltiness 两个分数的加总，用于 E2Map 的更新。</div>
+  <div class="detail">\(s_{emo} = s_{upsetness} + s_{guiltiness}\)</div>
+  <div class="ref">§3.2.2</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">D · 数学与算法</div>
+
+<div class="term">
+  <div class="en"><strong>Multivariate Gaussian distribution</strong></div>
+  <div class="cn"><strong>多元高斯分布</strong> — 为每个被占据网格单元定义，用于建模情绪的"空间扩散"效应。</div>
+  <div class="detail">\(\mathcal{N}(\mathbf{x} \mid \bm{\mu}_{\mathbf{p}_i}, \bm{\Sigma}_{\mathbf{p}_i})\)，协方差控制情绪扩散范围。</div>
+  <div class="ref">§3.1 | Eq. 1-2</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Weber–Fechner law</strong></div>
+  <div class="cn"><strong>韦伯-费希纳定律</strong> — 感觉强度随刺激的'对数'增长。E2Map 以此更新高斯分布的协方差。</div>
+  <div class="detail">\(\sigma_{k}^{new}=\sigma_{k}v_k\log(s_{emo}/T)\) — 情绪分数取对数后成比例扩大标准差，模拟人类"情绪越强，影响范围越广"。</div>
+  <div class="ref">§3.2.2 | Eq. 4</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>D* algorithm</strong></div>
+  <div class="cn"><strong>D* 算法</strong> — 动态 A*，一种在部分已知环境中高效的增量式路径规划算法。</div>
+  <div class="detail">E2Map 用情绪值作为路径代价，D* 找到最小代价路径。E2Map 更新后，D* 能高效地增量重规划。</div>
+  <div class="ref">§3.3 | [36]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>MPPI</strong> (Model Predictive Path Integral)</div>
+  <div class="cn"><strong>模型预测路径积分控制</strong> — 一种基于采样的模型预测控制方法，计算控制量以跟随 D* 规划出的路径。</div>
+  <div class="ref">§3.3 | [37]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Homeostasis</strong></div>
+  <div class="cn"><strong>稳态</strong> — 生物体维持内部稳定的机制。在本文中，情绪被定义为帮助维持稳态的空间边界（避害趋利）。</div>
+  <div class="ref">§1 | [10]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Affordance</strong></div>
+  <div class="cn"><strong>可供性</strong> — 环境为智能体提供的行为可能性（如"可坐"、"可推"）。</div>
+  <div class="ref">§1, §2 | [7]</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">E · 模型与工具</div>
+
+<div class="term">
+  <div class="en"><strong>LLM</strong> (Large Language Model)</div>
+  <div class="cn"><strong>大语言模型</strong> — 在互联网规模数据上预训练的语言模型。本文用于：目标选择、情绪评估。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LMM</strong> (Large Multi-modal Model)</div>
+  <div class="cn"><strong>大型多模态模型</strong> — 能同时处理文本和图像等模态的模型。本文用于事件描述（GPT-4o）。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>VLM</strong> (Vision-Language Model)</div>
+  <div class="cn"><strong>视觉-语言模型</strong> — 本文尽量避免使用该缩写（因与 VLMap 混淆）。</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LSeg</strong></div>
+  <div class="cn">语言驱动的语义分割模型 — 用于将 RGB 图像编码为视觉-语言特征，嵌入 E2Map 网格。</div>
+  <div class="ref">[28] | §3.1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>CLIP</strong></div>
+  <div class="cn">对比语言-图像预训练模型 — 用于目标选择器中计算物体文本嵌入与视觉特征的相似度。</div>
+  <div class="ref">[24] | Supplementary</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>GPT-4o</strong></div>
+  <div class="cn">OpenAI 多模态模型 — 用作事件描述器（LMM）。</div>
+  <div class="ref">[29]</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Llama3</strong></div>
+  <div class="cn">Meta 开源大语言模型 — 用作目标选择器和情绪评估器。</div>
+  <div class="ref">[30]</div>
+</div>
+</div>
+
+<div class="letter-group">
+<div class="letter-label">F · 实验场景</div>
+
+<div class="term">
+  <div class="en"><strong>Danger sign</strong></div>
+  <div class="cn"><strong>危险标志</strong> — 静态障碍物场景。环境变化后引入新的障碍物（危险标志），测试适应能力。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Human-wall</strong></div>
+  <div class="cn"><strong>人-墙</strong> — 动态事件场景。人形物体从墙后突然走出，测试对动态事件的响应。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Dynamic door</strong></div>
+  <div class="cn"><strong>动态门</strong> — 动态事件场景。机器人靠近时门意外打开，测试行为调整能力。</div>
+  <div class="ref">§4.1 | Fig. 5</div>
+</div>
+</div>
+
+</body>
+</html>
+], ['\\(', '\\)']], displayMath: [['$', '$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 </head>
 <body>
 <a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">

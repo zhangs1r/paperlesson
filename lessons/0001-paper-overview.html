@@ -30,6 +30,14 @@
   .nav a:hover { text-decoration: underline; color: var(--accent); }
   @media (max-width: 768px) { .key-point { grid-template-columns: 1fr; } }
 </style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
 <body>
 <a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
   ← 返回主页
@@ -98,6 +106,10 @@
 <p>根据神经科学家 Damasio [10] 的研究，<strong>情绪通过引导人类避开曾经遭遇过的危险，在维持稳态方面发挥关键作用</strong>。当我们在一扇门边撞到过人，下次经过那扇门时，我们会不自觉地放慢脚步、提高警惕——这是一种<strong>"情绪记忆"</strong>。</p>
 
 <p>论文提出：<strong>机器人也可以拥有这样的"情绪记忆"</strong>——这就是 E2Map 的核心思想。</p>
+
+<!-- Fig. 1: E2Map Concept -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/concept.png" alt="Fig. 1 E2Map 概念图" style="width:100%;max-width:720px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:1.5rem auto;display:block;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.5rem;margin-bottom:1.5rem;"><strong>图 1</strong> E2Map 概念：将智能体对经验的情绪反应整合到空间地图中，实现单次行为调整</p>
 
 <h2>3. 核心贡献</h2>
 

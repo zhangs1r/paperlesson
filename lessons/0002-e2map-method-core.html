@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+`<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,7 +60,9 @@
   .score-low { color: #721c24; background: #f8d7da; }
   @media (max-width: 768px) { .key-point, .flow, .scenario-card { grid-template-columns: 1fr; } }
 </style>
-</head>
+<script>
+MathJax = {
+  tex: { inlineMath: [['
 <body>
 <a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
   ← 返回主页
@@ -138,6 +139,11 @@
 
 <h2>2. 情绪更新机制</h2>
 
+<!-- Fig. 2: System Architecture -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/e2map_arch.png" alt="Fig. 2 E2Map 系统架构" style="width:100%;max-width:720px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:1.5rem auto;display:block;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.5rem;margin-bottom:1.5rem;"><strong>图 2</strong> 系统概览：(a) E2Map 构建 (b) 目标选择 (c) 规划算法 (d) 事件触发更新与重规划</p>
+
+
 <p>当机器人在导航中遇到事件时，E2Map 通过三个步骤更新：</p>
 
 <div class="flow">
@@ -194,6 +200,10 @@
 </div>
 
 <p>论文使用<strong>少样本提示</strong>（few-shot prompting），给 LLM 提供示例，要求它输出评分及原因。例如：</p>
+
+<!-- Fig. 3: Emotion Evaluator Prompt -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/ee_prompt.png" alt="Fig. 3 情绪评估器提示示例" style="width:100%;max-width:640px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:1.5rem auto;display:block;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.5rem;margin-bottom:1.5rem;"><strong>图 3</strong> 情绪评估器的少样本提示示例：灰色为任务说明，绿色为事件描述，蓝色为评估示例</p>
 
 <div class="quote">
   <strong>事件描述：</strong>"机器人撞到了从墙后走出的人，导致人摔倒。"<br>

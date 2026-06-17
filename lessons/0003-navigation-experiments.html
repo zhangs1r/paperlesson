@@ -61,7 +61,9 @@
   .score-low { color: #721c24; background: #f8d7da; }
   @media (max-width: 768px) { .key-point, .flow, .scenario-card { grid-template-columns: 1fr; } }
 </style>
-</head>
+<script>
+MathJax = {
+  tex: { inlineMath: [['
 <body>
 <a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
   ← 返回主页
@@ -136,6 +138,12 @@ p_agent = Localization(P_0)<br>
 <h2>2. 实验设置</h2>
 
 <h3>2.1 环境</h3>
+
+<!-- Fig. 4: Gazebo Environment -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/209_gazebo.png" alt="Fig. 4a Gazebo 仿真环境" style="width:49%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:0.5rem 0;display:inline-block;vertical-align:top;">
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/209_e2map.png" alt="Fig. 4b 初始 E2Map" style="width:49%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:0.5rem 0;display:inline-block;vertical-align:top;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.3rem;margin-bottom:1.5rem;"><strong>图 4</strong> (a) 使用 3D 扫描仪重建真实环境至 Gazebo 仿真器 (b) 初始 E2Map</p>
+
 <ul style="margin-left:1.2rem; font-size:.9rem;">
   <li><strong>仿真环境</strong>：ROS Gazebo，使用 3D 扫描仪扫描真实会议室并建模仿真</li>
   <li><strong>真实环境</strong>：首尔国立大学会议室，布置沙发、椅子、桌子、冰箱、微波炉</li>
@@ -143,6 +151,15 @@ p_agent = Localization(P_0)<br>
 </ul>
 
 <h3>2.2 三大场景</h3>
+
+<!-- Fig. 5: Three Experimental Scenarios -->
+<p style="text-align:center;margin:1rem 0;">
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/danger_sign.png" alt="Danger Sign" style="width:32%;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/human_wall.png" alt="Human-Wall" style="width:32%;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/dynamic_door.png" alt="Dynamic Door" style="width:32%;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+</p>
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.8rem;margin-bottom:1.5rem;"><strong>图 5</strong> 三个实验场景：危险标志 / 人-墙 / 动态门</p>
+
 
 <div class="scenario-card">
   <div class="card">
@@ -197,6 +214,11 @@ p_agent = Localization(P_0)<br>
 
 <h3>3.2 真实世界结果</h3>
 
+<!-- Fig. 7: Real-world Setup -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/209_realworld.png" alt="Fig. 7 真实世界实验设置" style="width:100%;max-width:640px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:1.5rem auto;display:block;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.5rem;margin-bottom:1.5rem;"><strong>图 7</strong> 首尔国立大学会议室中的真实世界实验设置</p>
+
+
 <table>
   <tr><th>方法</th><th>静态环境</th><th>⚠️ 危险标志</th><th>🚶 人-墙</th></tr>
   <tr><td style="font-weight:700; color:#4361ee;">E2Map（本文方法）</td><td><strong>10/10</strong></td><td><strong>9/10</strong></td><td><strong>9/10</strong></td></tr>
@@ -205,6 +227,12 @@ p_agent = Localization(P_0)<br>
 <p>真实世界结果与仿真高度一致，证明了方法的<strong>可迁移性</strong>和<strong>实用性</strong>。</p>
 
 <h3>3.3 行为调整的可视化</h3>
+
+<!-- Fig. 6: E2Map Update Visualization -->
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/before_e2map_gazebo.png" alt="Fig. 6a 事件前 E2Map" style="width:49%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:0.5rem 0;display:inline-block;vertical-align:top;">
+<img src="../%E8%B5%84%E6%96%99/E2Map%20Experience-and-Emotion%20Map%20for%20Self-Reflective%20Robot%20Navigation%20with%20Language%20Models.assets/after_e2map_gazebo.png" alt="Fig. 6b 事件后 E2Map" style="width:49%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.1);margin:0.5rem 0;display:inline-block;vertical-align:top;">
+<p style="text-align:center;font-size:0.8rem;color:var(--ink-40);margin-top:-0.3rem;margin-bottom:1.5rem;"><strong>图 6</strong> 事件前后 E2Map 的变化：碰撞后墙的情绪影响范围扩大，机器人调整行为保持安全距离</p>
+
 
 <p>论文通过 Fig. 6 展示了关键的可视化结果：</p>
 <ul style="margin-left:1.2rem; font-size:.9rem;">
