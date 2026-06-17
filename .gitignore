@@ -1,0 +1,15 @@
+# Git
+.git/
+
+# System files
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# Logs and temp
+*.log
+*.tmp
+
+# Node (unlikely but just in case)
+node_modules/
