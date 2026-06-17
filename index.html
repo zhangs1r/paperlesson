@@ -406,8 +406,8 @@ const SITE_DATA = {
     shortTitle: "E2Map",
     fullTitle: "E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models",
     mdPath: "资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md",
-    lessonCount: 4,
-    totalDuration: "~70 分钟"
+    lessonCount: 5,
+    totalDuration: "~90 分钟"
   },
   // 论文官网链接 — 后续加新论文时在此添加
   siteLinks: [
@@ -450,6 +450,14 @@ const SITE_DATA = {
       emoji: "🎤", duration: "15 分钟",
       tags: ["汇报", "PPT", "QA"],
       description: "学会如何组织一次完整、清晰、有深度的 E2Map 组会报告。"
+    },
+    {
+      id: "0005", path: "lessons/0005-deep-dive-qa.html",
+      paper: "e2map",
+      title: "深入答疑与对比分析", subtitle: "符号澄清、数学直觉、势场法对比",
+      emoji: "🔍", duration: "20 分钟",
+      tags: ["答疑", "数学", "对比"],
+      description: "回答学习中的真实问题：符号含义、权重倒数、协方差初始化、势场法局部极小值、D*与代价地图关系。"
     }
   ],
   references: [
@@ -466,6 +474,12 @@ const SITE_DATA = {
       title: "E2Map 核心要点",
       emoji: "📝",
       description: "第一篇学习记录：问题、解决方案、实验结果、关键洞察。"
+    },
+    {
+      path: "learning-records/0002-deep-qa-insights.md",
+      title: "E2Map 深入问答",
+      emoji: "📝",
+      description: "第二篇学习记录：符号澄清、权重归一化、各向同性高斯、势场法对比分析。"
     }
   ]
 };
