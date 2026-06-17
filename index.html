@@ -286,7 +286,6 @@
       <a href="#courses">课程</a>
       <a href="#references">参考</a>
       <a href="#records">笔记</a>
-      <a href="资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md" style="font-size:.75rem; color:var(--ink-40);">📄 论文原文</a>
     </nav>
   </div>
 </header>
@@ -379,12 +378,23 @@
   </div>
 </section>
 
+<!-- ─── 论文官网 ─── -->
+<section class="section" id="sitelinks" style="background: var(--paper-light); padding-bottom:var(--space-8);">
+  <div class="inner">
+    <div class="section-header">
+      <h2>🔗 论文官网</h2>
+      <div class="section-divider" style="margin:var(--space-3) auto;"></div>
+      <p>每篇论文的官方项目页与资源链接。</p>
+    </div>
+    <div class="ref-grid" id="siteLinksGrid">
+      <!-- 由 JS 动态渲染 -->
+    </div>
+  </div>
+</section>
+
 <!-- ─── Footer ─── -->
 <footer class="site-footer">
   <p>PaperLesson · 以教学驱动深度学习</p>
-  <p style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--ink-40);">
-    当前论文：<a id="footerPaperLink" href="资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md">E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models</a>
-  </p>
 </footer>
 
 <script>
@@ -399,6 +409,15 @@ const SITE_DATA = {
     lessonCount: 4,
     totalDuration: "~70 分钟"
   },
+  // 论文官网链接 — 后续加新论文时在此添加
+  siteLinks: [
+    {
+      title: "E2Map 项目主页",
+      url: "https://e2map.github.io/",
+      emoji: "🌐",
+      description: "论文原文、代码仓库、补充材料与演示视频"
+    }
+  ],
   lessons: [
     {
       id: "0001", path: "lessons/0001-paper-overview.html",
@@ -519,6 +538,18 @@ function renderRecords(data) {
   `).join('');
 }
 
+function renderSiteLinks(data) {
+  const grid = document.getElementById('siteLinksGrid');
+  if (!grid || !data.siteLinks) return;
+  grid.innerHTML = data.siteLinks.map(s => `
+    <a href="${s.url}" target="_blank" class="ref-card">
+      <span class="emoji">${s.emoji || '🌐'}</span>
+      <h4>${s.title}</h4>
+      <p>${s.description || ''}</p>
+    </a>
+  `).join('');
+}
+
 // ── Init ──
 (async function init() {
   let data = SITE_DATA;
@@ -533,6 +564,7 @@ function renderRecords(data) {
   renderCourses(data);
   renderReferences(data);
   renderRecords(data);
+  renderSiteLinks(data);
 })();
 </script>
 

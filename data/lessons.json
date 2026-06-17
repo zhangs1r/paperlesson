@@ -7,6 +7,14 @@
     "lessonCount": 4,
     "totalDuration": "~70 分钟"
   },
+  "siteLinks": [
+    {
+      "title": "E2Map 项目主页",
+      "url": "https://e2map.github.io/",
+      "emoji": "🌐",
+      "description": "论文原文、代码仓库、补充材料与演示视频"
+    }
+  ],
   "lessons": [
     {
       "id": "0001", "path": "lessons/0001-paper-overview.html", "paper": "e2map",
