@@ -1,13 +1,14 @@
-# E2Map 论文精读 · 组会报告
+# PaperLesson · 论文精读课程
 
-> 📖 **E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models**  
-> 面向组会的论文精读教学项目
+> 📖 **面向组会的论文精读与报告准备**  
+> 从全景概览到组会讲解，每篇论文一套精读课程。
 
 ## 项目简介
 
-本仓库包含对 E2Map 论文的**系统性精读课程**，旨在帮助移动机器人方向的研究者深入理解该论文的核心思想、技术细节和实验验证，并**准备一场完整的组会报告**。
+本仓库是一个**论文精读教学空间**，旨在帮助移动机器人 / AI 方向的研究者深入理解论文核心思想、技术细节和实验验证，并**准备完整的组会报告**。
 
-论文的核心贡献是提出**经验-情绪地图（E2Map）**——一种将 LLM 知识与机器人真实经验整合的空间表征，受人类情绪机制启发，使机器人能在随机环境中以**单次经验驱动**的方式自主调整行为。
+目前正在精读：
+- **E2Map**: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models
 
 ## 仓库结构
 
@@ -82,10 +83,22 @@ start lessons\0001-paper-overview.html   # 第1课
 
 ## 📝 如何添加新课程
 
-1. 创建新的课程 HTML 文件到 `lessons/` 目录，引用 `../shared/theme.css` 保持风格统一
-2. 编辑 `data/lessons.json`，在 `lessons` 数组中添加新条目（含路径、标题、标签、描述）
-3. 更新 `index.html` 中的 `SITE_DATA` 对象（添加对应课程条目）
-4. 运行 `git add -A && git commit -m "feat: add lesson X"` 提交
+## 📝 如何添加新论文 + 新课
+
+### 场景 A：为当前论文加新课
+1. 创建 `lessons/0005-your-lesson.html`，`<head>` 中引用 `<link rel="stylesheet" href="../shared/theme.css">`
+2. 编辑 `data/lessons.json`，在 `lessons` 数组中添加新条目（含 `paper: "e2map"` 字段）
+3. 同时更新 `index.html` 中的 `SITE_DATA.lessons` 数组
+4. 提交推送即可
+
+### 场景 B：添加全新的论文
+1. 将新论文的 MD 文件放入 `资料/` 目录
+2. 在 `data/lessons.json` 和 `index.html` 的 `SITE_DATA` 中：
+   - 修改 `currentPaper` 对象指向新论文
+   - 在 `references` 中添加新论文原文的引用
+   - 新建该论文对应的 `lessons` 条目
+3. 为新课编号时建议用论文前缀，如 `e2map-0001`、`newpaper-0001`
+4. 推送后主页自动更新为显示新论文
 
 ## 引用
 

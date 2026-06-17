@@ -286,7 +286,7 @@
       <a href="#courses">课程</a>
       <a href="#references">参考</a>
       <a href="#records">笔记</a>
-      <a href="https://e2map.github.io/" target="_blank" style="font-size:.75rem; color:var(--ink-40);">论文原文 ↗</a>
+      <a href="资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md" style="font-size:.75rem; color:var(--ink-40);">📄 论文原文</a>
     </nav>
   </div>
 </header>
@@ -294,10 +294,10 @@
 <!-- ─── Hero ─── -->
 <section class="hero">
   <div class="inner">
-    <div class="badge">组会精读课程 · 共 4 课</div>
-    <h1>E2Map <span class="accent">论文精读</span></h1>
-    <p class="subtitle">
-      Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models
+    <div class="badge" id="paperBadge">当前论文 · E2Map</div>
+    <h1>Paper<span class="accent">Lesson</span></h1>
+    <p class="subtitle" id="paperSubtitle">
+      面向组会报告的论文精读课程 — 从全景概览到组会讲解全覆盖
     </p>
     <div class="meta-info">
       <span>⏱ 总时长 ~70 分钟</span>
@@ -333,7 +333,7 @@
     <div class="section-header">
       <h2>📚 精读课程</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p>从全景概览到组会报告，逐步深入理解 E2Map 论文的每一层。</p>
+      <p id="courseIntro">每篇论文一套精读课程，逐步深入理解核心内容。</p>
     </div>
 
     <div class="course-list" id="courseList">
@@ -382,15 +382,27 @@
 <!-- ─── Footer ─── -->
 <footer class="site-footer">
   <p>PaperLesson · 以教学驱动深度学习</p>
-  <p style="margin-top:var(--space-2);">论文原文：<a href="https://e2map.github.io/" target="_blank">E2Map Project Page</a></p>
+  <p style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--ink-40);">
+    当前论文：<a id="footerPaperLink" href="资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md">E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models</a>
+  </p>
 </footer>
 
 <script>
 // ── Inline data (fallback when fetch fails, e.g. GitHub Pages) ──
 const SITE_DATA = {
+  // 当前正在学习的论文 — 改这里就能切换主页显示的论文
+  currentPaper: {
+    id: "e2map",
+    shortTitle: "E2Map",
+    fullTitle: "E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models",
+    mdPath: "资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md",
+    lessonCount: 4,
+    totalDuration: "~70 分钟"
+  },
   lessons: [
     {
       id: "0001", path: "lessons/0001-paper-overview.html",
+      paper: "e2map",
       title: "论文全景概览", subtitle: "背景、动机与贡献",
       emoji: "📖", duration: "15 分钟",
       tags: ["背景", "动机", "贡献"],
@@ -398,6 +410,7 @@ const SITE_DATA = {
     },
     {
       id: "0002", path: "lessons/0002-e2map-method-core.html",
+      paper: "e2map",
       title: "E2Map 核心技术", subtitle: "地图构建与情绪建模",
       emoji: "🔧", duration: "20 分钟",
       tags: ["方法", "数学", "情绪建模"],
@@ -405,6 +418,7 @@ const SITE_DATA = {
     },
     {
       id: "0003", path: "lessons/0003-navigation-experiments.html",
+      paper: "e2map",
       title: "导航系统与实验分析", subtitle: "系统流程与三场景评估",
       emoji: "🤖", duration: "20 分钟",
       tags: ["系统", "实验", "结果"],
@@ -412,6 +426,7 @@ const SITE_DATA = {
     },
     {
       id: "0004", path: "lessons/0004-presentation-guide.html",
+      paper: "e2map",
       title: "组会报告组织与讲解", subtitle: "PPT 结构、讲解词与 QA 准备",
       emoji: "🎤", duration: "15 分钟",
       tags: ["汇报", "PPT", "QA"],
@@ -420,17 +435,26 @@ const SITE_DATA = {
   ],
   references: [
     {
-      path: "reference/glossary.html", title: "论文术语表",
+      path: "资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md",
+      title: "📄 E2Map 论文原文",
+      emoji: "📄",
+      description: "中英双语对照全文，含术语约定与图片资源。"
+    },
+    {
+      path: "reference/glossary.html",
+      title: "论文术语表",
       emoji: "📖",
       description: "50+ 中英对照术语，覆盖方法、系统组件、数学、实验场景。"
     },
     {
-      path: "RESOURCES.md", title: "拓展资源",
+      path: "RESOURCES.md",
+      title: "拓展资源",
       emoji: "📚",
       description: "论文、代码、参考文献、社区资源汇总。"
     },
     {
-      path: "MISSION.md", title: "学习使命",
+      path: "MISSION.md",
+      title: "学习使命",
       emoji: "🎯",
       description: "本教学项目的目标、学习路径和成功标准。"
     }
@@ -446,6 +470,23 @@ const SITE_DATA = {
 };
 
 // ── Render ──
+function renderHero(data) {
+  const p = data.currentPaper;
+  if (!p) return;
+  const badge = document.getElementById('paperBadge');
+  const subtitle = document.getElementById('paperSubtitle');
+  if (badge) badge.textContent = `当前论文 · ${p.shortTitle}`;
+  if (subtitle) subtitle.textContent = p.fullTitle;
+
+  // Update stats
+  const statNums = document.querySelectorAll('.stat .num');
+  const statLabels = document.querySelectorAll('.stat .label');
+  if (statNums.length >= 3) {
+    statNums[0].textContent = p.lessonCount || data.lessons.filter(l => l.paper === p.id).length;
+    statLabels[0].textContent = '精读课程';
+  }
+}
+
 function renderCourses(data) {
   const list = document.getElementById('courseList');
   if (!list) return;
@@ -506,6 +547,7 @@ function renderRecords(data) {
       if (json && json.lessons) data = json;
     }
   } catch(e) { /* use inline fallback */ }
+  renderHero(data);
   renderCourses(data);
   renderReferences(data);
   renderRecords(data);
