@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十二讲 · 词袋模型与字典结构 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十二讲 · 回环检测 / Lesson 2</div>
+      <h1>第十二讲 · 词袋模型与字典结构</h1>
+      <p class="subtitle">从“图像为什么不能直接相减”出发，一步步走到 BoW、K-means、k 叉树字典和 TF-IDF。👜</p>
+      <div class="hero-meta">
+        <span>🌲 理解字典为什么要做成树</span>
+        <span>🔗 连接第七讲 ORB 特征</span>
+        <span>📎 机器学习和 SLAM 的第一次正面接触</span>
+      </div>
+      <div class="toc">
+        <a href="#bow">BoW 直觉</a>
+        <a href="#dictionary">字典如何训练</a>
+        <a href="#tfidf">TF-IDF</a>
+        <a href="#score">相似度怎么来</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="bow">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把“图像由像素组成”的直觉，升级成“图像也可以被一袋视觉单词描述”的直觉，并理解为什么这种描述更适合回环检索。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第七讲你已经学过 ORB 特征；这一课等于把 ORB 从“几何匹配工具”重新变成“外观检索词元”。</p>
+        </div>
+      </div>
+      <p>书里先问了一个非常好的问题：为什么不能直接用 $ \|A-B\| $ 比较两张图像？答案其实你在第八讲直接法里已经感受过了：</p>
+      <ul>
+        <li>光照一变，同一地点也可能差很多</li>
+        <li>视角略有变化，同一物体在像素上就会平移</li>
+      </ul>
+      <p>所以我们不想直接比较像素，而想比较更稳定的“局部概念”。这就是词袋模型的出发点：<strong>一张图像不是一整块矩阵，而是一袋“出现过哪些视觉单词”的统计描述</strong>。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{图像} \xrightarrow{\text{提特征}} \text{局部描述子} \xrightarrow{\text{量化}} \text{视觉单词} \xrightarrow{\text{统计}} \mathbf{v}_A $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="dictionary">
+      <h2>1. 字典是怎么来的：本质上就是聚类</h2>
+      <p>视觉单词不是人工命名出来的，而是从大量局部特征里聚类得到的。书里选用 K-means 来解释，这是最适合入门的切口。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第 1 步</h4>
+          <p>从很多图像里提特征描述子，凑成一个大的样本池。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第 2 步</h4>
+          <p>用 K-means 把这些描述子聚成若干类。每一类的中心就近似代表一个视觉单词。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第 3 步</h4>
+          <p>以后新来的特征，只要找到它最接近哪个聚类中心，就等于找到了它属于哪个单词。</p>
+        </div>
+      </div>
+      <p>问题马上又来了：如果单词数是几千甚至几万，每个特征都和所有单词暴力比一遍，查询仍然很贵。于是书里引出了 <strong>k 叉树字典</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/7f5955fbe6506cd16c4b98da7ac832aa472ab8e84de0cab0534ac7c550b8f2a1.jpg" alt="图 12-4 k 叉树字典示意图">
+        <figcaption>图 12-4 k 叉树字典示意图。逐层聚类、逐层下探，就能把全量搜索变成层级搜索。</figcaption>
+      </figure>
+      <p>做法可以概括为：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{全部样本} \xrightarrow{K\text{-means}} k\text{ 个簇} \xrightarrow{\text{对每个簇递归聚类}} \text{深度 } d \text{ 的 } k\text{ 叉树} $$</div>
+      </div>
+      <p>这样一个深度为 $d$、每层分支数为 $k$ 的树，最多可容纳 $k^d$ 个叶子单词。查询时你只需逐层比较，而不是和所有叶子全比。</p>
+    </section>
+
+    <section class="section-card" id="tfidf">
+      <h2>2. TF-IDF 为什么会出现在回环检测里</h2>
+      <p>如果所有单词都一视同仁，那些“到处都出现”的单词会冲淡真正有区分性的信号。于是词袋模型借用了文本检索里非常经典的 TF-IDF 权重。</p>
+      <div class="formula-box">$$ \mathrm{IDF}_i = \log \frac{n}{n_i}, \qquad \mathrm{TF}_i = \frac{n_i}{n}, \qquad \eta_i = \mathrm{TF}_i \cdot \mathrm{IDF}_i. \tag{12.5-12.7} $$</div>
+      <p>你可以把它记成一句大白话：</p>
+      <ul>
+        <li><strong>TF 高</strong>：这个单词在当前图里经常出现，说明它对当前图很重要</li>
+        <li><strong>IDF 高</strong>：这个单词在整个字典里不常见，说明它更有区分力</li>
+      </ul>
+      <p>于是图像 $A$ 不再只是一个单词集合，而是一个稀疏加权向量：</p>
+      <div class="formula-box">$$ \mathbf{v}_A = \{(w_1,\eta_1),(w_2,\eta_2),\dots,(w_N,\eta_N)\}. \tag{12.8} $$</div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/470be3b7b78da2dc530cc4ecf5338ec48806bba98100c2fbdfe03ebdd809dc0d.jpg" alt="图 12-5 十张演示图像">
+        <figcaption>图 12-5 书中用来演示的小样本图像集合。它故意让第 1 张和第 10 张来自相似地点，好验证词袋是不是能把它们拉近。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="score">
+      <h2>3. 有了向量之后，相似度怎么定义</h2>
+      <p>这一步其实就回到了向量空间。书里给了一个基于 $L_1$ 的评分思路。你不必死记每个常数项，真正该记的是：<strong>BoW 把图像相似性问题，改写成了稀疏向量相似性问题</strong>。</p>
+      <div class="formula-box">$$ s(\mathbf{v}_A,\mathbf{v}_B) \sim \|\mathbf{v}_A-\mathbf{v}_B\|_1 \quad \text{或其加权变体}. \tag{12.9} $$</div>
+      <p>一旦写成向量，检索、排序、数据库查询都会更方便。这就是 BoW 在回环检测里如此耐用的根本原因。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么词袋里“单词顺序”通常不重要？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，这正是 Bag-of-Words 里的 Bag 含义：关心的是是否出现及出现多少，而不是局部特征排列顺序。" onclick="lessonKit.answer(this, 'quiz-0070')">因为它关心的是有无与频率，而不是先后顺序</button>
+          <button data-correct="no" data-explanation="特征当然有坐标，只是在 BoW 这一步有意忽略了它们。" onclick="lessonKit.answer(this, 'quiz-0070')">因为视觉特征没有坐标</button>
+          <button data-correct="no" data-explanation="K-means 只是聚类，不会保存图像里的排列顺序。" onclick="lessonKit.answer(this, 'quiz-0070')">因为顺序会自动被 K-means 保存</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0070"></div>
+      </div>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>词袋的长处</h4>
+          <p>速度快、可检索、可数据库化，而且比直接比像素更抗小视角和亮度变化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>词袋的短处</h4>
+          <p>它弱化了空间布局信息，所以容易把“长得像但不是同地”的场景混淆起来，后面常需要几何验证。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>如果你把这课吃透了，后面看到 DBoW、FAB-MAP、闭环词典这些名词就不会慌，因为它们都绕不过三个核心动作：<strong>聚类成词、统计成向量、按向量相似度检索</strong>。</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说视觉单词不是“某一个特征点”，而是“一类相近特征的代表”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为单词来自聚类中心，它对应的是一整个特征簇，而不是单张图里的某个孤立特征点。</div>
+            </details>
+          </li>
+          <li>
+            如果把字典做得特别小，会发生什么问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>许多本来应当区分开的特征会被量化到同一单词里，导致图像描述过粗，相似性判断不够敏感。</div>
+            </details>
+          </li>
+          <li>
+            为什么 k 叉树字典比把所有单词排成一个长列表更适合在线查询？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它把一次全量比较变成了逐层下探的层级搜索，复杂度显著下降，更适合大词典。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0069-第十二讲-回环检测的意义与评估.html">← 回环检测的意义与评估</a>
+        <a class="next" href="0071-第十二讲-DBoW实践与工程经验.html">DBoW 实践与工程经验 →</a>
+      </div>
+      <p class="foot-note">从这里开始，回环检测第一次真正拥有了“数据结构”和“统计表示” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

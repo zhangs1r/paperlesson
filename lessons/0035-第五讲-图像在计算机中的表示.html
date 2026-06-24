@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 图像在计算机中的表示 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 4</div>
+      <h1>第五讲 · 图像在计算机中的表示</h1>
+      <p class="subtitle">到这里我们从几何世界转进程序世界：前面几节都在谈“像素代表什么”，这一节开始谈“像素在内存里到底长什么样”。💻</p>
+      <div class="hero-meta">
+        <span>🔗 承接相机模型与深度来源</span>
+        <span>🧠 为下一节 OpenCV 实操打底</span>
+        <span>🗺️ 也是 RGB-D 点云拼接的数据入口</span>
+      </div>
+      <div class="toc">
+        <a href="#gray">灰度图与量化</a>
+        <a href="#coord">像素坐标系</a>
+        <a href="#channel">深度图与彩色图</a>
+        <a href="#mat">OpenCV 的 cv::Mat</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="gray">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>为什么这节课很关键</h4>
+          <p>前面我们一直把图像当成几何测量面，但程序不会直接操作“几何平面”，它只会操作内存中的字节。真正写代码时，像素、行列、通道、步长这些细节一错，后面算法就全歪。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>上一节说像素能否带深度，决定了相机类型；下一节就要用 OpenCV 真的去读这些像素。第十三讲把 RGB-D 图像变点云时，也正是从这些字节数组里逐个取出颜色和深度。</p>
+        </div>
+      </div>
+      <p>书里这部分讲得很朴素，但很对：我们每天看到的是照片，计算机看到的是<strong>由像素组成的数值矩阵</strong>。所以第一件事是建立“图像 = 数组 / 矩阵”的直觉。</p>
+      <div class="formula-box">$$ \boldsymbol{I}(x,y) \in \mathbb{R}^{w\times h}. $$</div>
+      <p>当然，真正机器里不会放连续实数。常见灰度图把亮度量化到 $0 \sim 255$，也就是一个字节：</p>
+      <pre><code>unsigned char image[480][640];</code></pre>
+      <p>你可以把这句理解成：一张 640 列、480 行的二维表格，每个格子里放一个 8 位整数。</p>
+      <div class="callout">
+        <h4>这里有一个初学者高频误区</h4>
+        <p><code>image[480][640]</code> 不是“宽 480、高 640”，而是“480 行、640 列”。在图像语境里，行对应高度，列对应宽度。这个顺序和你平时口头说的“宽 × 高”正好反着写。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="coord">
+      <h2>1. 像素坐标系：为什么总是先写 y 再写 x</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/7b5b39e120abc720a746547e3102d10114bce375beb08d4831d565084b53a3a2.jpg" alt="图 5-8 图像坐标系">
+        <figcaption>图 5-8 非常值得多看一眼。它把“程序里的行列”和“几何里的像素坐标”对上了：原点在左上角，向右是列数 / 宽度，向下是行数 / 高度。</figcaption>
+      </figure>
+      <p>在图像里，我们通常说像素坐标为 $(x,y)$ 或 $(u,v)$，但访问数组时却常写成：</p>
+      <pre><code>unsigned char pixel = image[y][x];</code></pre>
+      <p>这不是编程语言故意为难人，而是因为数组索引本来就是先选第几行，再选这一行里的第几列。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>几何表达</h4>
+          <p>$(x,y)$ 强调“横坐标、纵坐标”，更像数学与图像几何里的说法。</p>
+        </div>
+        <div class="mini-card">
+          <h4>程序访问</h4>
+          <p><code>[row][col]</code> 强调“第几行、第几列”，因此常写作 <code>[y][x]</code>。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>快速避坑</h3>
+        <p>为什么很多图像代码会让你觉得“坐标顺序总在打架”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。几何世界更关心横纵坐标，程序世界更关心行列存储，所以同一个点会同时出现 (x,y) 和 [y][x] 这两种写法。" onclick="lessonKit.answer(this, 'quiz-0035-a')">因为几何坐标和数组索引关注的维度顺序不同</button>
+          <button data-correct="no" data-explanation="这不是因为 OpenCV 自动做了坐标镜像。" onclick="lessonKit.answer(this, 'quiz-0035-a')">因为 OpenCV 默认把图像左右翻转了</button>
+          <button data-correct="no" data-explanation="字节序和这里的行列顺序不是一个问题。" onclick="lessonKit.answer(this, 'quiz-0035-a')">因为深度图是大端存储</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0035-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="channel">
+      <h2>2. 不同图像类型：灰度图、深度图、彩色图其实差在哪</h2>
+      <p>灰度图只有一个亮度值，所以一个像素通常 1 字节就够。深度图不同，它存的是“离相机多远”，尤其 RGB-D 常以毫米为单位，这就很快超过 255 了，所以通常会用 16 位整数：</p>
+      <pre><code>unsigned short depth[480][640];</code></pre>
+      <p>这也是 OCR 原文里容易看乱的一点：不是“65536 米”，而是通常表示 $0 \sim 65535$ 这样的整数范围。若按毫米计，差不多能覆盖几十米量级，足够室内 RGB-D 传感器使用。</p>
+      <p>彩色图则需要多个通道。OpenCV 默认采用 <strong>BGR</strong> 顺序，而不是很多同学脑中更自然的 RGB：</p>
+      <table>
+        <thead>
+          <tr><th>图像类型</th><th>每像素通道</th><th>常见数据类型</th><th>典型用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>灰度图</td><td>1</td><td>8 位无符号整数</td><td>亮度、边缘、光度处理</td></tr>
+          <tr><td>深度图</td><td>1</td><td>16 位无符号整数</td><td>距离、反投影、点云</td></tr>
+          <tr><td>彩色图</td><td>3</td><td>8 位无符号整数 × 3</td><td>颜色、特征、纹理</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <h4>BGR 顺序为什么重要</h4>
+        <p>因为你后面写点云颜色、保存图像、做颜色转换时，若默认脑补成 RGB，就会出现“颜色全怪了但程序又不报错”的那种最烦人的错误。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="mat">
+      <h2>3. OpenCV 的 <code>cv::Mat</code>：图像不只是像素值，还有布局信息</h2>
+      <p>书里进入 OpenCV 时没有直接扑向 API，而是先解释 <code>cv::Mat</code> 背后的成员含义，这是非常值得保留的。因为一张图除了像素数据，还带着关于“怎么解释这些数据”的元信息。</p>
+      <table>
+        <thead>
+          <tr><th>成员</th><th>含义</th><th>你实际会怎么用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>rows</code></td><td>行数 / 高度</td><td>循环 y 方向时用</td></tr>
+          <tr><td><code>cols</code></td><td>列数 / 宽度</td><td>循环 x 方向时用</td></tr>
+          <tr><td><code>channels()</code></td><td>通道数</td><td>判断灰度还是彩色</td></tr>
+          <tr><td><code>data</code></td><td>底层数据首地址</td><td>快速访问原始字节</td></tr>
+          <tr><td><code>step</code></td><td>每行实际占多少字节</td><td>做指针偏移时特别关键</td></tr>
+          <tr><td><code>type()</code></td><td>数据类型编码</td><td>确认是 <code>CV_8UC1</code> 还是 <code>CV_16UC1</code> 等</td></tr>
+        </tbody>
+      </table>
+      <p>对像素级循环而言，书里推荐的模式是先拿到一行指针，再在行内按列访问。这比反复调用高层接口更直接，也更接近你后面点云拼接时的访问风格。</p>
+      <div class="callout">
+        <h4>和下一节、下一讲的联系</h4>
+        <p>下一节 OpenCV 实操会真的用 <code>imread</code>、<code>ptr&lt;&gt;</code>、<code>clone</code> 等接口；再往后第 5.4 节拼接点云时，颜色图和深度图都会靠这种底层访问逐像素取值。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>图像是矩阵</h4>
+          <p>程序里处理的不是“照片感觉”，而是像素数组和相关元数据。</p>
+        </div>
+        <div class="mini-card">
+          <h4>行列别写反</h4>
+          <p>几何坐标常写 $(x,y)$，数组索引常写 <code>[y][x]</code>。</p>
+        </div>
+        <div class="mini-card">
+          <h4>类型影响算法</h4>
+          <p>灰度、彩色、深度图的数据宽度与通道数都不同，访问方式也要跟着变。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么深度图常用 16 位整数，而灰度图常用 8 位整数？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为灰度只需表示亮度，0 到 255 通常够用；深度值常以毫米计，量程往往达到数米到十几米，8 位很快不够，所以常用 16 位整数存储。</div>
+            </details>
+          </li>
+          <li>
+            为什么程序里访问像素时常写成 <code>image[y][x]</code>？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为二维数组的访问顺序是先行后列，而在图像里 y 对应行、x 对应列。所以几何坐标与数组访问顺序并不完全一致。</div>
+            </details>
+          </li>
+          <li>
+            OpenCV 默认 BGR 顺序这件事，会在哪类任务里特别容易埋坑？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>在颜色可视化、颜色空间转换、点云颜色赋值、保存和读取不同库之间的数据交换时都很容易出错。因为程序能跑，但颜色会悄悄错掉。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0034-第五讲-双目与RGB-D相机.html">← 双目与 RGB-D 相机</a>
+        <a class="next" href="0036-第五讲-OpenCV图像操作实践.html">OpenCV 图像操作实践 →</a>
+      </div>
+      <p class="foot-note">会看公式只是开始，真正落到代码里时，像素、通道、步长这些细节才是每天会碰到的手感 ✨</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

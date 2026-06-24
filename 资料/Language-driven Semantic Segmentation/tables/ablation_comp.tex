@@ -1,0 +1,19 @@
+\scalebox{0.90}{
+\begin{tabular}{c|c|c|c|c}
+\toprule 
+Method& Backbone &Text Encoder&pixAcc [\%]&mIoU [\%] \\
+\midrule\midrule
+OCNet& ResNet101 &-&-& 45.45 \\
+ACNet& ResNet101 &-&81.96& 45.90 \\
+DeeplabV3& ResNeSt101 &-&82.07& 46.91 \\
+DPT&ViT-L/16&-&\textbf{82.70}&\textbf{47.63} \\
+\midrule
+\methodname{}&ViT-L/16&ViT-B/32&82.46&46.28 \\
+\methodname{}&ViT-L/16&RN$50\times16$&\textbf{82.78}&\textbf{47.25} \\
+\bottomrule
+\end{tabular}
+}
+\caption{Comparison of semantic segmentation results on the ADE20K validation
+set. For \methodname{}, we conduct experiments with fixed text encoders of ViT-B/32 and RN$50\times16$ CLIP pretrained models.}
+
+

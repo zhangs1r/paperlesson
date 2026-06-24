@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · ICP 理论与实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 7</div>
+      <h1>ICP 理论与实践</h1>
+      <p class="subtitle">到这一步，我们来到第七讲信息量最充足的一条路线：两帧都能给出 3D 点。于是问题不再是“怎么从像素撑起深度”，而是“如何把两团三维点刚体对齐”。这就是 ICP 在本书里的角色。🔄</p>
+      <div class="hero-meta">
+        <span>☁️ 和第五讲 RGB-D / 点云实践直接相连</span>
+        <span>🧮 与第六讲优化、第四讲李代数继续联动</span>
+        <span>🗺️ 为第九讲局部地图与后续稠密建图打基础</span>
+      </div>
+      <div class="toc">
+        <a href="#problem">3D-3D 问题到底在解什么</a>
+        <a href="#svd">SVD 解法怎么一步步来</a>
+        <a href="#practice">实践代码应该怎么看</a>
+        <a href="#nonlinear">非线性优化版 ICP</a>
+        <a href="#mix">它怎样和 PnP 混合使用</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="problem">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>理解带匹配关系的 3D-3D 位姿估计为何比 2D-2D、3D-2D 更“信息充足”，并掌握书里给出的两种求法：SVD 闭式解与李代数优化解。</p>
+        </div>
+        <div class="callout">
+          <h4>先把一个误区拨正</h4>
+          <p>本书这里说的 ICP，是“匹配点已知”的 3D-3D 位姿估计，而不是激光 SLAM 里那种需要反复找最近邻配对的完整版 ICP。这里的问题比很多人印象里简单得多。</p>
+        </div>
+      </div>
+      <p>设两组配对好的三维点为 $\{p_i\}$ 和 $\{p_i'\}$，我们要找刚体变换 $(R,t)$ 使得：</p>
+      <div class="formula-box">$$
+      p_i = Rp_i' + t.
+      $$</div>
+      <p>和 PnP 最大的区别在于：这里完全不需要再经过相机投影模型。换句话说，<strong>ICP 讨论的是三维空间里的刚体对齐问题</strong>，它既可以出现在视觉 RGB-D 场景，也可以出现在激光点云场景。</p>
+    </main>
+
+    <section class="section-card" id="svd">
+      <h2>1. SVD 解法为什么这么漂亮</h2>
+      <p>书里先给出了标准的最小二乘目标：</p>
+      <div class="formula-box">$$
+      \min_{R,t}
+      \frac{1}{2}
+      \sum_{i=1}^{n}
+      \|p_i - (Rp_i' + t)\|_2^2.
+      \tag{7.49}
+      $$</div>
+      <p>最巧妙的一步，是引入两组点的质心：</p>
+      <div class="formula-box">$$
+      p = \frac{1}{n}\sum_{i=1}^{n} p_i,\qquad
+      p' = \frac{1}{n}\sum_{i=1}^{n} p_i'.
+      \tag{7.50}
+      $$</div>
+      <p>然后把每个点改写成“质心 + 去质心偏移”。这样一拆，目标函数就会自然分裂成两部分：一部分只和旋转 $R$ 有关，另一部分在 $R$ 已知后能直接给出平移：</p>
+      <div class="formula-box">$$
+      t^* = p - Rp'.
+      \tag{7.53}
+      $$</div>
+      <p>于是整个 ICP 变成一条非常清楚的三步走：</p>
+      <div class="formula-box flow-formula">算质心 → 去质心 → 先解旋转，再回代解平移</div>
+
+      <h3>1.1 真正需要 SVD 的地方在哪</h3>
+      <p>定义去质心点：</p>
+      <div class="formula-box">$$
+      q_i = p_i - p,\qquad q_i' = p_i' - p'.
+      $$</div>
+      <p>构造矩阵：</p>
+      <div class="formula-box">$$
+      W = \sum_{i=1}^{n} q_i q_i'^T.
+      \tag{7.56}
+      $$</div>
+      <p>对 $W$ 做奇异值分解：</p>
+      <div class="formula-box">$$
+      W = U\Sigma V^T.
+      \tag{7.57}
+      $$</div>
+      <p>若 $W$ 满秩，则最优旋转为：</p>
+      <div class="formula-box">$$
+      R = UV^T.
+      \tag{7.58}
+      $$</div>
+      <p>这就是书里 SVD 解法的精华。它的魅力在于：不需要迭代，不需要初值，不需要担心陷入局部极小，直接把解析解端出来。</p>
+    </section>
+
+    <section class="section-card" id="practice">
+      <h2>2. 代码里最容易看漏的三个点</h2>
+      <pre><code>Point3f p1, p2;
+for (int i = 0; i &lt; N; i++) {
+    p1 += pts1[i];
+    p2 += pts2[i];
+}
+p1 /= N; p2 /= N;
+
+Eigen::Matrix3d W = Eigen::Matrix3d::Zero();
+for (int i = 0; i &lt; N; i++) {
+    W += Eigen::Vector3d(q1[i].x, q1[i].y, q1[i].z) *
+         Eigen::Vector3d(q2[i].x, q2[i].y, q2[i].z).transpose();
+}
+
+Eigen::JacobiSVD&lt;Eigen::Matrix3d&gt; svd(W, Eigen::ComputeFullU | Eigen::ComputeFullV);
+Eigen::Matrix3d R_ = svd.matrixU() * svd.matrixV().transpose();
+Eigen::Vector3d t_ = Eigen::Vector3d(p1.x, p1.y, p1.z) - R_ * Eigen::Vector3d(p2.x, p2.y, p2.z);</code></pre>
+      <p>这段代码最容易被粗略扫过去，但有三个细节很值得你盯住：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>先去质心</h4>
+          <p>因为这样才能把平移从误差里干净地分离出去。</p>
+        </div>
+        <div class="mini-card">
+          <h4>W 的定义不要写反</h4>
+          <p>点集顺序和你约定的变换方向一致，否则最后得到的是反方向位姿。</p>
+        </div>
+        <div class="mini-card">
+          <h4>输出时要特别留意坐标变换方向</h4>
+          <p>书里也专门提醒：这里的 3D-3D 变换方向和前面 PnP 的写法相反，很容易搞混。</p>
+        </div>
+      </div>
+      <p>这一点和第三讲、第四讲一直强调的坐标系意识完全一致。很多“算法错了”的锅，其实不是算法错，而是你把 $T_{12}$ 和 $T_{21}$ 弄反了。</p>
+    </section>
+
+    <section class="section-card" id="nonlinear">
+      <h2>3. 非线性优化版 ICP：为什么结果几乎和 SVD 一样</h2>
+      <p>书里继续给出了李代数形式的 ICP 目标：</p>
+      <div class="formula-box">$$
+      \min_{\xi}
+      \frac{1}{2}
+      \sum_{i=1}^{n}
+      \|p_i - \exp(\xi^\wedge)p_i'\|_2^2.
+      \tag{7.59}
+      $$</div>
+      <p>单个误差对位姿的导数是：</p>
+      <div class="formula-box">$$
+      \frac{\partial e}{\partial \delta \xi}
+      = -\left(\exp(\xi^\wedge)p_i'\right)^\odot.
+      \tag{7.60}
+      $$</div>
+      <p>这套写法和上一课 PnP 的 BA 风格非常统一：同样是李代数位姿、同样是 g2o 边、同样是 LM 迭代。差别只是观测边从 2D 重投影误差，换成了 3D 坐标误差。</p>
+      <p>但书里实验结果也告诉你一个很重要的工程结论：<strong>对于“匹配关系已知”的 ICP，SVD 通常已经给出解析最优解，所以再做非线性优化，结果往往几乎不变</strong>。</p>
+      <p>这不是说优化没意义，而是说你要知道什么时候问题已经足够简单，什么时候优化只是复核而不是救命。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么这一节的非线性优化结果会和 SVD 结果几乎一样？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为这里讨论的是已知匹配关系的 3D-3D 刚体对齐，SVD 本身已经给出了该最小二乘问题的解析解。" onclick="lessonKit.answer(this, 'quiz-0052-a')">因为 SVD 已经给出了这个问题的解析最优解</button>
+          <button data-correct="no" data-explanation="优化不是因为深度图没用，而是看问题是否已经有解析解。" onclick="lessonKit.answer(this, 'quiz-0052-a')">因为 RGB-D 场景里根本不需要优化</button>
+          <button data-correct="no" data-explanation="恰恰相反，已知匹配时 ICP 才变得简单。" onclick="lessonKit.answer(this, 'quiz-0052-a')">因为 ICP 在匹配已知时最容易陷入局部极小</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0052-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="mix">
+      <h2>4. 为什么工程里常把 ICP 和 PnP 混着用</h2>
+      <p>原书最后一段非常有工程味：现实里的 RGB-D 并不完美，有些特征有深度，有些没有；有些深度靠谱，有些深度噪声大。所以最实用的思路并不是死守一种误差，而是：</p>
+      <div class="formula-box flow-formula">深度已知的特征 → 用 3D-3D 误差<br>深度未知的特征 → 用 3D-2D 重投影误差</div>
+      <p>这样就能把 ICP 和 PnP 放到同一个优化框架里。这件事和第六讲的总框架完全一致：只要能写出误差项和雅可比，就能把各种观测拼进同一个最小二乘问题。</p>
+      <p>这也是第九讲局部地图版 VO 越往后越像“混合前端”的原因。系统不会执着于某一种纯粹的理论形式，而是尽量把手里能用的信息都压榨干净。🌿</p>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么 ICP 目标函数在引入质心后，可以把旋转和平移分开求？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为去质心后，误差函数可拆成“只依赖去质心点相对结构的旋转项”和“只依赖两个质心关系的平移项”。所以先解旋转，再回代平移即可。</div>
+            </details>
+          </li>
+          <li>
+            为什么这里强调“匹配关系已知”的 ICP 和很多人印象里的 ICP 不太一样？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为完整版 ICP 往往还要不断寻找最近邻匹配；而本书这里的视觉场景中，特征匹配已经给出了点对关系，所以只剩下刚体位姿估计本身，问题简单得多。</div>
+            </details>
+          </li>
+          <li>
+            第七讲里的 ICP 和第五讲的 RGB-D 点云实践有什么自然联系？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>第五讲已经把像素和深度反投影成点云；这一节进一步讨论，当两帧都能产生三维点时，如何直接通过 3D-3D 对齐恢复相机运动。</div>
+            </details>
+          </li>
+          <li>
+            为什么工程里会考虑把 PnP 和 ICP 的误差一起放进同一个优化问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为真实数据里并不是每个特征都有高质量深度。把 3D-3D 和 3D-2D 误差混合起来，可以更充分地利用可得信息，提高整体鲁棒性。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0051-第七讲-BundleAdjustment与PnP实践.html">← 上一课：Bundle Adjustment 与 PnP 实践</a>
+        <a class="next" href="0053-第七讲-章节总结与习题.html">下一课：章节总结与习题 →</a>
+      </div>
+      <p class="foot-note">这一课最值得记住的不是“又学了个新名词”，而是：当两侧三维信息都到位时，位姿估计会变得异常直接。☁️</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

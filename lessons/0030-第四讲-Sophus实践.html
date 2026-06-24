@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · Sophus实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 6</div>
+      <h1>第四讲 · Sophus实践</h1>
+      <p class="subtitle">前五节把李群、李代数、BCH、扰动模型都讲明白了，这一节把它们真正按进 C++ 程序里。你会看到：书里那些看起来抽象的 exp、log、hat、vee，在 Sophus 里几乎一一都有对应 API。💻</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0029 的左乘扰动更新</span>
+        <span>🛠️ 把 SO(3) / SE(3) 公式落到代码</span>
+        <span>📌 后面第十一讲自定义位姿图节点时还会再见 Sophus</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么这里要上 Sophus</a>
+        <a href="#install">安装与版本注意事项</a>
+        <a href="#so3-se3">示例代码逐段解读</a>
+        <a href="#bridge">代码和前后课程如何衔接</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>不是简单跑通一个样例，而是让你能把前面几节里的数学对象和 Sophus 的 API 一一对上：构造、exp / log、hat / vee、左乘增量更新。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>第三讲的 Eigen 几何模块只覆盖了旋转矩阵、四元数等基础对象；第四讲真正需要的是李群 / 李代数操作，所以这里引入 Sophus。后面第十一讲自定义李代数位姿图顶点和边时，还会再次依赖它。</p>
+        </div>
+      </div>
+
+      <p>原书这一节的核心很明确：前面所有公式都不该只停留在纸上。比如：</p>
+      <ul>
+        <li>0027 的指数映射，代码里就应该对应一个 <code>exp()</code></li>
+        <li>0027 的对数映射，代码里就应该对应一个 <code>log()</code></li>
+        <li>0026 的 $\wedge/\vee$ 运算，也应该有直接接口</li>
+        <li>0029 的左乘扰动更新，程序里也应该真能写成 <code>exp(update) * pose</code></li>
+      </ul>
+      <p>这正是 Sophus 的价值：它让你不必手写一堆底层矩阵细节，就能把李群和李代数当成一等公民来操作。</p>
+    </main>
+
+    <section class="section-card" id="install">
+      <h2>1. 安装之前先澄清两个坑：版本和 OCR</h2>
+      <p>原书明确使用的是<strong>非模板版本</strong> Sophus，所以给出的获取方式是：</p>
+      <pre><code>git clone https://github.com/strasdat/Sophus.git
+cd Sophus
+git checkout a621ff</code></pre>
+      <p>这一步非常重要，因为后续模板化版本虽然更灵活，但接口和使用细节会有差异。你现在如果只是跟着书学，最好先用书里同一代的版本，把概念吃透再说。</p>
+
+      <div class="callout">
+        <h4>这一节里我顺手修正的几个 OCR 噪声</h4>
+        <p>原始识别文本把 <code>SO3</code> 多处误识别成了 <code>S03</code> 或 <code>S0(3)</code>，还把 <code>1e-4</code> 错打成了 <code>1e-4d</code>。这些如果直接照抄进代码，程序是过不了编译的，所以这里都统一校正成正确写法。</p>
+      </div>
+
+      <p>书里的 CMake 配置也很简洁：</p>
+      <pre><code>find_package(Sophus REQUIRED)
+include_directories(${Sophus_INCLUDE_DIRS})
+add_executable(useSophus useSophus.cpp)
+target_link_libraries(useSophus ${Sophus_LIBRARIES})</code></pre>
+      <p>它想表达的不是“记住四行模板”，而是让你理解：</p>
+      <ul>
+        <li><code>find_package</code> 负责找到库的头文件和库文件</li>
+        <li><code>Sophus_INCLUDE_DIRS</code> / <code>Sophus_LIBRARIES</code> 是 cmake 暴露出来的结果</li>
+        <li>之后你自己的工程也能按这个模式把 Sophus 接进来</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="so3-se3">
+      <h2>2. 示例代码逐段读：每一段都在复现前面课程</h2>
+
+      <div class="interactive-card tab-group">
+        <h3>分段阅读</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="sophus-tabs" data-tab-id="construct" onclick="lessonKit.openTab('sophus-tabs','construct')">构造 SO(3)</button>
+          <button data-tab-button="sophus-tabs" data-tab-id="maps" onclick="lessonKit.openTab('sophus-tabs','maps')">log / hat / vee</button>
+          <button data-tab-button="sophus-tabs" data-tab-id="update" onclick="lessonKit.openTab('sophus-tabs','update')">左乘更新</button>
+          <button data-tab-button="sophus-tabs" data-tab-id="se3" onclick="lessonKit.openTab('sophus-tabs','se3')">SE(3) 部分</button>
+        </div>
+
+        <div class="tab-panel" data-tab-panel="sophus-tabs" data-tab-id="construct">
+          <pre><code>#include &lt;Eigen/Core&gt;
+#include &lt;Eigen/Geometry&gt;
+#include "sophus/so3.h"
+#include "sophus/se3.h"
+
+Eigen::Matrix3d R =
+    Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d(0, 0, 1)).toRotationMatrix();
+Eigen::Quaterniond q(R);
+
+Sophus::SO3 SO3_R(R);          // 从旋转矩阵构造
+Sophus::SO3 SO3_v(0, 0, M_PI / 2); // 从旋转向量构造
+Sophus::SO3 SO3_q(q);          // 从四元数构造</code></pre>
+          <p>这一段对应的其实正是第三讲和第四讲前半段的总汇：同一个几何旋转，可以用旋转矩阵、旋转向量、四元数三种形式来构造，但 Sophus 最终都把它们落成同一个 $SO(3)$ 对象。</p>
+        </div>
+
+        <div class="tab-panel" data-tab-panel="sophus-tabs" data-tab-id="maps">
+          <pre><code>Eigen::Vector3d so3 = SO3_R.log();
+std::cout &lt;&lt; "so3 = " &lt;&lt; so3.transpose() &lt;&lt; std::endl;
+
+std::cout &lt;&lt; "hat =\n" &lt;&lt; Sophus::SO3::hat(so3) &lt;&lt; std::endl;
+std::cout &lt;&lt; "vee = "
+          &lt;&lt; Sophus::SO3::vee(Sophus::SO3::hat(so3)).transpose()
+          &lt;&lt; std::endl;</code></pre>
+          <p>这一段就是 0026、0027 两节课的程序版：</p>
+          <ul>
+            <li><code>log()</code> 对应从 $SO(3)$ 回到 $\mathfrak{so}(3)$</li>
+            <li><code>hat()</code> 对应 $\wedge$，也就是把 3 维向量变成反对称矩阵</li>
+            <li><code>vee()</code> 则是把反对称矩阵拉回向量</li>
+          </ul>
+          <p>如果你看到这里会觉得“这些 API 很自然”，说明前面两节的数学已经开始内化了。</p>
+        </div>
+
+        <div class="tab-panel" data-tab-panel="sophus-tabs" data-tab-id="update">
+          <pre><code>Eigen::Vector3d update_so3(1e-4, 0, 0);
+Sophus::SO3 SO3_updated =
+    Sophus::SO3::exp(update_so3) * SO3_R;</code></pre>
+          <p>这是整节课里最该停下来体会的一句。它不是普通矩阵技巧，而是 0029 左扰动模型的直接代码化：</p>
+          <div class="formula-box">$$
+          \boldsymbol{R}_{\text{new}}
+          =
+          \exp(\Delta\boldsymbol{\phi}^\wedge)\boldsymbol{R}_{\text{old}}.
+          $$</div>
+          <p>也就是说，优化器算出的不是“新的旋转矩阵”，而是一个局部小增量；真正的姿态更新，要靠指数映射把它送回群上，再左乘到旧姿态。</p>
+        </div>
+
+        <div class="tab-panel" data-tab-panel="sophus-tabs" data-tab-id="se3">
+          <pre><code>Eigen::Vector3d t(1, 0, 0);
+Sophus::SE3 SE3_Rt(R, t);
+
+using Vector6d = Eigen::Matrix&lt;double, 6, 1&gt;;
+Vector6d se3 = SE3_Rt.log();
+
+Vector6d update_se3 = Vector6d::Zero();
+update_se3(0, 0) = 1e-4;
+Sophus::SE3 SE3_updated =
+    Sophus::SE3::exp(update_se3) * SE3_Rt;</code></pre>
+          <p>SE(3) 部分和 SO(3) 是同一套逻辑，只不过现在局部坐标变成了 6 维。书里还特意提醒：Sophus 中 se(3) 的排列是<strong>平移在前、旋转在后</strong>，这和本书公式保持一致，读代码时就不容易错位。</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4>助教视角的阅读方法</h4>
+        <p>不要把这份示例当成“演示库用法的孤立例子”。更好的读法是：每看到一个 API，就问自己它对应前面哪一个公式。这样以后你再看 g2o、Ceres、GTSAM 或者自己的 VO / BA / 位姿图代码，心里才会有地图。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="bridge">
+      <h2>3. 这节实践课和后面的几讲如何衔接</h2>
+      <table>
+        <thead>
+          <tr><th>当前代码动作</th><th>对应本讲数学</th><th>后面会在哪里再见到</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>SO3::log()</code></td><td>$SO(3)\rightarrow \mathfrak{so}(3)$ 对数映射</td><td>第十一讲位姿图误差常写成取 log 的形式</td></tr>
+          <tr><td><code>SO3::exp(update)</code></td><td>李代数小增量映回群上</td><td>第十讲 BA 和第十一讲位姿图的位姿更新</td></tr>
+          <tr><td><code>hat()</code> / <code>vee()</code></td><td>$\wedge/\vee$ 运算</td><td>雅可比推导和扰动模型里反复出现</td></tr>
+          <tr><td><code>SE3::exp(update) * pose</code></td><td>左乘扰动模型</td><td>后面几乎所有基于位姿的非线性优化</td></tr>
+        </tbody>
+      </table>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么这节课最值得你盯住的一句代码是 <code>SE3::exp(update) * SE3_Rt</code>？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为它把第四讲最核心的更新思想直接落成了代码：优化得到的是局部增量，真正姿态要通过 exp 映射回群上再左乘更新。" onclick="lessonKit.answer(this, 'quiz-0030-a')">因为它是第四讲“局部增量更新位姿”思想最直接的程序化表达</button>
+          <button data-correct="no" data-explanation="输出格式不重要，关键是它体现了几何更新规则。" onclick="lessonKit.answer(this, 'quiz-0030-a')">因为 Sophus 默认输出最漂亮</button>
+          <button data-correct="no" data-explanation="恰恰不是简单矩阵加法，而是李群上的指数映射加左乘。" onclick="lessonKit.answer(this, 'quiz-0030-a')">因为它证明位姿更新本质上就是普通矩阵加法</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0030-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Sophus 的角色</h4>
+          <p>它不是替你“发明新理论”，而是把第四讲已经学过的李群 / 李代数操作变成可直接调用的代码接口。</p>
+        </div>
+        <div class="mini-card">
+          <h4>这节实践最值钱的地方</h4>
+          <p>让你把 exp、log、hat、vee、左乘更新这些数学对象和实际 API 一一对齐。</p>
+        </div>
+        <div class="mini-card">
+          <h4>继续往后看时的抓手</h4>
+          <p>以后再见到 Sophus 相关代码，不要只看“库在怎么写”，而要反向问“它在调用第四讲哪条几何规则”。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里特意强调使用非模板版本的 Sophus？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为本书配套代码和讲解以当时的非模板版本为基准，接口更直接、学习曲线更平。模板化版本功能更灵活，但初学阶段会平添不少语法和类型层面的负担，不利于把注意力集中在李群李代数本身。</div>
+            </details>
+          </li>
+          <li>
+            <code>SO3_R.log()</code> 和 <code>SO3::exp(update)</code> 在数学上分别对应什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div><code>log()</code> 对应对数映射，把群元素 $SO(3)$ 拉回李代数 $\mathfrak{so}(3)$；<code>exp()</code> 对应指数映射，把局部增量从李代数送回李群。二者合在一起，构成了“局部无约束坐标”和“真实几何姿态”之间的来回翻译。</div>
+            </details>
+          </li>
+          <li>
+            为什么说 <code>exp(update) * pose</code> 这类写法会在后面的 BA 和位姿图代码里反复出现？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为后续优化器解出来的通常都是局部小增量，而不是直接产出新的位姿矩阵。要把这个小增量真正作用到当前估计上，就需要先通过指数映射把它送回群上，再按左乘或右乘约定更新当前位姿。这正是第四讲和后端优化之间最关键的接口。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0029-第四讲-李代数求导与扰动模型.html">← 李代数求导与扰动模型</a>
+        <a class="next" href="0031-第四讲-Sim3与章节总结.html">Sim(3)与章节总结 →</a>
+      </div>
+      <p class="foot-note">这一节的意义，是把“我会背公式”推进到“我知道代码里为什么要这样更新位姿” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

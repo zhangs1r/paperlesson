@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · 高斯牛顿法 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 2</div>
+      <h1>第六讲 · 高斯牛顿法</h1>
+      <p class="subtitle">上一节我们把 SLAM 变成了最小二乘问题；这一节终于开始讲“怎么解”。高斯牛顿法就是第一台真正上场的求解器，它几乎是后面许多优化方法的母版。⚙️</p>
+      <div class="hero-meta">
+        <span>🔗 承接上一节目标函数</span>
+        <span>📐 直接用到第四讲的局部增量思维</span>
+        <span>🚀 为 L-M、Ceres、g2o 打地基</span>
+      </div>
+      <div class="toc">
+        <a href="#problem">非线性最小二乘长什么样</a>
+        <a href="#from-gradient">为什么不用最速下降或牛顿法</a>
+        <a href="#gn-core">高斯牛顿的核心推导</a>
+        <a href="#algorithm">算法步骤与局限</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="problem">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>真正看懂高斯牛顿法的增量方程从哪儿来、为什么它像牛顿法却又不完全是牛顿法，以及它在 SLAM 里为什么好用、又为什么会失手。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节你已经有了目标函数 $J(\boldsymbol{x})$。这一节要做的就是：给定当前估计值，如何求出一个小增量 $\Delta \boldsymbol{x}$，让整体误差继续下降。</p>
+        </div>
+      </div>
+      <p>书里先把问题抽象成一个通用形式：</p>
+      <div class="formula-box">$$
+      \min_{\boldsymbol{x}} \frac{1}{2}\|f(\boldsymbol{x})\|_2^2.
+      \tag{6.13}
+      $$</div>
+      <p>这一步很重要，因为它把上一节那个看起来很 SLAM 的式 (6.12)，压缩成了一个更通用的“残差平方和最小化”问题。后面无论是曲线拟合、PnP、Bundle Adjustment，还是位姿图，本质都能往这个壳子里装。</p>
+      <p>书里接着提醒我们：直接解</p>
+      <div class="formula-box">$$
+      \frac{\mathrm{d}f}{\mathrm{d}\boldsymbol{x}} = \boldsymbol{0}
+      \tag{6.14}
+      $$</div>
+      <p>在 SLAM 场景下几乎不可行。因为这里的 $f(\boldsymbol{x})$ 经常混合了李代数扰动、相机投影、深度、匹配误差等非线性关系，不会像一元函数求极值那样听话。</p>
+      <p>于是作者转向迭代思想：从一个初值出发，不断求小增量，让目标函数一步一步下降。</p>
+    </main>
+
+    <section class="section-card" id="from-gradient">
+      <h2>1. 为什么高斯牛顿不是凭空冒出来的</h2>
+      <p>书里在进入高斯牛顿前，先让你看了两种更直观的方法：最速下降法和牛顿法。这个铺垫很值得，因为高斯牛顿正是夹在它们中间的一个折中方案。</p>
+
+      <h3>1.1 最速下降法：简单，但有点“太贪心”</h3>
+      <p>在当前点附近对目标函数做泰勒展开：</p>
+      <div class="formula-box">$$
+      \|f(\boldsymbol{x}+\Delta\boldsymbol{x})\|_2^2
+      \approx
+      \|f(\boldsymbol{x})\|_2^2
+      +
+      \boldsymbol{J}(\boldsymbol{x})\Delta\boldsymbol{x}
+      +
+      \frac{1}{2}\Delta\boldsymbol{x}^T\boldsymbol{H}\Delta\boldsymbol{x}.
+      \tag{6.15}
+      $$</div>
+      <p>如果只保留一阶项，那么下降方向就是负梯度：</p>
+      <div class="formula-box">$$
+      \Delta \boldsymbol{x}^{*} = -\boldsymbol{J}^T(\boldsymbol{x}).
+      \tag{6.16}
+      $$</div>
+      <p>它直观到几乎不需要解释：哪里下降最快，就往哪里走。但书里也点出了它的问题，中文说得很传神，叫“过于贪心”。因为它只盯着眼前最陡的方向，接近最优值时容易走出锯齿路线，迭代次数会被拖得很长。</p>
+
+      <h3>1.2 牛顿法：更聪明，但代价很高</h3>
+      <p>如果再利用二阶信息，那么增量来自：</p>
+      <div class="formula-box">$$
+      \Delta \boldsymbol{x}^{*}
+      =
+      \arg\min
+      \|f(\boldsymbol{x})\|_2^2
+      +
+      \boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}
+      +
+      \frac{1}{2}\Delta\boldsymbol{x}^T \boldsymbol{H}\Delta\boldsymbol{x}.
+      \tag{6.17}
+      $$</div>
+      <p>对 $\Delta \boldsymbol{x}$ 求导并令其为零，可得：</p>
+      <div class="formula-box">$$
+      \boldsymbol{H}\Delta \boldsymbol{x} = -\boldsymbol{J}^T.
+      \tag{6.18}
+      $$</div>
+      <p>牛顿法的魅力在于，它不只知道“往哪边下山”，还知道“山坡局部有多弯”。但代价也很直接：你得算海森矩阵 $\boldsymbol{H}$。在大规模 SLAM 里，这很快会变成沉重负担。</p>
+
+      <div class="callout">
+        <h4>这两种方法为什么都不够理想</h4>
+        <p>最速下降太慢，牛顿法太贵。高斯牛顿真正聪明的地方在于：它试图用“一阶导的成本”，换到接近“二阶法”的效果。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="gn-core">
+      <h2>2. 高斯牛顿的核心：不展开目标函数，而展开残差函数</h2>
+      <p>这正是这一节最关键的一跳。书里特别强调：高斯牛顿展开的不是 $\|f(\boldsymbol{x})\|^2$，而是 <strong>$f(\boldsymbol{x})$ 本身</strong>：</p>
+      <div class="formula-box">$$
+      f(\boldsymbol{x}+\Delta \boldsymbol{x})
+      \approx
+      f(\boldsymbol{x}) + \boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}.
+      \tag{6.19}
+      $$</div>
+      <p>然后把它塞回目标函数，得到一个关于 $\Delta \boldsymbol{x}$ 的线性最小二乘问题：</p>
+      <div class="formula-box">$$
+      \Delta \boldsymbol{x}^{*}
+      =
+      \arg\min_{\Delta \boldsymbol{x}}
+      \frac{1}{2}
+      \|f(\boldsymbol{x})+\boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}\|^2.
+      \tag{6.20}
+      $$</div>
+      <p>把平方项展开：</p>
+      <div class="formula-box">$$
+      \frac{1}{2}
+      \left(
+      \|f(\boldsymbol{x})\|_2^2
+      +2f(\boldsymbol{x})^T\boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}
+      +\Delta \boldsymbol{x}^T\boldsymbol{J}(\boldsymbol{x})^T\boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}
+      \right).
+      $$</div>
+      <p>再对 $\Delta \boldsymbol{x}$ 求导，最终得到这一节最重要的增量方程：</p>
+      <div class="formula-box">$$
+      \boldsymbol{J}(\boldsymbol{x})^T\boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}
+      =
+      -\boldsymbol{J}(\boldsymbol{x})^T f(\boldsymbol{x}).
+      \tag{6.21}
+      $$</div>
+      <p>这就是高斯牛顿方程，也叫正规方程。书里继续把它压缩记成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{H}\Delta \boldsymbol{x} = \boldsymbol{g},
+      \qquad
+      \boldsymbol{H}=\boldsymbol{J}^T\boldsymbol{J},
+      \quad
+      \boldsymbol{g}=-\boldsymbol{J}^T f.
+      \tag{6.22}
+      $$</div>
+
+      <h3>2.1 这为什么像牛顿法，又不完全是牛顿法</h3>
+      <p>书里这里的点评很关键：左侧记作 $\boldsymbol{H}$ 是有意义的，因为它在扮演“海森矩阵近似”的角色。你可以这样理解：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>像牛顿法的地方</h4>
+          <p>它同样在解一个“矩阵 × 增量 = 梯度项”的线性系统，所以保留了二阶法的风格。</p>
+        </div>
+        <div class="mini-card">
+          <h4>不像牛顿法的地方</h4>
+          <p>它没有真的去算目标函数的完整海森矩阵，而是拿 $\boldsymbol{J}^T\boldsymbol{J}$ 去近似。</p>
+        </div>
+        <div class="mini-card">
+          <h4>这一步的收益</h4>
+          <p>只要求一阶雅可比，不用求二阶导，就能得到一个更“有曲率感”的下降方向。</p>
+        </div>
+      </div>
+      <p>这也是为什么高斯牛顿成为很多优化算法的“默认骨架”。它不完美，但足够实用。</p>
+    </section>
+
+    <section class="section-card" id="algorithm">
+      <h2>3. 算法步骤与它的软肋</h2>
+      <p>书里把高斯牛顿的流程整理成四步，其实非常像上一节的迭代框架，只是现在“求增量”的具体方法已经明确了：</p>
+      <div class="formula-box flow-formula">给定初值 → 计算当前雅可比与误差 → 解高斯牛顿方程求增量 → 更新状态并检查收敛</div>
+      <p>如果用更具体一点的话说，就是：</p>
+      <ol>
+        <li>给定初始值 $\boldsymbol{x}_0$。</li>
+        <li>在第 $k$ 次迭代，计算当前的 $\boldsymbol{J}(\boldsymbol{x}_k)$ 和 $f(\boldsymbol{x}_k)$。</li>
+        <li>解线性方程 $\boldsymbol{H}\Delta \boldsymbol{x}_k = \boldsymbol{g}$。</li>
+        <li>若增量足够小则停止，否则令 $\boldsymbol{x}_{k+1}=\boldsymbol{x}_k+\Delta \boldsymbol{x}_k$。</li>
+      </ol>
+
+      <h3>3.1 它为什么会失败</h3>
+      <p>书里没有粉饰高斯牛顿的缺点，反而讲得很实在。主要有两个：</p>
+      <div class="lead-grid">
+        <div class="mini-card">
+          <h4>问题一：$\boldsymbol{J}^T\boldsymbol{J}$ 可能奇异或病态</h4>
+          <p>理论上我们希望它可逆且最好正定，但真实数据里只保证半正定。换句话说，某些方向上信息可能不够，导致解不稳定。</p>
+        </div>
+        <div class="mini-card">
+          <h4>问题二：局部线性化可能失效</h4>
+          <p>如果一步走得太大，式 (6.19) 的局部近似就可能不再可信。这时别说收敛了，误差甚至可能越走越大。</p>
+        </div>
+      </div>
+      <p>这两点都和 SLAM 实际情况非常相关。比如位姿初值不够好、路标几何分布太退化、观测噪声过大时，都会放大这些问题。</p>
+
+      <div class="callout">
+        <h4>和第四讲的联系别忘了</h4>
+        <p>这里所谓的小增量 $\Delta \boldsymbol{x}$，在真正的位姿优化里，往往并不是简单加到矩阵上的，而是要经过李代数扰动映射回位姿群上。也就是说，第四讲的“局部参数化”正在这里开始真正派上用场。🔧</p>
+      </div>
+
+      <p>书里也顺势提到：很多改进方法都可以看成高斯牛顿的变体。比如线搜索法会在求得方向后再乘一个步长因子 $\alpha$，而下一节要讲的 Levenberg-Marquardt，则会通过“信赖区域 / 阻尼项”的方式来修补它的软肋。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>高斯牛顿法真正最值得你抓住的“核心性格”是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。它的灵魂就是用残差的一阶展开，加上 J^T J 这个海森近似，来换取比最速下降更有结构的更新。" onclick="lessonKit.answer(this, 'quiz-0040-a')">用残差的一阶展开，构造一个海森近似的增量方程</button>
+          <button data-correct="no" data-explanation="它恰恰不是完整牛顿法。" onclick="lessonKit.answer(this, 'quiz-0040-a')">完整地计算二阶海森矩阵</button>
+          <button data-correct="no" data-explanation="它没有内建保证全局收敛的机制，这正是下一节 L-M 要补的地方。" onclick="lessonKit.answer(this, 'quiz-0040-a')">自动保证每一步都下降</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0040-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>高斯牛顿的出发点</h4>
+          <p>不是对目标函数本身做二阶处理，而是对残差函数做一阶展开。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最核心的式子</h4>
+          <p>$\boldsymbol{J}^T\boldsymbol{J}\Delta\boldsymbol{x}=-\boldsymbol{J}^T f$，这是后面很多求解器的共同骨架。</p>
+        </div>
+        <div class="mini-card">
+          <h4>它的局限</h4>
+          <p>矩阵可能病态，步子可能走太大，所以它快但不总稳。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里强调高斯牛顿展开的是 $f(\boldsymbol{x})$，而不是 $\|f(\boldsymbol{x})\|^2$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这样可以把原问题转成关于增量的线性最小二乘问题，并自然得到 J^T J 形式的海森近似，从而避免直接处理更复杂的目标函数二阶展开。</div>
+            </details>
+          </li>
+          <li>
+            高斯牛顿为什么常被说成是“牛顿法的近似”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它同样通过解线性系统来求增量，但把真正的二阶海森矩阵用 $\boldsymbol{J}^T\boldsymbol{J}$ 近似了，因此保留了二阶法的结构，却省掉了完整二阶导数的计算。</div>
+            </details>
+          </li>
+          <li>
+            这一节和下一节 L-M 法之间的最直接关系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>L-M 法正是在高斯牛顿的增量方程基础上加入阻尼 / 信赖区域机制，专门用来缓解高斯牛顿在矩阵病态和步长过大时的不稳定问题。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0039-第六讲-状态估计与最小二乘引出.html">← 状态估计与最小二乘引出</a>
+        <a class="next" href="0041-第六讲-列文伯格马夸尔特法.html">列文伯格马夸尔特法 →</a>
+      </div>
+      <p class="foot-note">高斯牛顿像一台轻量、聪明、偶尔冒进的求解器；下一节我们给它加一层“安全气囊”。🛟</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

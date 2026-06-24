@@ -21,10 +21,10 @@
 │   ├── E2Map Experience-and-Emotion Map ....md
 │   └── E2Map Experience-and-Emotion Map ....assets/
 ├── lessons/                          # 📚 课程文件（HTML）
-│   ├── 0001-paper-overview.html      # 第1课：论文全景概览
-│   ├── 0002-e2map-method-core.html   # 第2课：E2Map核心技术
-│   ├── 0003-navigation-experiments.html # 第3课：导航系统与实验分析
-│   └── 0004-presentation-guide.html  # 第4课：组会报告组织与讲解
+│   ├── 0001-论文全景概览.html      # 第1课：论文全景概览
+│   ├── 0002-E2Map核心技术.html   # 第2课：E2Map核心技术
+│   ├── 0003-导航与实验分析.html # 第3课：导航系统与实验分析
+│   └── 0004-组会汇报指南.html  # 第4课：组会报告组织与讲解
 ├── reference/                        # 📖 参考文档
 │   └── glossary.html                 # 术语表（中英对照）
 └── learning-records/                 # 📝 学习记录
@@ -54,7 +54,7 @@ open index.html
 从主页可以链接到所有课程。也可以直接打开单课：
 
 ```bash
-start lessons\0001-paper-overview.html   # 第1课
+start lessons\0001-论文全景概览.html   # 第1课
 ```
 
 ## 🏗️ 网站结构
@@ -64,12 +64,13 @@ start lessons\0001-paper-overview.html   # 第1课
 ├── shared/
 │   └── theme.css                      # 🎨 全局共享主题样式
 ├── data/
-│   └── lessons.json                   # 📋 课程数据清单（新增课程时编辑此文件）
+│   ├── course-catalog.js              # 📋 首页主数据源（collection + lessons）
+│   └── lessons.json                   # 📦 旧结构快照，保留作迁移参考
 ├── lessons/                           # 📚 精读课程
-│   ├── 0001-paper-overview.html       # 第1课：论文全景概览
-│   ├── 0002-e2map-method-core.html    # 第2课：E2Map核心技术
-│   ├── 0003-navigation-experiments.html # 第3课：导航系统与实验
-│   └── 0004-presentation-guide.html   # 第4课：组会报告要点
+│   ├── 0001-论文全景概览.html       # 第1课：论文全景概览
+│   ├── 0002-E2Map核心技术.html    # 第2课：E2Map核心技术
+│   ├── 0003-导航与实验分析.html # 第3课：导航系统与实验
+│   └── 0004-组会汇报指南.html   # 第4课：组会报告要点
 ├── reference/
 │   └── glossary.html                  # 📖 术语表（中英对照）
 ├── learning-records/                  # 📝 学习记录
@@ -105,24 +106,28 @@ start lessons\0001-paper-overview.html   # 第1课
 - 课程页面需添加 `← 返回主页` 导航链接
 
 ### 添加新课程
-**场景 A：为当前论文加新课**
+**场景 A：为当前课程块加新课**
 1. 创建 `lessons/0005-your-lesson.html`：
    - 引用 `../shared/theme.css`
    - 在 `<head>` 中添加 MathJax 脚本
    - 需要论文图片时引用 `../资料/...assets/` 目录
-2. 编辑 `data/lessons.json`，在 `lessons` 数组中添加新条目（含 `paper: "e2map"` 字段）
-3. 同步更新 `index.html` 中的 `SITE_DATA.lessons` 数组
+2. 编辑 `data/course-catalog.js`，在 `lessons` 数组中添加新条目：
+   - `id`
+   - `path`
+   - `paper`（或理解成 collection id，例如 `e2map` / `slambook`）
+   - `title` / `subtitle` / `emoji` / `duration` / `tags` / `description`
+3. 若课程属于已有来源块，无需修改 `index.html`
 4. 提交推送
 
-**场景 B：添加全新的论文**
-1. 将新论文的 MD 文件放入 `资料/` 目录
+**场景 B：添加全新的论文块或书本块**
+1. 将新论文 / 新书的原始资料放入 `资料/` 目录
 2. 创建对应的 `lessons/` 课程 HTML 文件
-3. 在 `data/lessons.json` 和 `index.html` 的 `SITE_DATA` 中：
-   - 修改 `currentPaper` 对象指向新论文
-   - 在 `references` 中添加新论文原文的引用
-   - 新建该论文对应的 `lessons` 条目
-4. 新课编号建议用论文前缀，如 `e2map-0001`、`newpaper-0001`
-5. 推送后主页自动更新为显示新论文
+3. 编辑 `data/course-catalog.js`：
+   - 在 `collections` 中新增一个对象，至少包含 `id`、`kind`、`title`、`subtitle`、`description`、`quickOpen`、`meta`
+   - 在 `lessons` 中添加该来源下的课程条目，并让每一节课的 `paper` 指向新的 `collection.id`
+   - 如有需要，在 `references` / `siteLinks` 中补官方链接或速查页
+4. 若希望新块成为首页主线，将 `featuredCollectionId` 改成新的 `id`
+5. 推送后主页会自动按来源新增一个完整分块，不需要再改首页结构
 
 ## 引用
 

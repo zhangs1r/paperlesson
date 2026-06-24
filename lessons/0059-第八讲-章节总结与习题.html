@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · 章节总结与习题 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Summary</div>
+      <h1>第八讲 · 章节总结与习题</h1>
+      <p class="subtitle">这一讲的真正收获，不只是“知道直接法存在”，而是开始能把第七讲的特征点前端、第九讲的工程框架、第十三讲的半稠密建图放进同一张路线图里看。🗺️</p>
+      <div class="hero-meta">
+        <span>🔗 连回第七讲特征法</span>
+        <span>📦 对接第九讲 VO 前端框架</span>
+        <span>🌫️ 前瞻第十三讲深度滤波与半稠密重建</span>
+      </div>
+      <div class="toc">
+        <a href="#map">本讲知识地图</a>
+        <a href="#formula">关键公式速览</a>
+        <a href="#compare">特征法与直接法总对照</a>
+        <a href="#exercise">综合练习</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="map">
+      <div class="callout">
+        <h4>本讲一句话总结</h4>
+        <p>第七讲是“找到点，再匹配点”；第八讲则是“尽量不做描述子匹配，甚至不做显式匹配，而是让灰度信息直接约束运动”。</p>
+      </div>
+
+      <h2>1. 知识地图</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>0054 动机与光流理论</h4>
+          <p>从特征点法的三类痛点出发，解释为什么要引入光流和直接法。LK 的基本约束来自灰度不变与局部同运动假设。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0055 LK 光流实践</h4>
+          <p>在 TUM 数据集上用 FAST + <code>calcOpticalFlowPyrLK</code> 跟踪点，亲眼看到点会逐渐丢失，也看到角点比边缘更稳。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0056 直接法理论</h4>
+          <p>把误差从“坐标差”改成“亮度差”，并用链式法则把位姿变化传到灰度变化，得到直接法 Jacobian。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0057 稀疏直接法实践</h4>
+          <p>把光度误差建成 g2o 一元边，真正实现 RGB-D 下的稀疏直接法位姿估计。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0058 半稠密与讨论</h4>
+          <p>解释为什么只保留梯度明显的像素，并把直接法的优势与非凸性风险讲清楚。</p>
+        </div>
+      </div>
+    </main>
+
+    <section class="section-card" id="formula">
+      <h2>2. 关键公式速览</h2>
+      <table>
+        <thead>
+          <tr><th>主题</th><th>公式</th><th>它在说什么</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>灰度不变</td>
+            <td>$I(x+\mathrm{d}x,y+\mathrm{d}y,t+\mathrm{d}t)=I(x,y,t)$</td>
+            <td>同一空间点在很短时间内亮度近似不变</td>
+          </tr>
+          <tr>
+            <td>光流约束</td>
+            <td>$I_xu+I_yv=-I_t$</td>
+            <td>单个像素的局部运动约束</td>
+          </tr>
+          <tr>
+            <td>LK 最小二乘</td>
+            <td>$[u,v]^*=-(A^TA)^{-1}A^Tb$</td>
+            <td>用窗口内多像素联合解局部位移</td>
+          </tr>
+          <tr>
+            <td>光度误差</td>
+            <td>$e=I_1(\boldsymbol{p}_1)-I_2(\boldsymbol{p}_2)$</td>
+            <td>直接法不比坐标，而比亮度</td>
+          </tr>
+          <tr>
+            <td>直接法 Jacobian</td>
+            <td>$\boldsymbol{J}=-\frac{\partial I_2}{\partial \boldsymbol{u}}\frac{\partial \boldsymbol{u}}{\partial \delta\boldsymbol{\xi}}$</td>
+            <td>位姿变化先带动像素，再带动亮度</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. 和第七讲、第九讲、第十三讲的关系一口气说清</h2>
+      <table>
+        <thead>
+          <tr><th>章节</th><th>关系</th><th>你现在应该怎么理解</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>第七讲 特征点法</td>
+            <td>第八讲不是推翻它，而是在它基础上做减法</td>
+            <td>先去掉描述子匹配，再走向灰度驱动</td>
+          </tr>
+          <tr>
+            <td>第九讲 前端框架</td>
+            <td>第八讲提供了另一类前端实现方案</td>
+            <td>前端不一定只能是 ORB + PnP，也可以是光流或直接法</td>
+          </tr>
+          <tr>
+            <td>第十三讲 深度滤波 / 半稠密建图</td>
+            <td>半稠密思想会再次出现</td>
+            <td>优先保留梯度明显区域，是前端和建图共同偏爱的策略</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>方法选择别背成标准答案</h4>
+        <p>光流、特征匹配、直接法谁更好，不取决于口号，而取决于场景：帧率高不高、运动快不快、曝光稳不稳、纹理够不够、是否需要回环和重定位。这种判断能力，比背优缺点清单更重要。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="exercise">
+      <h2>4. 综合练习</h2>
+      <section class="exercise-box">
+        <h3>基础理解</h3>
+        <ol>
+          <li>
+            为什么说光流是从“匹配描述子”往“直接利用灰度”过渡的中间站？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它仍然保留关键点，但不再计算描述子，而是直接跟踪这些点的像素位置变化。它比特征匹配更轻，但还没完全进入“直接用光度误差优化位姿”的直接法阶段。</div>
+            </details>
+          </li>
+          <li>
+            直接法的误差为什么通常是一维，而第七讲的重投影误差通常是二维？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为直接法比较的是单个投影点处的亮度差，亮度本身是一个标量；而重投影误差比较的是像素坐标位置差，通常包含 $u,v$ 两个方向。</div>
+            </details>
+          </li>
+          <li>
+            为什么半稠密直接法天然会偏爱边缘和纹理区域？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这些区域像素梯度明显，位姿改变时更容易引起可感知亮度变化，能给优化提供更强约束；光滑平坦区则贡献很弱。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+
+      <section class="exercise-box">
+        <h3>工程思考</h3>
+        <ol>
+          <li>
+            如果你要在第九讲自己的 VO 框架里加入“光流前端”，最先要考虑哪两个工程问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>首先要考虑如何补点，因为只跟踪不补点会导致特征持续减少；其次要考虑帧间运动控制或参考帧策略，因为 LK 和直接法都更依赖小运动假设。</div>
+            </details>
+          </li>
+          <li>
+            为什么直接法通常对自动曝光更敏感，而特征点法相对更能忍？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为直接法直接比较像素亮度，整体变亮变暗会直接破坏灰度不变假设；特征点法更多依赖局部结构与描述子，相对不那么直接受整体亮度平移影响。</div>
+            </details>
+          </li>
+          <li>
+            图 8-7 说明了什么？它为什么能解释“直接法更怕大运动”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>图 8-7 展示图像灰度面高度非凸，局部梯度只在附近可信。大运动会让初始投影落到错误纹理区域，局部梯度于是开始给出错误更新方向，所以直接法更依赖小运动和好初值。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+
+      <section class="exercise-box">
+        <h3>延伸阅读</h3>
+        <ol>
+          <li>
+            如果把 RGB-D 稀疏直接法换成单目直接法，最难多出来的变量是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最难多出来的是深度。RGB-D 下三维点位置已知，而单目里深度也要估，意味着不仅位姿要优化，点的逆深度或深度参数也要进入模型。</div>
+            </details>
+          </li>
+          <li>
+            为什么说第十三讲之后再回头看 LSD-SLAM、DSO 会更顺？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为那时你已经理解了半稠密像素选择、深度滤波、块匹配与光度模型，能看懂它们如何把第八讲的基本思想扩展成完整系统，而不只是把论文当黑盒。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0058-第八讲-半稠密直接法与讨论.html">← 半稠密直接法与讨论</a>
+        <a class="next" href="0060-第九讲-VO框架与五大数据结构.html">进入第九讲：VO 框架与五大数据结构 →</a>
+      </div>
+      <p class="foot-note">学完第八讲后，最理想的状态不是“我会背 Jacobian”，而是“我知道什么时候该想起它、什么时候不该滥用它” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

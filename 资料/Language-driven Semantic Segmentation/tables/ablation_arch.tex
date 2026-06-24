@@ -1,0 +1,14 @@
+\scalebox{0.90}{
+\begin{tabular}{c|c|cccc}
+\toprule 
+&&\multicolumn{4}{c}{\# depth}  \\
+Block Type&Metric&0&1&2&4 \\
+\midrule\midrule
+&pixAcc [\%]&79.70&79.72&\textbf{79.78}&7.67\\
+\depthwiseblock{}&mIoU [\%]&37.83&39.19&\textbf{39.45}&0.18\\
+&pixAcc [\%]&79.70&79.64&\textbf{79.70}&79.68\\
+\bottleneckblock{}&mIoU [\%]&37.83&39.16&\textbf{39.79}&38.78\\
+\bottomrule
+\end{tabular}
+}
+\caption{Ablation study on the depth of \bottleneckblock{} and \depthwiseblock{} before the last layer. For both Pixel Accuracy (pixAcc) and mIoU, higher is better. For depth=1, we directly feed the output to reshape without activation.}

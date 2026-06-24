@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 课 · 消融研究与定性分析 — LSeg 精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  body.reading { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .2rem; font-family: 'Noto Serif SC', serif; }
+  .lesson-header .subtitle { font-size: .9rem; color: var(--ink-60); font-family: var(--font-serif); font-style: italic; }
+  .lesson-header .meta { display: flex; gap: .6rem; font-size: .8rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.25rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; font-family: 'Noto Serif SC', serif; }
+  h3 { font-size: 1.05rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; font-family: 'Noto Serif SC', serif; }
+  h4 { font-size: .95rem; color: var(--ink-80); margin: .8rem 0 .4rem; font-family: 'Noto Serif SC', serif; }
+  .story-box { background: #f9f6f0; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .story-box .label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+  .highlight-box { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .highlight-box strong { color: var(--accent-deep); }
+  .paper-quote { background: #f5f3ef; border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; font-size: .9rem; }
+  .paper-quote .en { color: var(--ink-60); font-style: italic; margin-bottom: .3rem; }
+  .paper-quote .cn { color: var(--ink); }
+  .paper-quote .cite { font-size: .75rem; color: var(--ink-40); text-align: right; display: block; margin-top: .3rem; }
+  .img-figure { margin: 1.2rem 0; text-align: center; }
+  .img-figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .img-figure .caption { font-size: .82rem; color: var(--ink-60); margin-top: .4rem; font-style: italic; }
+  .nav-links { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav-links a { color: var(--accent-deep); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+  details.quiz { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+  details.quiz summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); padding: .2rem 0; }
+  details.quiz .answer { margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--border); font-size: .92rem; }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+  .tag-red { background: rgba(204, 120, 92, 0.15); color: var(--accent-deep); }
+  .tag-blue { background: rgba(66, 133, 244, 0.12); color: #1a5fb4; }
+  .tag-green { background: rgba(90, 158, 111, 0.15); color: var(--success); }
+  .tag-orange { background: rgba(234, 160, 50, 0.15); color: #b8860b; }
+  .result-table-wrap { overflow-x: auto; }
+  .result-table-wrap table { font-size: .82rem; min-width: 500px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .two-col .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; border: 1px solid var(--border); }
+  .two-col .card h4 { font-size: .9rem; margin-bottom: .3rem; color: var(--accent-deep); font-family: 'Noto Serif SC', serif; }
+  .two-col .card p { font-size: .85rem; margin: 0; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="reading">
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>🔬 第 6 课：消融研究与定性分析</h1>
+  <div class="subtitle">LSeg · Exploration & Discussion — 消融实验 · 文本编码器 · 定性结果 · 失败案例</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 Section 5: Exploration and Discussion</span>
+  </div>
+</div>
+
+<div class="story-box">
+  <div class="label">🎯 这节课的目标</div>
+  <p style="margin:0;font-size:.92rem;">
+    深入理解 LSeg 的<strong>消融实验</strong>揭示了什么设计规律，不同<strong>文本编码器</strong>如何影响性能，
+    LSeg 在<strong>固定标签集</strong>上与传统方法对比如何，以及最重要的——<strong>定性结果</strong>展示的零样本能力与<strong>失败案例</strong>揭示的局限。
+  </p>
+</div>
+
+<!-- ================ 1. 消融实验设置 ================ -->
+<h2>1. 消融实验设置</h2>
+
+<p>所有的消融实验都在 <strong>ADE20K</strong> 数据集上进行。ADE20K 包含 150 个类别，是标准语义分割的常用基准。</p>
+
+<table>
+  <tr><th>超参数</th><th>设置</th></tr>
+  <tr><td>数据集</td><td>ADE20K（150 类，标准分割）</td></tr>
+  <tr><td>基础学习率</td><td>0.004</td></tr>
+  <tr><td>训练轮数</td><td>240 epoch</td></tr>
+  <tr><td>优化器</td><td>SGD, momentum 0.9</td></tr>
+  <tr><td>学习率调度</td><td>Polynomial, decay 0.9</td></tr>
+  <tr><td>默认骨干</td><td>ViT-B/32 + DPT</td></tr>
+  <tr><td>默认文本编码器</td><td>CLIP ViT-B/32</td></tr>
+</table>
+
+<!-- ================ 2. 空间正则化消融 ================ -->
+<h2>2. 空间正则化消融（Ablation: Spatial Regularization）</h2>
+
+<h3>2.1 实验设计</h3>
+<p>控制变量：比较 <strong>DepthwiseBlock</strong> 和 <strong>BottleneckBlock</strong> 在不同深度（$N \in [0, 1, 2, 4]$）下的效果。</p>
+
+<h3>2.2 结果</h3>
+
+<div class="result-table-wrap">
+<table>
+  <tr><th>模块类型</th><th>指标</th><th>深度=0</th><th>深度=1</th><th>深度=2</th><th>深度=4</th></tr>
+  <tr>
+    <td>DepthwiseBlock</td>
+    <td>pixAcc (%)</td>
+    <td>79.70</td>
+    <td>79.72</td>
+    <td><strong>79.78</strong></td>
+    <td>7.67 ❌</td>
+  </tr>
+  <tr>
+    <td>DepthwiseBlock</td>
+    <td>mIoU (%)</td>
+    <td>37.83</td>
+    <td>39.19</td>
+    <td><strong>39.45</strong></td>
+    <td>0.18 ❌</td>
+  </tr>
+  <tr style="background:#f0ede6;">
+    <td><strong>BottleneckBlock</strong></td>
+    <td><strong>pixAcc (%)</strong></td>
+    <td><strong>79.70</strong></td>
+    <td><strong>79.64</strong></td>
+    <td><strong>79.70</strong></td>
+    <td><strong>79.68</strong></td>
+  </tr>
+  <tr style="background:#f0ede6;">
+    <td><strong>BottleneckBlock</strong></td>
+    <td><strong>mIoU (%)</strong></td>
+    <td><strong>37.83</strong></td>
+    <td><strong>39.16</strong></td>
+    <td><strong>39.79</strong> 🏆</td>
+    <td><strong>38.78</strong></td>
+  </tr>
+</table>
+</div>
+
+<div class="highlight-box">
+  <strong>📊 关键发现</strong>：<br>
+  • 不加正则化 (depth=0): mIoU 37.83（基线）<br>
+  • <strong>2 个 BottleneckBlock 是最优配置</strong>：mIoU 39.79，相比基线提升 <strong>+1.96</strong><br>
+  • DepthwiseBlock 深度=4 时<strong>完全崩溃</strong>（mIoU 仅 0.18），说明纯 depthwise 卷积堆叠过深会导致梯度问题<br>
+  • BottleneckBlock 的跨标签 max-pooling 提供了更好的<strong>稳定性</strong>，深度=4 时仍保持合理性能（38.78）
+</div>
+
+<!-- ================ 3. 文本编码器消融 ================ -->
+<h2>3. 文本编码器消融（Ablation: Text Encoders）</h2>
+
+<h3>3.1 实验设计</h3>
+<p>固定图像编码器（ViT-B/32 + DPT），更换不同的 CLIP 文本编码器。</p>
+
+<h3>3.2 结果</h3>
+
+<div class="result-table-wrap">
+<table>
+  <tr><th>文本编码器</th><th>图像编码器</th><th>嵌入维度</th><th>pixAcc (%)</th><th>mIoU (%)</th></tr>
+  <tr><td>ViT-B/32</td><td>ViT-B/32</td><td>512</td><td>79.70</td><td>37.83</td></tr>
+  <tr><td>ViT-B/16</td><td>ViT-B/32</td><td>512</td><td>79.77</td><td>38.69</td></tr>
+  <tr><td>RN$50\times4$</td><td>ViT-B/32</td><td>640</td><td>79.85</td><td>38.93</td></tr>
+  <tr style="background:#f0ede6;"><td><strong>RN$50\times16$</strong></td><td><strong>ViT-B/32</strong></td><td><strong>768</strong></td><td><strong>80.26</strong></td><td><strong>40.36</strong> 🏆</td></tr>
+</table>
+</div>
+
+<div class="highlight-box">
+  <strong>📊 关键发现</strong>：<br>
+  • 不同文本编码器之间最大差距达 <strong>2.5 mIoU</strong>（37.83 vs 40.36）<br>
+  • <strong>嵌入维度更大</strong>的文本编码器效果更好（RN$50\times16$ 的 768 维 > ViT-B/32 的 512 维）<br>
+  • 但注意：消融中的图像编码器都是 ViT-B/32（较小），如果配合更大的图像编码器，文本编码器的差异可能更显著<br>
+  • 这也说明：<strong>文本编码器的质量直接影响分割性能</strong>，尤其是在处理未见过的类别时
+</div>
+
+<!-- ================ 4. 固定标签集对比 ================ -->
+<h2>4. 固定标签集对比</h2>
+
+<h3>4.1 关键问题</h3>
+<p>一个核心疑虑：LSeg 为了零样本灵活性，<strong>牺牲了固定标签集的性能吗？</strong></p>
+
+<div class="paper-quote">
+  <div class="en">"Language assistance helps boost the recognition performance on unannotated or unseen classes. However, there might be a concern that this flexibility hurts the performance on tasks that have a fixed label set."</div>
+  <div class="cn">📝 论文主动提出了这个关键的质疑：灵活性的提升是否以固定标签集场景的性能为代价？</div>
+  <span class="cite">— Section 5, Discussion</span>
+</div>
+
+<h3>4.2 结果</h3>
+
+<div class="result-table-wrap">
+<table>
+  <tr><th>方法</th><th>骨干网络</th><th>文本编码器</th><th>pixAcc (%)</th><th>mIoU (%)</th></tr>
+  <tr><td>OCNet</td><td>ResNet101</td><td>-</td><td>-</td><td>45.45</td></tr>
+  <tr><td>ACNet</td><td>ResNet101</td><td>-</td><td>81.96</td><td>45.90</td></tr>
+  <tr><td>DeeplabV3</td><td>ResNeSt101</td><td>-</td><td>82.07</td><td>46.91</td></tr>
+  <tr><td>DPT</td><td>ViT-L/16</td><td>-</td><td><strong>82.70</strong></td><td><strong>47.63</strong></td></tr>
+  <tr style="background:#f0ede6;"><td><strong>LSeg</strong></td><td><strong>ViT-L/16</strong></td><td><strong>ViT-B/32</strong></td><td><strong>82.46</strong></td><td><strong>46.28</strong></td></tr>
+  <tr style="background:#f0ede6;"><td><strong>LSeg</strong></td><td><strong>ViT-L/16</strong></td><td><strong>RN$50\times16$</strong></td><td><strong>82.78</strong></td><td><strong>47.25</strong></td></tr>
+</table>
+</div>
+
+<div class="highlight-box">
+  <strong>📊 关键发现</strong>：<br>
+  • LSeg (RN$50\times16$ 文本编码器) 达到 <strong>82.78 pixAcc / 47.25 mIoU</strong><br>
+  • 与最接近的固定标签方法 DPT (82.70 / 47.63) 相比，mIoU 仅差 <strong>0.38</strong>——论文称之为"可忽略的性能损失"（negligible loss）<br>
+  • LSeg 甚至在某些指标上超过了固定的 DeeplabV3 (46.91 mIoU)<br>
+  • <strong>结论</strong>：LSeg 在获得零样本灵活性的同时，<strong>几乎没有牺牲固定标签集的性能</strong> ✅
+</div>
+
+<!-- ================ 5. 定性结果 ================ -->
+<h2>5. 定性结果分析</h2>
+
+<h3>5.1 跨数据集训练模型</h3>
+<p>论文将 LSeg 在 <strong>7 个数据集</strong>上联合训练：ADE20K, BDD, Cityscapes, COCO-Panoptic, IDD, Mapillary Vistas, SUN RGB-D。
+然后用这个统一模型测试网上图片的零样本分割能力。</p>
+
+<div class="img-figure">
+  <img src="../资料/Language-driven Semantic Segmentation/imgs_png/example_illustration23.png" alt="Figure 5: LSeg qualitative results" style="max-width:100%;">
+  <div class="caption">
+    <strong>图 5（论文 Figure 6）</strong>：LSeg 定性地展示对<strong>相关未见标签</strong>和<strong>层级未见标签</strong>的零样本能力。<br>
+    左侧(a)展示同义替换的效果，右侧(b)展示层级泛化的效果。
+  </div>
+</div>
+
+<h3>5.2 相关但未见过的标签（Related but Previously Unseen Labels）</h3>
+
+<div class="paper-quote">
+  <div class="en">"We then change the label 'house' to 'building' and the label 'plant' to 'greenery'. The model produces a similar segmentation as before on this different but semantically related label set. This is despite the fact that the label 'greenery' or even 'green' was not present in any of the training images."</div>
+  <div class="cn">📝 将 "house" 换成 "building"，将 "plant" 换成 "greenery"（训练集中<strong>从未出现过</strong>），LSeg 仍然给出几乎相同的分割结果！</div>
+  <span class="cite">— Section 5, Discussion</span>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h4>🟢 成功的同义替换</h4>
+    <p style="font-size:.82rem;">
+      标签 "house" → "building" ✅<br>
+      标签 "plant" → "greenery" ✅<br>
+      标签 "cake" → "dessert" ✅<br><br>
+      原因：这些词在 CLIP 嵌入空间中<strong>距离很近</strong>，因此模型自动将同义知识从见过的词迁移到未见过的新词。
+    </p>
+  </div>
+  <div class="card">
+    <h4>📊 层级泛化</h4>
+    <p style="font-size:.82rem;">
+      标签 "cat" → "furry" ✅（猫是毛茸茸的）<br>
+      标签 "sofa" → "furniture" ✅（沙发和架子都是家具）<br>
+      标签 "grass" 删除 → 合并到 "plant" ✅<br><br>
+      这证明 LSeg 内在地理解<strong>类别层级结构</strong>，无需显式的层级标注！
+    </p>
+  </div>
+</div>
+
+<h3>5.3 层级未见标签（Hierarchical Unseen Labels）</h3>
+
+<div class="paper-quote">
+  <div class="en">"When replacing 'cat' with the label 'furry', we notice that the model is able to successfully recognize this parent category (that is, most cats are furry, but not all furry objects are cats)."</div>
+  <div class="cn">📝 这是非常精彩的实验——"furry" 是比 "cat" 更高级的类别（父类别）。LSeg 能成功识别出所有<strong>毛茸茸的物体</strong>（即猫所在的区域），尽管训练时从未见过 "furry" 这个标签。</div>
+  <span class="cite">— Section 5, Discussion</span>
+</div>
+
+<div class="highlight-box">
+  <strong>💡 为什么 LSeg 能做层级泛化？</strong><br>
+  因为 CLIP 的文本嵌入空间不是扁平的——它编码了概念之间的<strong>语义距离</strong>。
+  "cat" 和 "furry" 在 CLIP 空间中距离较近（因为 CLIP 的训练数据中猫常常被描述为毛茸茸的）。
+  所以当 LSeg 将图像中的猫区域映射到文本空间时，它自然地落到了 "furry" 附近——<strong>即使 "furry" 从未出现在训练标签中</strong>。
+</div>
+
+<!-- ================ 6. 失败案例 ================ -->
+<h2>6. 失败案例分析</h2>
+
+<div class="img-figure">
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+    <img src="../资料/Language-driven Semantic Segmentation/imgs_png/failurecases1.png" alt="Failure case 1" style="max-height:250px;border-radius:8px;border:1px solid var(--border);">
+    <img src="../资料/Language-driven Semantic Segmentation/imgs_png/failurecases2.png" alt="Failure case 2" style="max-height:250px;border-radius:8px;border:1px solid var(--border);">
+  </div>
+  <div class="caption">
+    <strong>图 6（论文 Figure 7）</strong>：LSeg 的两种典型失败模式。
+    左：标签集中没有真实类别时，模型选"最接近但不正确"的标签。右：多解释一致性时模型偏向单一物体。
+  </div>
+</div>
+
+<h3>6.1 失败模式一：没有真实类别的标签集</h3>
+
+<div class="paper-quote">
+  <div class="en">"When the test-time input labels do not contain any of the true labels for the corresponding pixel, the model assigns the highest probability to the closest label in the text embedding space."</div>
+  <div class="cn">📝 当测试标签集不包含任何正确的类别时，LSeg 会<strong>强行选择嵌入空间中"最接近"的标签</strong>，而不是说"我不知道"。</div>
+  <span class="cite">— Section 5, Discussion</span>
+</div>
+
+<p><strong>案例分析</strong>（左图）：</p>
+<ul>
+  <li>输入标签中没有 "dog" ——但图像中有狗</li>
+  <li>可用的标签是 "toy" 和 "grass"</li>
+  <li>结果：狗的区域被标记为 "toy"（因为狗在嵌入空间中更接近玩具而非草）</li>
+  <li><strong>根本原因</strong>：LSeg 只从给定的标签中<strong>选最优</strong>，没有"都不是"的拒绝机制</li>
+</ul>
+
+<h3>6.2 失败模式二：多种解释一致性</h3>
+
+<div class="paper-quote">
+  <div class="en">"The model focuses on a single most likely object when multiple explanations are consistent with the label set."</div>
+  <div class="cn">📝 当多个标签都合理时，模型倾向于<strong>聚焦于单个最可能的物体</strong>，而不是做细粒度区分。</div>
+  <span class="cite">— Section 5, Discussion</span>
+</div>
+
+<p><strong>案例分析</strong>（右图）：</p>
+<ul>
+  <li>标签集中同时有 "house" 和 "window"</li>
+  <li>窗户本应属于 "window"，但它也被 "house" 高度激活</li>
+  <li>结果：窗户被标记为 "house" 而不是 "window"</li>
+  <li><strong>根本原因</strong>：softmax 是"赢家通吃"的——如果 "house" 的响应稍高，"window" 就被抑制了</li>
+</ul>
+
+<div class="highlight-box">
+  <strong>🔮 论文指出的未来方向</strong>：<br>
+  • 引入<strong>负样本训练</strong>：训练时除了匹配正确标签，还学习区分不匹配的标签<br>
+  • 构建<strong>细粒度语言驱动分割模型</strong>：允许一个像素同时对应多个标签（当多个解释都合理时）<br>
+  • 结合<strong>开集识别</strong>：当所有标签都不匹配时，输出"未知"
+</div>
+
+<!-- ================ 7. 消融实验总结 ================ -->
+<h2>7. 全篇消融总结</h2>
+
+<table>
+  <tr><th>消融实验</th><th>关键结论</th></tr>
+  <tr>
+    <td><strong>空间正则化模块</strong></td>
+    <td>2 个 BottleneckBlock 是最优配置（+1.96 mIoU），DepthwiseBlock 过深会崩溃</td></tr>
+  <tr>
+    <td><strong>文本编码器</strong></td>
+    <td>RN$50\times16$ 最佳（40.36 mIoU），大维度嵌入 > 小维度</td></tr>
+  <tr>
+    <td><strong>固定标签集对比</strong></td>
+    <td>LSeg (47.25) vs DPT (47.63)，仅差 0.38 mIoU，<strong>可忽略的性能损失</strong></td></tr>
+  <tr>
+    <td><strong>多数据集训练</strong></td>
+    <td>7 数据集联合训练后，定性结果展示了强大的零样本泛化能力</td></tr>
+</table>
+
+<!-- ================ 8. 课后练习 ================ -->
+<h2>📝 课后练习</h2>
+
+<details class="quiz">
+  <summary>📌 练习 1：为什么 DepthwiseBlock 在深度=4 时会完全崩溃（mIoU 仅 0.18）？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>这是一个值得研究的现象，论文没有给出详细解释，但可能的原因包括：</p>
+    <ul>
+      <li><strong>梯度问题</strong>：纯深度可分离卷积堆叠过深，且只有 ReLU 非线性，可能导致梯度消失或爆炸</li>
+      <li><strong>信息隔离</strong>：DepthwiseBlock 的每个通道完全独立，没有跨通道的信息交流。过深的堆叠导致每个通道在自己的"孤岛"上不断处理，可能产生了退化的特征</li>
+      <li><strong>相对性</strong>：BottleneckBlock 由于有跨标签 max-pooling 的信息交流，在深度=4 时仍然稳定</li>
+    </ul>
+    <p>这从侧面说明：<strong>跨标签的信息交流对于稳定深度堆叠是必要的</strong>。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 2：RN$50\times16$ 文本编码器效果最好的可能原因是什么？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <p>论文给出的解释是：<strong>嵌入维度更大</strong>（768 vs 512）。但更深层的原因可能是：</p>
+    <ul>
+      <li><strong>更高的嵌入容量</strong>：768 维的嵌入空间可以编码更丰富的语义差异，这对细粒度分割有帮助</li>
+      <li><strong>与更强大的图像编码器配对</strong>：RN$50\times16$ 文本编码器在 CLIP 预训练时与一个 ResNet50 16x 图像编码器配对，可能学到了更鲁棒的文本表示</li>
+      <li><strong>注意</strong>：这个消融中图像编码器固定为 ViT-B/32。如果图像编码器的输出维度也与文本嵌入维度匹配（768 dim），效果可能会更好</li>
+    </ul>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 3：LSeg 在固定标签集上的表现说明了什么？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <p>LSeg 在 ADE20K 固定标签集上达到 47.25 mIoU，与最好的传统方法 DPT (47.63) 仅差 0.38 mIoU。这说明了三个关键点：</p>
+    <ol>
+      <li><strong>灵活性不是免费的，但非常便宜</strong>：为了获得零样本能力，LSeg 仅仅付出了 0.38 mIoU 的微小代价</li>
+      <li><strong>文本嵌入不会损害语义分割的核心能力</strong>：使用文本嵌入替代固定分类头，并没有降低模型区分已知类别的能力</li>
+      <li><strong>LSeg 是一个通用的分割架构</strong>：它不仅限于零样本场景，也可以作为传统分割模型使用</li>
+    </ol>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 4：LSeg 的两类失败模式有什么共同根源？如何改进？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <p><strong>共同根源</strong>：LSeg 的训练目标只包含<strong>正样本匹配</strong>（拉近像素嵌入与正确标签嵌入），缺乏<strong>负样本和拒绝机制</strong>。</p>
+    <p>具体来说：</p>
+    <ul>
+      <li>训练时每个像素一定对应一个标签（没有"都不是"的情况）</li>
+      <li>测试时如果标签集不包含真实类别，模型仍然被迫从中选择"最不坏"的选项</li>
+      <li>如果多个标签都合理，softmax 的"赢家通吃"特性会抑制次优但正确的标签</li>
+    </ul>
+    <p><strong>可能的改进方向</strong>：</p>
+    <ul>
+      <li>引入<strong>背景/未知类别的学习</strong>：在训练时引入负样本或"none of the above"类</li>
+      <li>使用<strong>多标签预测</strong>：允许一个像素同时属于多个标签</li>
+      <li>结合<strong>不确定性估计</strong>：输出每个预测的置信度，低置信度则标记为"不确定"</li>
+    </ul>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 5（思考题）：LSeg 能理解类别层级结构（如 "cat" → "furry"），这背后的机制是什么？这种能力有什么局限？</summary>
+  <div class="answer">
+    <p><strong>参考答案：</strong></p>
+    <p><strong>背后的机制</strong>：</p>
+    <ul>
+      <li>CLIP 文本编码器是在海量图文对数据上训练的，它学习了现实世界中概念的<strong>共现模式</strong></li>
+      <li>"猫"和"毛茸茸的"在文本中经常一起出现，因此它们的嵌入在 CLIP 空间中距离很近</li>
+      <li>LSeg 将图像特征映射到这个空间后，<strong>自然而然地"继承"了这种语义关系</strong></li>
+    </ul>
+    <p><strong>局限</strong>：</p>
+    <ul>
+      <li>这种层级理解是<strong>隐式而非显式</strong>的——模型不知道"cat"是"furry"的子类，只是知道它们在向量空间中接近</li>
+      <li>对于在 CLIP 训练数据中不常见或不合理的对应关系（如 "car" → "vehicle" 虽然合理，但"方向盘"→"控制设备"就更间接），效果会变差</li>
+      <li>如果两个概念在 CLIP 空间中距离较远（尽管在现实中相关），LSeg 无法建立这种联系</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ================ 导航 ================ -->
+<div class="nav-links">
+  <a href="0011-实验设置与结果.html">← 上一课：实验设置与结果</a>
+  <a href="0013-总结与展望.html">下一课：总结与展望 →</a>
+</div>
+
+<p style="margin-top:2rem;font-size:.8rem;color:var(--ink-40);text-align:center;border-top:1px solid var(--border);padding-top:.8rem;">
+  如有任何疑问，随时向你的 AI 助教提问 🤖
+</p>
+
+</body>
+</html>

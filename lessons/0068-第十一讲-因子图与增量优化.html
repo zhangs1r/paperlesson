@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十一讲 · 因子图与增量优化 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十一讲 · 后端 2 / Lesson 3</div>
+      <h1>第十一讲 · 因子图与增量优化</h1>
+      <p class="subtitle">把“图优化”换个视角再看一遍：从贝叶斯网络到因子图，再到 iSAM 的增量思想。🧠</p>
+      <div class="hero-meta">
+        <span>🔁 连接第十讲概率解释</span>
+        <span>🧩 同时串起 gtsam 的用法</span>
+        <span>📚 这一课是概念桥梁课</span>
+      </div>
+      <div class="toc">
+        <a href="#bayes">贝叶斯网络</a>
+        <a href="#factor-graph">因子图</a>
+        <a href="#incremental">增量优化</a>
+        <a href="#gtsam">gtsam 例子</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="bayes">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>明白：因子图不是“另一门课”，它只是把我们已经学过的状态估计、最小二乘和图结构，用概率图模型的语言重新组织了一遍。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第六讲给了优化视角，第十讲给了概率视角；因子图就是把这两种语言融合起来，让后端可以自然接纳先验、回环、IMU、GPS 等多种约束。</p>
+        </div>
+      </div>
+      <p>很多同学第一次看到“因子图”会紧张，觉得这是全新的体系。其实你把它记成一句话就够了：<strong>变量节点存待估计量，因子节点存概率约束或误差约束</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/0b030b9cf11212504aaab5d690440eb1dabcbf63fbbe3b9bc1b675e19515c638.jpg" alt="图 11-5 贝叶斯网络表达的 SLAM">
+        <figcaption>图 11-5 用贝叶斯网络表达的 SLAM 过程。蓝线对应运动关系，红线对应观测关系。</figcaption>
+      </figure>
+    </main>
+
+    <section class="section-card" id="factor-graph">
+      <h2>1. 从贝叶斯网络到因子图：其实只是换了组织方式</h2>
+      <p>先看第十讲熟悉的状态估计式子：</p>
+      <div class="formula-box">$$ x_k = f(x_{k-1}, u_k) + w_k, \qquad z_{kj} = h(x_k, l_j) + v_{kj}. $$</div>
+      <p>如果从概率角度写，它们就变成条件分布：</p>
+      <div class="formula-box">$$ P(x_k \mid x_{k-1}) = \mathcal{N}\!\big(f(x_{k-1},u_k), R_k\big), \qquad P(z_{kj} \mid x_k, l_j) = \mathcal{N}\!\big(h(x_k,l_j), Q_{kj}\big). \tag{11.17-11.18} $$</div>
+      <p>这时，整件事就可以被视为“若干条件概率因子的乘积最大化”。换到负对数域，就是熟悉的最小二乘。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/379faca78c90296f1c0b4122341e0b69125737e05df440cbecbec062d3215a03.jpg" alt="图 11-6 因子图示意">
+        <figcaption>图 11-6 因子图示意图。圆圈是变量节点，方块是因子节点。</figcaption>
+      </figure>
+      <p>你会发现：因子图最打动工程师的地方，不在于它“更高深”，而在于它很<strong>模块化</strong>。今天想加回环因子，明天想加 GPS 先验因子，后天想加 IMU 预积分因子，形式上都能统一。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/40368e243ee28d4c7b021ce7c51f47f60d82c16dd71d162c20ea65bde4e7fa26.jpg" alt="图 11-7 更实际的因子图">
+        <figcaption>图 11-7 更实际的因子图。除了运动和观测因子，还可以自然加入先验因子和回环因子。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="incremental">
+      <h2>2. 增量优化真正解决了什么问题</h2>
+      <p>书里这一部分最值得你记住的不是术语，而是那个问题本身：<strong>如果图在不断长大，难道每来一个新节点，都要把整张图从头优化一遍吗？</strong></p>
+      <p>从理论上当然可以，但在实时系统里很不划算。于是 iSAM / iSAM2 背后的核心直觉就是：<strong>新增约束主要影响局部，不一定每次都要惊动全图</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b0fc236441d16bd548f9a86b7e1889b693296cb9cf280058522dce72591fe392.jpg" alt="图 11-8 增量更新示意图">
+        <figcaption>图 11-8 增量更新示意图。新增节点并不总会让全图每个变量都发生剧烈变化。</figcaption>
+      </figure>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>里程计式新增</h4>
+          <p>如果只是沿着当前轨迹继续往前加节点，最明显受影响的通常是最新那一小段。</p>
+        </div>
+        <div class="mini-card">
+          <h4>回环式新增</h4>
+          <p>一旦出现回环，受影响区域会扩展到回环相关的整段轨迹，但仍未必要重算所有历史。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么还要全局整理</h4>
+          <p>局部近似是为了快，不是为了永远替代全局优化；图规模和拓扑变化足够大时，还是需要一次更完整的重整。</p>
+        </div>
+      </div>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{新增变量/因子} \rightarrow \text{分析受影响区域} \rightarrow \text{复用已有中间量} \rightarrow \text{局部更新} $$</div>
+      </div>
+    </section>
+
+    <section class="section-card" id="gtsam">
+      <h2>3. gtsam 例子告诉我们的，不只是“又一个库”</h2>
+      <p>书里的 gtsam 示例依然读取 <code>sphere.g2o</code>，只是把它转成因子图结构再求解。这正好说明一件事：<strong>g2o 和 gtsam 的差别，不在于“谁会做最小二乘”，而在于它们组织问题的哲学不同</strong>。</p>
+      <pre><code>gtsam::NonlinearFactorGraph graph;
+gtsam::Values initial;
+graph.add(gtsam::BetweenFactor&lt;gtsam::Pose3&gt;(...));
+graph.add(gtsam::PriorFactor&lt;gtsam::Pose3&gt;(...));
+gtsam::LevenbergMarquardtOptimizer optimizer(graph, initial, params);</code></pre>
+      <p>在 gtsam 里，你几乎是直接把“因子”作为一等公民来写代码。这对多源融合系统尤其顺手，因为每类传感器都更容易对应成一种因子。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/5ea87541d7d2a84a62370d52bc8a7c3cbdfb5f3be9b916ddf479e8b7947052c8.jpg" alt="图 11-9 gtsam 优化结果">
+        <figcaption>图 11-9 gtsam 优化结果。外观和 g2o 结果相似，但问题组织方式更偏因子图。</figcaption>
+      </figure>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个系统未来很可能继续加入 GPS、IMU、轮速计等约束，哪种建模语言更自然？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，因为每一种约束都能被包装成一个因子加入统一图中。" onclick="lessonKit.answer(this, 'quiz-0068')">因子图语言</button>
+          <button data-correct="no" data-explanation="能做，但扩展性和可维护性会很差。" onclick="lessonKit.answer(this, 'quiz-0068')">只靠手写矩阵堆起来</button>
+          <button data-correct="no" data-explanation="不是不行，但不代表它比因子图在大规模多约束下更自然。" onclick="lessonKit.answer(this, 'quiz-0068')">完全回到 EKF 就行</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0068"></div>
+      </div>
+      <div class="callout">
+        <h4>OCR 校正提醒</h4>
+        <p>原始 OCR 把 iSAM 识别成了 <code>inremental Smooth and Mapping</code>，标准写法应为 <strong>incremental smoothing and mapping</strong>。类似地，gtsam 代码中的若干双引号和运算符也有识别噪声，这里都按正确含义整理了。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>如果说前两课是在告诉你“位姿图怎么做”，那么这一课是在补一层更高的理解：<strong>后端优化为什么越来越喜欢因子图这种表达方式</strong>。因为它更容易把概率、图结构和工程扩展统一起来。</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说“因子图”和“最小二乘”并不矛盾？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为在高斯假设下，最大后验估计等价于最小化若干残差项的负对数和，最终仍然落回最小二乘问题。因子图只是把这些残差的来源组织成图。</div>
+            </details>
+          </li>
+          <li>
+            设想你要把 GPS 位置观测加到 SLAM 后端。用因子图语言，你会把它看成什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>看成一个连接某个位姿变量节点的先验因子或观测因子，它给这个位姿提供外部位置约束和对应噪声模型。</div>
+            </details>
+          </li>
+          <li>
+            为什么增量优化不能完全取代全局优化？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为增量方法依赖“局部受影响”的近似。随着轨迹变长、回环变多、图结构改变，近似误差会积累，所以仍需要周期性的全局重整。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0067-第十一讲-g2o位姿图优化实践.html">← g2o 位姿图优化实践</a>
+        <a class="next" href="0069-第十二讲-回环检测的意义与评估.html">回环检测的意义与评估 →</a>
+      </div>
+      <p class="foot-note">学到这里，你已经能用“优化语言”和“概率语言”两种方式讲同一个后端问题了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

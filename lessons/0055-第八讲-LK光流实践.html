@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · LK光流实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Lesson 2</div>
+      <h1>第八讲 · LK 光流实践</h1>
+      <p class="subtitle">这一节把上一课的公式真正落到程序里：读取 TUM 数据集、用 FAST 提点、用 <code>calcOpticalFlowPyrLK</code> 跟踪、观察特征点逐渐流失。重点不是“跑通一个 demo”，而是把理论里的角点、边缘、平坦区差异亲眼看出来。🧪</p>
+      <div class="hero-meta">
+        <span>🔗 回扣 0054 的 LK 推导</span>
+        <span>📦 为第九讲 VO 前端替换组件做准备</span>
+        <span>🧭 为 0056 的直接法优化热身</span>
+      </div>
+      <div class="toc">
+        <a href="#tum">TUM 数据集怎么接进来</a>
+        <a href="#code">代码主流程怎么读</a>
+        <a href="#images">原书实验图在说明什么</a>
+        <a href="#compare">它和特征匹配怎么选</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="tum">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>先明确这节在干什么</h4>
+          <p>我们现在还没进入“直接法位姿优化”，只是先把第七讲里的特征前端减负：保留关键点，但不用描述子匹配，而是用 LK 光流追踪关键点的位置。</p>
+        </div>
+        <div class="callout">
+          <h4>为什么还用 TUM 数据集</h4>
+          <p>TUM 既有 RGB 图，也有深度图和真值轨迹，是后面第八讲 RGB-D 直接法、第九讲 VO 框架、第十三讲建图都会复用的公共实验底盘。早点熟悉它，后面会轻松很多。</p>
+        </div>
+      </div>
+
+      <p>书里这节先讲数据组织方式，这是很好的习惯。因为很多同学一上来就盯着 <code>calcOpticalFlowPyrLK</code>，反而忽略了：真实 SLAM 实验里，数据格式、时间对齐、配对文件才是程序能不能顺利跑起来的前提。</p>
+      <table>
+        <thead>
+          <tr><th>文件 / 目录</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>rgb.txt</code></td><td>记录彩色图时间戳和文件名</td></tr>
+          <tr><td><code>depth.txt</code></td><td>记录深度图时间戳和文件名</td></tr>
+          <tr><td><code>groundtruth.txt</code></td><td>外部运动捕捉系统给出的真值轨迹</td></tr>
+          <tr><td><code>associate.py</code></td><td>按时间戳把彩色图和深度图配成对</td></tr>
+          <tr><td><code>associate.txt</code></td><td>后续程序真正读取的配对结果</td></tr>
+        </tbody>
+      </table>
+
+      <div class="formula-box">$$
+      (time,\; t_x,\; t_y,\; t_z,\; q_x,\; q_y,\; q_z,\; q_w)
+      $$</div>
+      <p>这条真值格式看上去只是数据说明，但它和第九讲设计 <code>Frame</code>、第十讲 BA、 第十一讲位姿图都有关系：因为你会不断遇到“位姿该怎么存、怎么对齐、怎么比较”的问题。</p>
+    </main>
+
+    <section class="section-card" id="code">
+      <h2>1. 代码主流程：这不是“魔法函数”，而是一条很清楚的流水线</h2>
+      <p>原书示例 <code>useLK.cpp</code> 的结构非常适合初学者，因为它把 LK 光流拆成了四件清楚的事：</p>
+      <ol>
+        <li>第一帧提 FAST 角点</li>
+        <li>把上一帧点集喂给 <code>calcOpticalFlowPyrLK</code></li>
+        <li>根据 <code>status</code> 删除跟丢点</li>
+        <li>把剩余点可视化出来，看跟踪效果</li>
+      </ol>
+
+      <div class="callout">
+        <h4>这里最容易忽略的工程点</h4>
+        <p>书里使用 <code>std::list&lt;cv::Point2f&gt;</code> 存关键点，不是写法随意，而是因为跟踪过程中会频繁删除失效点。链表在中间删除时比向量更顺手。</p>
+      </div>
+
+      <h3>第一帧为什么还要提 FAST</h3>
+      <p>因为光流不会凭空生成跟踪目标，它只能“追踪已有点”。所以第一帧必须先靠第七讲熟悉的关键点检测，给它一批初始锚点。</p>
+      <div class="formula-box">$$
+      \text{FAST 提点} \;\rightarrow\; \text{LK 跟踪} \;\rightarrow\; \text{状态筛选} \;\rightarrow\; \text{继续下一帧}
+      $$</div>
+
+      <h3><code>calcOpticalFlowPyrLK</code> 里的 “Pyr” 是什么</h3>
+      <p>它表示<span class="term">图像金字塔</span>。这和第七讲 ORB 里的金字塔不是巧合，而是同一种工程哲学：大运动先在低分辨率层粗定位，小运动再在高分辨率层细修正。没有这层结构，LK 对大位移会更脆弱。</p>
+
+      <div class="interactive-card tab-group">
+        <h3>把核心参数读明白</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="lk-code-tabs" data-tab-id="input" onclick="lessonKit.openTab('lk-code-tabs','input')">输入是什么</button>
+          <button data-tab-button="lk-code-tabs" data-tab-id="output" onclick="lessonKit.openTab('lk-code-tabs','output')">输出是什么</button>
+          <button data-tab-button="lk-code-tabs" data-tab-id="status" onclick="lessonKit.openTab('lk-code-tabs','status')">为什么要看 status</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="lk-code-tabs" data-tab-id="input">
+          <p>输入是上一帧图像、当前帧图像，以及上一帧的关键点坐标。换句话说，LK 并不是在整张图里“搜全局最近点”，而是在局部灰度一致的假设下，估计这些点的小范围运动。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="lk-code-tabs" data-tab-id="output">
+          <p>输出最关键的是 <code>next_keypoints</code>，也就是每个旧点在当前帧里被跟踪到的新位置。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="lk-code-tabs" data-tab-id="status">
+          <p><code>status[i]</code> 告诉你第 <code>i</code> 个点有没有成功跟踪上。失败原因可能是出视野、被遮挡、局部纹理不够稳定，或者位移太大导致局部近似失效。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="images">
+      <h2>2. 原书实验图：不是“展示效果”，而是在讲光流的性格</h2>
+      <p>原书图 8-2 连续放了多帧实验图，这组图非常值得认真看，因为它把上一节的数学结论直接变成了视觉经验。</p>
+      <div class="grid-3">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/07f22518c1468cec0c761d52724c35b98ec327f9083cc4e1c42c0e7ab623e53e.jpg" alt="图 8-2 t=0">
+          <figcaption>t = 0：初始时有大量角点可跟踪，这一步像是在给光流发一份“名单”。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/ef79ede10c4fb65d35fb5791aa62bdd79087164e2f19a968887f5ca984380ff7.jpg" alt="图 8-2 t=10">
+          <figcaption>t = 10：大部分点还能稳住，但已经能看到少量点开始掉队。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/b56051d7b1b42061ec5af991d5fe366d6e220e0731a4507c6f722047ba141886.jpg" alt="图 8-2 t=20">
+          <figcaption>t = 20：如果不补点，特征点数量会持续下降。这就是光流前端常见的维护问题。</figcaption>
+        </figure>
+      </div>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/554adb45b628b21f491424f4c08808114bae73b9bbc9ce8f8221c78c89861dd4.jpg" alt="图 8-2 t=30">
+          <figcaption>t = 30：还能看到不少点，但分布已经不再像初始时那么均匀。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/f76063d0538197b277c58d262eeb8bb368700d7cc9bb1c484a1680d4a0c81649.jpg" alt="图 8-2 t=50">
+          <figcaption>t = 50：跟踪仍在继续，但如果前端永远不重新检测新点，地图和位姿估计迟早会因可用约束不足而变差。</figcaption>
+        </figure>
+      </div>
+
+      <p>书里还特别提到一个很形象的观察：“金角银边草肚皮”。这不是修辞，而是实验经验和矩阵性质的一致结论：</p>
+      <ul>
+        <li>角点最稳，因为两个方向上都有强梯度</li>
+        <li>边缘容易滑，因为沿边缘方向信息不够</li>
+        <li>纹理平坦处最差，因为局部根本缺少可辨识变化</li>
+      </ul>
+
+      <div class="callout">
+        <h4>你应该从图 8-2 带走的，不只是“能跑通”</h4>
+        <p>真正重要的是你已经开始能通过实验图判断一个前端的性格：它会不会慢慢丢点、哪些区域更稳、什么时候该补点、什么时候该切别的方法。这些判断会直接影响第九讲的工程设计。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. LK 光流和第七讲描述子匹配，到底怎么选</h2>
+      <table>
+        <thead>
+          <tr><th>维度</th><th>LK 光流</th><th>第七讲 ORB 匹配</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>需要描述子吗</td><td>不需要</td><td>需要</td></tr>
+          <tr><td>典型问题</td><td>跟丢</td><td>误匹配</td></tr>
+          <tr><td>适合运动</td><td>小运动、高帧率</td><td>较大运动、帧差更大</td></tr>
+          <tr><td>速度</td><td>通常更轻</td><td>提点 + 描述子 + 匹配更重</td></tr>
+          <tr><td>能否直接做回环</td><td>不擅长</td><td>更擅长，因为描述子可长期比较</td></tr>
+        </tbody>
+      </table>
+      <p>所以别把它想成“谁全面替代谁”。更准确的理解是：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{高帧率 + 小运动} \Rightarrow \text{光流很香}
+        \qquad
+        \text{帧差大 + 需要重定位/回环} \Rightarrow \text{特征匹配更稳}
+        $$</div>
+      </div>
+      <p>这也是为什么后面很多实际系统会混用：跟踪阶段偏爱轻量手段，重定位或回环阶段仍依赖特征点。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>TUM 数据集的意义</h4>
+          <p>它不是一次性实验素材，而是后面多讲都会复用的统一测试环境。</p>
+        </div>
+        <div class="mini-card">
+          <h4>LK 实践真正看什么</h4>
+          <p>看点是怎么被跟踪、怎么被删掉、为什么会慢慢减少，而不只是终端里打印了多少毫秒。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为下一节做的准备</h4>
+          <p>现在你已经接受“灰度可以驱动跟踪”，下一步就能进一步接受“灰度可以直接驱动位姿优化”。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么 LK 光流在第一帧仍然需要先做 FAST 特征提取？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为光流只能跟踪已有像素点的位置变化，不能凭空决定“该跟谁”。所以第一帧仍要先用第七讲的特征检测方法给出初始点集。</div>
+            </details>
+          </li>
+          <li>
+            为什么程序里要根据 <code>status</code> 删除点？如果不删会怎样？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为有些点已经跟丢、出视野或被遮挡，继续保留只会把错误点带进后续估计。长期不清理，前端会累积越来越多无效约束。</div>
+            </details>
+          </li>
+          <li>
+            结合图 8-2，说说光流前端在工程上最需要补的一个机制是什么。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>需要周期性补点或重检测新特征。因为只追踪不补充的话，点数会随着时间持续下降，最终导致前端约束不够，位姿估计质量下降。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0054-第八讲-直接法动机与光流理论.html">← 直接法动机与光流理论</a>
+        <a class="next" href="0056-第八讲-直接法理论与雅可比推导.html">直接法理论与雅可比推导 →</a>
+      </div>
+      <p class="foot-note">真正把这一节看懂之后，你会发现“前端快不快”往往不是优化器决定的，而是前面喂给它的数据是怎么来的 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · 对极几何与本质矩阵 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 3</div>
+      <h1>对极几何与本质矩阵</h1>
+      <p class="subtitle">现在我们终于进入“用匹配点估计运动”的第一条路线：只有两帧像素坐标，没有深度，也没有地图点。这时就要靠对极几何把第五讲的投影模型、第六讲的状态估计思想，压缩成一个 2D-2D 约束。📐</p>
+      <div class="hero-meta">
+        <span>📷 直接调用第五讲针孔模型</span>
+        <span>🔗 与第十三讲极线搜索前后呼应</span>
+        <span>🚪 为单目初始化和第九讲两帧 VO 开门</span>
+      </div>
+      <div class="toc">
+        <a href="#three-cases">三种输入情形先分清</a>
+        <a href="#epipolar">对极约束怎么推出来</a>
+        <a href="#essential">本质矩阵的性质</a>
+        <a href="#eight-point">八点法与四组解</a>
+        <a href="#homography">单应矩阵与退化场景</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="three-cases">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>理解为什么只靠两帧中的 2D 匹配点，也能恢复出相机相对运动；并且知道这条路线有哪些天生局限。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文的联系</h4>
+          <p>这一课是单目初始化的理论地基。下一课会把它真正跑起来；第九讲前端初始化和第十三讲极线搜索也都会回到这里。</p>
+        </div>
+      </div>
+      <p>进入推导前，先把书里那三个输入情形重新整理一下，因为很多初学者一上来就会混：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>2D-2D</h4>
+          <p>只有两帧中的像素对应关系，没有深度。解决方案是对极几何。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3D-2D</h4>
+          <p>已有地图点或某一帧深度，只需用投影关系求当前位姿。解决方案是 PnP。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3D-3D</h4>
+          <p>两侧都知道三维点，可直接求刚体对齐。解决方案是 ICP。</p>
+        </div>
+      </div>
+      <p>这三种情形在第七讲里按顺序出现不是巧合，而是因为它们对信息量的要求越来越高：从没有深度，到有一侧深度，再到两侧都有深度。</p>
+    </main>
+
+    <section class="section-card" id="epipolar">
+      <h2>1. 对极约束不是魔法，而是共面关系</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/88053f126401ee9ef9ccd41d5e57ad675bea16efbb2775d087e4db6ce34d2d97.jpg" alt="原书图7-7 对极几何约束">
+        <figcaption>原书图 7-7。最核心的信息只有一句话：如果两个像素点真的来自同一个空间点，那么两个光心和该空间点一定共面，这就是所有对极约束的几何根源。</figcaption>
+      </figure>
+      <p>设两帧图像为 $I_1, I_2$，第一帧到第二帧的运动为 $(R,t)$。若匹配点 $p_1, p_2$ 确实来自同一个空间点 $P$，那么 $O_1, O_2, P$ 三点确定一个平面，也就是极平面。由它和成像平面的交线，就得到两帧中的极线。</p>
+      <p>这一段真正要抓住的是：<strong>如果只知道第一帧像素位置，那么空间点可能落在一条射线上；把这条射线投到第二帧，就会落成一条极线</strong>。匹配的意义，就是从这条极线上把真正的对应点挑出来。</p>
+
+      <h3>1.1 从第五讲针孔模型推到对极约束</h3>
+      <p>第五讲已经给过我们针孔模型，现在只是把它拿来复用。设空间点在第一帧坐标系下为 $P$，则：</p>
+      <div class="formula-box">$$
+      s_1 p_1 = KP,\qquad
+      s_2 p_2 = K(RP+t).
+      \tag{7.1}
+      $$</div>
+      <p>去掉内参影响，定义归一化坐标：</p>
+      <div class="formula-box">$$
+      x_1 = K^{-1}p_1,\qquad
+      x_2 = K^{-1}p_2.
+      \tag{7.3}
+      $$</div>
+      <p>于是有：</p>
+      <div class="formula-box">$$
+      x_2 = Rx_1 + t.
+      \tag{7.4}
+      $$</div>
+      <p>左乘 $t^\wedge$，再左乘 $x_2^T$，由于 $x_2^T t^\wedge x_2 = 0$，就得到：</p>
+      <div class="formula-box">$$
+      x_2^T t^\wedge R x_1 = 0.
+      \tag{7.7}
+      $$</div>
+      <p>这就是对极约束。它看起来像一个漂亮的代数式，但几何意义非常朴素：$O_1,O_2,P$ 三者共面。</p>
+
+      <h3>1.2 基础矩阵和本质矩阵怎么区分</h3>
+      <p>原书这里有个 OCR 小噪声把 <em>Fundamental</em> 断成了两段，我这里顺手统一回标准写法。定义：</p>
+      <div class="formula-box">$$
+      E = t^\wedge R,\qquad
+      F = K^{-T}EK^{-1}.
+      \tag{7.9}
+      $$</div>
+      <p>于是约束可以写成：</p>
+      <div class="formula-box">$$
+      x_2^T E x_1 = p_2^T F p_1 = 0.
+      $$</div>
+      <p>你可以这样记：</p>
+      <ul>
+        <li><code>E</code> 在归一化平面上工作，更贴 SLAM 已知内参的场景。</li>
+        <li><code>F</code> 在像素平面上工作，把内参也包进去了。</li>
+      </ul>
+      <p>实际 SLAM 里，相机内参通常已标定，所以我们更常围绕 <code>E</code> 说话。</p>
+    </section>
+
+    <section class="section-card" id="essential">
+      <h2>2. 本质矩阵为什么不是任意 3×3 矩阵</h2>
+      <p>很多人第一次看本质矩阵，会觉得它明明有 9 个元素，为什么书里总说它只有 5 个自由度？这里一定要讲透。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>尺度等价</h4>
+          <p>如果把 <code>E</code> 乘上任何非零常数，对极约束仍然成立，所以它天然有一个尺度模糊。</p>
+        </div>
+        <div class="mini-card">
+          <h4>由 <code>R,t</code> 构成</h4>
+          <p>旋转有 3 个自由度，平移方向有 3 个自由度，但整体又受尺度等价约束，因此不是 6，而是 5。</p>
+        </div>
+        <div class="mini-card">
+          <h4>奇异值结构特殊</h4>
+          <p>它的奇异值必须形如 $[\sigma,\sigma,0]^T$，这说明它落在一个很特殊的矩阵流形上。</p>
+        </div>
+      </div>
+      <p>所以原书才会说：如果你严格利用这些约束，最少 5 对点就能求位姿；但从工程角度看，八点法更简单，而且真实系统里匹配点往往远不止 8 对。</p>
+    </section>
+
+    <section class="section-card" id="eight-point">
+      <h2>3. 八点法怎么把几何问题变成线性代数</h2>
+      <p>对一对归一化匹配点 $x_1=[u_1,v_1,1]^T$，$x_2=[u_2,v_2,1]^T$，把本质矩阵写成元素展开：</p>
+      <div class="formula-box">$$
+      \left(u_1,v_1,1\right)
+      \begin{pmatrix}
+      e_1&e_2&e_3\\
+      e_4&e_5&e_6\\
+      e_7&e_8&e_9
+      \end{pmatrix}
+      \begin{pmatrix}
+      u_2\\v_2\\1
+      \end{pmatrix}
+      = 0.
+      \tag{7.10}
+      $$</div>
+      <p>整理成向量形式，就得到：</p>
+      <div class="formula-box">$$
+      [u_1u_2,\;u_1v_2,\;u_1,\;v_1u_2,\;v_1v_2,\;v_1,\;u_2,\;v_2,\;1]\cdot e = 0.
+      \tag{7.11}
+      $$</div>
+      <p>8 对点堆起来就是一个 $8\times9$ 的线性方程组。于是问题从“几何推理”变成了“找矩阵零空间”。这就是八点法最漂亮的地方：它把难问题线性化了。</p>
+
+      <h3>3.1 从 E 分解出 R,t 为什么会有 4 个解</h3>
+      <p>对 $E$ 做 SVD 分解后，会得到四组候选的 $(R,t)$。原书配了一个非常有帮助的图：</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/863b0936d0b0362deab925ee186647f580315ee84b34992fe4ca85e1b00be8cc.jpg" alt="原书图7-8 本质矩阵分解的四个解">
+        <figcaption>原书图 7-8。它不是让你记住四种图形，而是让你明白：保持投影点不变时，几何上会出现多个候选配置；真正的解要靠“点在两个相机前方都是正深度”这一物理条件筛出来。</figcaption>
+      </figure>
+      <p>所以书里后面才会强调：只要拿任意一个候选点去做三角化，并检查深度是否为正，就能从四组解里挑出正确那一组。这一点在下一课的 <code>recoverPose</code> 里会自动完成。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>八点法为什么在工程里依然常见，尽管理论上 5 点也够？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。八点法只用线性结构，推导和实现更直接；实际系统里的匹配点远多于 8，对点数省那 3 个意义并不大。" onclick="lessonKit.answer(this, 'quiz-0048-a')">因为它实现简单，而且真实场景里匹配点通常很多</button>
+          <button data-correct="no" data-explanation="恰恰相反，五点法也能解，八点法不是因为点数更少，而是因为线性实现更直接。" onclick="lessonKit.answer(this, 'quiz-0048-a')">因为 8 点比 5 点更省信息</button>
+          <button data-correct="no" data-explanation="八点法当然也需要匹配点，不能在没有匹配的情况下工作。" onclick="lessonKit.answer(this, 'quiz-0048-a')">因为它不需要特征匹配</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0048-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="homography">
+      <h2>4. 单应矩阵与退化：为什么共面场景会让 F/E 变脆弱</h2>
+      <p>原书这一段很重要，因为它提醒你：前面那套漂亮的对极几何不是任何场景都稳。假设所有匹配点都落在一个平面上，比如墙面、地面、俯视桌面，那么更自然的模型其实是单应矩阵：</p>
+      <div class="formula-box">$$
+      p_2 = H p_1.
+      \tag{7.18}
+      $$</div>
+      <p>而且如果平面方程为 $n^T P + d = 0$，那么：</p>
+      <div class="formula-box">$$
+      H = K\left(R-\frac{tn^T}{d}\right)K^{-1}.
+      $$</div>
+      <p>这里最值得你记住的不是推导细节，而是工程结论：</p>
+      <ul>
+        <li>当特征点共面时，用 <code>H</code> 往往比用 <code>F/E</code> 更自然。</li>
+        <li>当相机纯旋转时，对极几何会退化，而单应关系仍然存在。</li>
+        <li>真实系统里常常会同时估计 <code>F</code> 和 <code>H</code>，再比较哪一个重投影误差更小。</li>
+      </ul>
+      <p>这件事和第十三讲的极线搜索也有联系：后面做稠密或半稠密匹配时，我们同样会不断问“几何模型到底把搜索范围压缩到哪里”。</p>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            对极约束的几何意义到底是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它表达的是两个光心和真实空间点三者共面。换句话说，第一帧中的一个像素，在第二帧中对应点不可能任意乱跑，而必须落在对应极线上。</div>
+            </details>
+          </li>
+          <li>
+            为什么本质矩阵只有 5 个自由度，而不是 9 个？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它来自 $E=t^\wedge R$，旋转 3 自由度、平移方向 3 自由度，再减去整体尺度等价性 1 个自由度，所以总共是 5 个。</div>
+            </details>
+          </li>
+          <li>
+            从本质矩阵分解出的四组解，最终靠什么原则选出正确解？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>靠正深度原则。把任意匹配点做三角化后，只有一组解会让空间点在两个相机坐标系下都落在相机前方。</div>
+            </details>
+          </li>
+          <li>
+            为什么共面场景或纯旋转会让对极几何变得更脆弱？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这时基础矩阵/本质矩阵的自由度有效下降，额外自由度更容易被噪声主导；而平面场景更适合用单应矩阵描述。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0047-第七讲-特征匹配与实践.html">← 上一课：特征匹配与实践</a>
+        <a class="next" href="0049-第七讲-对极几何实践与三角测量.html">下一课：对极几何实践与三角测量 →</a>
+      </div>
+      <p class="foot-note">这一课最该留下的感觉是：对极几何不是抽象几何秀，而是单目在“只有 2D 匹配时”几乎唯一能抓住的那条绳子。📘</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

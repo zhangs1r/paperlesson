@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · 状态估计与最小二乘引出 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 1</div>
+      <h1>第六讲 · 状态估计与最小二乘引出</h1>
+      <p class="subtitle">前五讲把位姿、李代数、相机模型都准备好了，这一节终于要回答一个真正“SLAM 味儿”的问题：带噪声的数据来了以后，我们怎样把这些模型变成一个可解的估计问题？📘</p>
+      <div class="hero-meta">
+        <span>🔗 回扣第二讲状态方程</span>
+        <span>🧮 用第四讲李代数解释位姿变量</span>
+        <span>🚪 为第十讲 BA 和第十一讲位姿图开门</span>
+      </div>
+      <div class="toc">
+        <a href="#bridge">这节课在全书里的位置</a>
+        <a href="#map-mle">最大后验与最大似然</a>
+        <a href="#least-squares">最小二乘如何被引出来</a>
+        <a href="#structure">SLAM 最小二乘的结构</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="bridge">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>你要真正明白：SLAM 里的“优化”不是凭空来的，而是从状态估计、概率模型、噪声假设，一步一步自然走到最小二乘。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第二讲给了我们运动方程和观测方程，第四讲告诉我们位姿为什么适合用李代数参数化，第五讲把观测方程具体化为相机投影。现在这些碎片终于要拼成“求解器看得懂”的目标函数了。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/0941afa94e5145056092d31a317ca125bb196baa9df362d4c639a3ae5e102fda.jpg" alt="第六讲状态估计问题总览图">
+        <figcaption>原书第六讲开场图。它想表达的不是“又有一张流程图”，而是：前面讲过的位姿、观测、噪声，现在要被统一放进同一个状态估计框架里。</figcaption>
+      </figure>
+      <p>作者在这里先把全书的主线重新拎了一遍：SLAM 不是单纯“从图像里算个运动”，而是<strong>在带噪声观测下估计隐藏状态</strong>。这个隐藏状态既包括相机轨迹，也包括地图。</p>
+      <p>所以这一讲的真正任务不是上来就推高斯牛顿，而是先回答一个更底层的问题：</p>
+      <div class="formula-box flow-formula">带噪声的运动数据 + 带噪声的观测数据 → 怎样变成“最优状态估计”？</div>
+      <p>如果这个逻辑你吃透了，后面第十讲 Bundle Adjustment 和第十一讲位姿图优化看起来就不会像两套陌生的公式，而会像这一讲的自然放大版。🙂</p>
+    </main>
+
+    <section class="section-card" id="map-mle">
+      <h2>1. 最大后验与最大似然：先别急着“优化”，先问我们在估什么</h2>
+      <p>书里先回到第二讲那个经典 SLAM 模型：</p>
+      <div class="formula-box">$$
+      \left\{
+      \begin{array}{l}
+      \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k) + \boldsymbol{w}_k \\
+      \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k) + \boldsymbol{v}_{k,j}
+      \end{array}
+      \right.
+      \tag{6.1}
+      $$</div>
+      <p>这里每个符号现在都已经不是抽象字母了：</p>
+      <ul>
+        <li>$\boldsymbol{x}_k$ 是位姿状态。根据第四讲，我们既可以把它看成 $\boldsymbol{T}_k$，也可以把它看成 $\exp(\boldsymbol{\xi}_k^\wedge)$ 这样的李代数参数化。</li>
+        <li>$\boldsymbol{u}_k$ 是运动输入，比如轮速计、IMU 或其他里程计信息。</li>
+        <li>$\boldsymbol{y}_j$ 是地图中的路标。</li>
+        <li>$\boldsymbol{z}_{k,j}$ 是当前时刻对该路标的观测。根据第五讲，它最终会落到像素平面上。</li>
+      </ul>
+      <p>而且书里明确假设了噪声满足零均值高斯分布：</p>
+      <div class="formula-box">$$
+      \boldsymbol{w}_k \sim N(0,\boldsymbol{R}_k), \qquad
+      \boldsymbol{v}_{k,j} \sim N(0,\boldsymbol{Q}_{k,j}).
+      \tag{6.3}
+      $$</div>
+      <p>现在问题不再是“公式写出来了没有”，而是：已知输入和观测之后，我们想推断什么？书里把所有待估计量统一打包成一个大状态：</p>
+      <div class="formula-box">$$
+      \boldsymbol{x} = \{\boldsymbol{x}_1,\dots,\boldsymbol{x}_N,\boldsymbol{y}_1,\dots,\boldsymbol{y}_M\}.
+      $$</div>
+      <p>于是整个 SLAM 问题就被改写成：求解条件分布</p>
+      <div class="formula-box">$$
+      P(\boldsymbol{x}\mid \boldsymbol{z}, \boldsymbol{u}).
+      \tag{6.4}
+      $$</div>
+      <p>这是一个非常关键的视角切换：<strong>SLAM 从这里开始，被解释成状态估计问题</strong>。这也是为什么第二讲的“状态方程 / 观测方程”到第六讲还能继续用，不是白铺垫。</p>
+
+      <h3>1.1 贝叶斯法则为什么在这里出现</h3>
+      <p>书里接着用贝叶斯法则把后验拆开：</p>
+      <div class="formula-box">$$
+      P(\boldsymbol{x}\mid\boldsymbol{z})
+      =
+      \frac{P(\boldsymbol{z}\mid\boldsymbol{x})P(\boldsymbol{x})}{P(\boldsymbol{z})}
+      \propto
+      P(\boldsymbol{z}\mid\boldsymbol{x})P(\boldsymbol{x}).
+      \tag{6.5}
+      $$</div>
+      <p>这一步特别适合用“助教口吻”翻一下：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>后验</h4>
+          <p>看到观测之后，我们对状态的最终相信程度。</p>
+        </div>
+        <div class="mini-card">
+          <h4>似然</h4>
+          <p>如果状态真是这样，它产生当前观测的可能性有多大。</p>
+        </div>
+        <div class="mini-card">
+          <h4>先验</h4>
+          <p>即使还没看观测，我们对状态本来就带着的先验判断。</p>
+        </div>
+      </div>
+      <p>于是最大后验估计（MAP）写成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{x}_{MAP}^{*}
+      =
+      \arg\max P(\boldsymbol{x}\mid\boldsymbol{z})
+      =
+      \arg\max P(\boldsymbol{z}\mid\boldsymbol{x})P(\boldsymbol{x}).
+      \tag{6.6}
+      $$</div>
+      <p>如果没有先验，或者你决定暂时不使用先验，那就退化成最大似然估计（MLE）：</p>
+      <div class="formula-box">$$
+      \boldsymbol{x}_{MLE}^{*}
+      =
+      \arg\max P(\boldsymbol{z}\mid\boldsymbol{x}).
+      \tag{6.7}
+      $$</div>
+      <div class="callout">
+        <h4>一句人话总结</h4>
+        <p>最大似然在问：“什么样的状态，最能解释我现在看到的这些观测？” 最大后验则多问一步：“除了观测解释得通，我原本对这个状态还有没有先验偏好？”</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="least-squares">
+      <h2>2. 最小二乘不是拍脑袋选的，而是高斯假设推出来的</h2>
+      <p>很多人第一次学 SLAM 优化时，会有一个误解：好像“最小二乘”只是大家常用的一种损失。书里这一小节其实就在纠正这个误解。</p>
+      <p>从单次观测出发：</p>
+      <div class="formula-box">$$
+      \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j,\boldsymbol{x}_k) + \boldsymbol{v}_{k,j}.
+      $$</div>
+      <p>由于噪声是高斯的，所以观测条件概率也是高斯分布：</p>
+      <div class="formula-box">$$
+      P(\boldsymbol{z}_{k,j}\mid \boldsymbol{x}_k,\boldsymbol{y}_j)
+      =
+      N\left(h(\boldsymbol{y}_j,\boldsymbol{x}_k), \boldsymbol{Q}_{k,j}\right).
+      $$</div>
+      <p>接下来作者做的关键动作是：不直接最大化高斯概率密度，而是对它取<strong>负对数</strong>。因为高斯分布</p>
+      <div class="formula-box">$$
+      P(\boldsymbol{x}) =
+      \frac{1}{\sqrt{(2\pi)^N\det(\boldsymbol{\Sigma})}}
+      \exp\left(
+      -\frac{1}{2}
+      (\boldsymbol{x}-\boldsymbol{\mu})^T
+      \boldsymbol{\Sigma}^{-1}
+      (\boldsymbol{x}-\boldsymbol{\mu})
+      \right)
+      \tag{6.8}
+      $$</div>
+      <p>取负对数后就变成：</p>
+      <div class="formula-box">$$
+      -\ln P(\boldsymbol{x})
+      =
+      \frac{1}{2}\ln\big((2\pi)^N\det(\boldsymbol{\Sigma})\big)
+      +
+      \frac{1}{2}
+      (\boldsymbol{x}-\boldsymbol{\mu})^T
+      \boldsymbol{\Sigma}^{-1}
+      (\boldsymbol{x}-\boldsymbol{\mu}).
+      \tag{6.9}
+      $$</div>
+      <p>第一项和待优化变量无关，所以最大化概率，等价于最小化后面那个二次型。把这个逻辑代回 SLAM 观测模型，就得到：</p>
+      <div class="formula-box">$$
+      \boldsymbol{x}^{*}
+      =
+      \arg\min
+      \left(
+      \boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k,\boldsymbol{y}_j)
+      \right)^T
+      \boldsymbol{Q}_{k,j}^{-1}
+      \left(
+      \boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k,\boldsymbol{y}_j)
+      \right).
+      \tag{6.10}
+      $$</div>
+      <p>这一步非常重要：<strong>我们开始在最小化“误差的加权平方”</strong>。这不是经验主义，而是高斯噪声 + 最大似然推出来的。</p>
+
+      <h3>2.1 整个 SLAM 的误差怎样组织起来</h3>
+      <p>作者把运动误差和观测误差分别定义成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{e}_{v,k}
+      =
+      \boldsymbol{x}_k - f(\boldsymbol{x}_{k-1},\boldsymbol{u}_k),
+      \tag{6.11}
+      $$</div>
+      <div class="formula-box">$$
+      \boldsymbol{e}_{y,j,k}
+      =
+      \boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k,\boldsymbol{y}_j).
+      $$</div>
+      <p>然后把所有误差项加起来，得到整章最核心的目标函数：</p>
+      <div class="formula-box">$$
+      J(\boldsymbol{x})
+      =
+      \sum_k \boldsymbol{e}_{v,k}^T \boldsymbol{R}_k^{-1}\boldsymbol{e}_{v,k}
+      +
+      \sum_k\sum_j \boldsymbol{e}_{y,k,j}^T \boldsymbol{Q}_{k,j}^{-1}\boldsymbol{e}_{y,k,j}.
+      \tag{6.12}
+      $$</div>
+      <p>这就是从“状态估计”走到“最小二乘”的完整桥。后面第十讲 BA、第十一讲位姿图，本质上都还是在最小化某种版本的这个式子，只是状态和误差项换了更具体的内容。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么这一讲里最小二乘会显得如此“理所当然”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。高斯噪声下，最大化似然等价于最小化负对数，而负对数正好变成误差的加权平方和。" onclick="lessonKit.answer(this, 'quiz-0039-a')">因为高斯噪声假设把概率问题变成了误差平方和最小化</button>
+          <button data-correct="no" data-explanation="计算方便是优点，但不是它在这里出现的根本原因。" onclick="lessonKit.answer(this, 'quiz-0039-a')">因为平方最容易编程</button>
+          <button data-correct="no" data-explanation="并不是所有优化都必须二范数，这一讲强调的是它的概率来源。" onclick="lessonKit.answer(this, 'quiz-0039-a')">因为视觉SLAM只能用二范数</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0039-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="structure">
+      <h2>3. SLAM 最小二乘为什么和普通最小二乘长得不太一样</h2>
+      <p>书里接着没有急着讲高斯牛顿，而是停下来分析式 (6.12) 的结构，这一步非常有价值，因为它决定了后面为什么能做稀疏优化、图优化、参数块优化。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>误差项很多，但每项都小</h4>
+          <p>运动误差只看相邻位姿，观测误差只看一个位姿和一个路标。每一项是局部的，小而清楚。</p>
+        </div>
+        <div class="mini-card">
+          <h4>整体维度高，但结构稀疏</h4>
+          <p>虽然整条轨迹和整张地图放在一起会很大，但每个误差只碰少数变量，所以雅可比和海森近似都天然稀疏。</p>
+        </div>
+        <div class="mini-card">
+          <h4>李代数让问题变成无约束</h4>
+          <p>如果直接拿旋转矩阵做变量，就得额外维持正交约束；用第四讲的李代数参数化，优化变量就可以在局部欧氏空间里自由走。</p>
+        </div>
+      </div>
+      <p>这里第三点尤其值得回头再看第四讲：这就是为什么书里前面花了那么大篇幅讲 so(3)、se(3) 和指数映射。不是为了抽象，而是为了在优化时把位姿变量“摊平”成可计算的小增量。</p>
+      <p>而且书里这里其实已经提前埋了第十讲和第十一讲的伏笔：</p>
+      <div class="callout">
+        <h4>后面会发生什么</h4>
+        <p>第十讲会把这种“很多小误差项拼成一个大稀疏系统”的结构彻底展开到 BA；第十一讲则进一步把“谁和谁有关”抽象成位姿图和边约束。所以第六讲是后端优化的总入口，不只是一个数学插曲。🚪</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>状态估计视角</h4>
+          <p>SLAM 在这一讲被正式写成了条件概率估计问题，而不是“单次几何求解题”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>概率到优化的桥</h4>
+          <p>高斯噪声 + 最大似然 / 最大后验，经由负对数，走到了误差加权平方和。</p>
+        </div>
+        <div class="mini-card">
+          <h4>结构性认识</h4>
+          <p>SLAM 的最小二乘不是一坨普通大矩阵，而是局部误差块拼出来的稀疏系统。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么第六讲一开头要先回顾第二讲的状态方程和观测方程，而不是直接讲高斯牛顿？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为高斯牛顿只是求解器，先得弄清楚我们在估什么、概率模型是什么、误差从哪里来。第二讲的状态方程和观测方程正是这一切的起点。</div>
+            </details>
+          </li>
+          <li>
+            最小二乘在这一讲里的“合法性”来自哪里？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>来自高斯噪声假设。高斯分布取负对数后会变成一个二次型，因此最大似然或最大后验估计等价于最小化误差的加权平方和。</div>
+            </details>
+          </li>
+          <li>
+            这一讲为什么要特别点出“李代数让问题无约束”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为若直接用旋转矩阵或变换矩阵做优化变量，就要额外满足正交性等约束；而李代数提供了局部欧氏参数化，让优化能在无约束小增量空间里进行，这对后面求导和迭代都更友好。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0038-第五讲-章节总结.html">← 第五讲：章节总结</a>
+        <a class="next" href="0040-第六讲-高斯牛顿法.html">高斯牛顿法 →</a>
+      </div>
+      <p class="foot-note">这一节真正做的是“搭桥”：从概率世界走到优化世界，后面的方法课都会踩着这座桥往前走。🌿</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · 章节总结与习题 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Summary</div>
+      <h1>第六讲 · 章节总结与习题</h1>
+      <p class="subtitle">这一讲是全书后半程真正的“方法学拐点”。前五讲告诉你状态和观测是什么，第六讲告诉你：当它们带着噪声来到面前时，我们究竟该如何组织、求解、实现。🧠</p>
+      <div class="hero-meta">
+        <span>🧭 状态估计 → 最小二乘 → G-N / L-M</span>
+        <span>🛠️ Ceres / g2o 双实践</span>
+        <span>🌉 直连第十讲后端优化与第十一讲位姿图</span>
+      </div>
+      <div class="toc">
+        <a href="#map">整讲知识地图</a>
+        <a href="#bridge">和前后章节的连接</a>
+        <a href="#key-points">最该带走的五个要点</a>
+        <a href="#exercises">习题与答案</a>
+        <a href="#preview">下一讲预告</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="map">
+      <h2>1. 第六讲知识地图：这一讲到底串起了什么</h2>
+      <div class="formula-box flow-formula">
+        第二讲状态方程 / 观测方程
+        →
+        第四讲李代数局部参数化
+        →
+        第五讲相机投影模型
+        →
+        第六讲状态估计与最小二乘
+        →
+        G-N / L-M
+        →
+        Ceres / g2o 工程实现
+      </div>
+      <p>如果把这一讲压成一句话，那就是：</p>
+      <div class="callout">
+        <h4>一句总括</h4>
+        <p>SLAM 的后端优化，不是“突然拿个库来算一算”，而是从概率建模、高斯噪声假设、残差组织、局部线性化，一直走到稀疏图结构和工程求解器的一条完整链条。</p>
+      </div>
+      <p>也正因为这条链条完整，第十讲再讲 BA、第十一讲再讲位姿图时，你才不会只觉得“公式更多了”，而会知道它们其实仍然是在重复第六讲的基本逻辑，只是问题规模更大、结构更复杂而已。</p>
+    </main>
+
+    <section class="section-card" id="bridge">
+      <h2>2. 这讲和前后章节怎么接上</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>来自第二讲</h4>
+          <p>状态方程和观测方程在这一讲被正式当成状态估计模型重新启用，不再只是概念框架。</p>
+        </div>
+        <div class="mini-card">
+          <h4>来自第四讲</h4>
+          <p>李代数局部参数化保证位姿优化可以在无约束小增量空间里进行，这是高斯牛顿和 L-M 真正能落地的重要前提。</p>
+        </div>
+        <div class="mini-card">
+          <h4>来自第五讲</h4>
+          <p>观测模型里的 $h(\cdot)$ 不再抽象，它对应的就是相机投影、重投影误差等具体函数。</p>
+        </div>
+        <div class="mini-card">
+          <h4>走向第七讲</h4>
+          <p>特征匹配、PnP、ICP 求出的往往只是位姿初值，而真正把误差收紧、让系统更稳的思路，仍然会回到本讲的优化框架。</p>
+        </div>
+        <div class="mini-card">
+          <h4>走向第十讲</h4>
+          <p>Bundle Adjustment 是这一讲最小二乘结构的“大型完整版”，稀疏性和参数块思想会在那里彻底展开。</p>
+        </div>
+        <div class="mini-card">
+          <h4>走向第十一讲</h4>
+          <p>位姿图优化会把“顶点 / 边 / 图结构”这套语言推到更自然、更直接的形式。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="key-points">
+      <h2>3. 最该带走的五个要点</h2>
+      <div class="lead-grid">
+        <div class="mini-card">
+          <h4>1. 最小二乘不是拍脑袋选的</h4>
+          <p>它来自高斯噪声下 MAP / MLE 的负对数形式，所以本质上是从概率模型推出来的。</p>
+        </div>
+        <div class="mini-card">
+          <h4>2. 高斯牛顿是“便宜版二阶法”</h4>
+          <p>它用 $\boldsymbol{J}^T\boldsymbol{J}$ 近似海森矩阵，在不显式求二阶导的前提下拿到更有结构的更新方向。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3. L-M 是给 G-N 加了稳定器</h4>
+          <p>通过阻尼项和信赖区域机制，在“快”和“稳”之间动态调节，所以在工程里特别常见。</p>
+        </div>
+        <div class="mini-card">
+          <h4>4. 图优化是一种结构视角</h4>
+          <p>顶点 = 变量，边 = 误差项。它不改变问题本质，但让稀疏性和变量关联关系一下子看得很清楚。</p>
+        </div>
+        <div class="mini-card">
+          <h4>5. Ceres 和 g2o 代表两种建模气质</h4>
+          <p>Ceres 更偏残差块组合，g2o 更偏显式图结构建模。两者都在解同一个最小二乘世界。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="exercises">
+      <h2>4. 课后习题</h2>
+      <section class="exercise-box">
+        <h3>核心练习</h3>
+        <ol>
+          <li>
+            为什么书里在第六讲一开始没有直接进入高斯牛顿推导，而是先从 MAP / MLE 讲起？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为第六讲首先要回答“我们在估什么、误差为什么这样写”的问题。只有先把 SLAM 写成状态估计，再通过高斯噪声和负对数走到最小二乘，后面的高斯牛顿和 L-M 才有明确的对象。</div>
+            </details>
+          </li>
+          <li>
+            高斯牛顿和 L-M 的区别，最值得用什么一句话去记？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>高斯牛顿更像一个快但有点冒进的局部求解器，而 L-M 是在它基础上加了阻尼和信赖区域，让更新更稳、更能自我纠错。</div>
+            </details>
+          </li>
+          <li>
+            为什么图优化视角在 SLAM 里格外重要，而不只是“换一种画图方式”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它直接暴露出变量之间的连接关系和稀疏结构，这决定了后端优化为什么能大规模求解，也决定了 g2o、BA、位姿图等工程框架如何组织。</div>
+            </details>
+          </li>
+          <li>
+            这一讲里，李代数参数化为什么一直被反复点名？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为直接用旋转矩阵或变换矩阵做变量会带来正交性等约束，而李代数把位姿局部摊平成了无约束小增量空间，这对求导和优化都至关重要。</div>
+            </details>
+          </li>
+          <li>
+            用一句话比较 Ceres 和 g2o 在第六讲练习里的不同建模风格。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>Ceres 更强调“定义残差块并交给通用求解器”，而 g2o 更强调“把问题显式建成顶点和边组成的图，再在图上优化”。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+
+      <section class="exercise-box">
+        <h3>拓展练习</h3>
+        <ol>
+          <li>
+            为什么 $\boldsymbol{J}^T\boldsymbol{J}$ 可能不稳定？这种不稳定在 SLAM 里会对应什么样的几何场景？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>当雅可比列不满秩或问题退化时，$\boldsymbol{J}^T\boldsymbol{J}$ 可能奇异或病态。在 SLAM 中常对应观测不足、几何分布退化、某些自由度没有被充分约束等情况。</div>
+            </details>
+          </li>
+          <li>
+            如果你后面要自己实现一个小型位姿图优化器，第六讲哪三块知识最不能跳过？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>至少不能跳过：1. 状态估计到最小二乘的建模逻辑；2. 高斯牛顿 / L-M 的增量方程与局部线性化；3. 图优化里的顶点、边和信息矩阵这些结构化表达。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <section class="section-card" id="preview">
+      <h2>5. 下一步怎么学最顺</h2>
+      <p>第六讲结束后，你其实已经拥有了一种“后端眼光”。接下来第七讲进入特征点法视觉里程计时，建议你带着两个问题去看：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>这些前端方法给了什么</h4>
+          <p>PnP、ICP、对极几何通常先给你一个位姿估计或几何约束，它们很少是终局，而更像后端优化的初值和观测来源。</p>
+        </div>
+        <div class="mini-card">
+          <h4>这些误差以后怎么收紧</h4>
+          <p>你现在已经知道，真正让估计全局一致、噪声被吸收进统一模型里的，还是第六讲这套最小二乘与图优化框架。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>学习建议</h4>
+        <p>如果你觉得第六讲内容有点多，很正常。它本来就是一讲“地基课”。最好的复习方式不是死背公式，而是回头连着看：状态估计 → G-N → L-M → Ceres / g2o，这条线要顺起来。🌱</p>
+      </div>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0044-第六讲-g2o实践曲线拟合.html">← g2o 实践曲线拟合</a>
+        <a class="next" href="0046-第七讲-特征点法与ORB特征.html">第七讲：特征点法与 ORB 特征 →</a>
+      </div>
+      <p class="foot-note">第六讲真正完成的事，是把“SLAM 为什么能优化”这件事讲清楚了。后面所有模块，都会反复回到这里。📐</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

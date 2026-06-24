@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第三讲 · 旋转矩阵 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第三讲 · 三维空间刚体运动 / Lesson 1</div>
+      <h1>第三讲 · 旋转矩阵</h1>
+      <p class="subtitle">从“相机在三维空间里怎么转”这个问题开始，正式进入位姿表示。后面第 4 讲的李代数、第 7 到第 11 讲的位姿优化，都会站在这节课的肩膀上。🧭</p>
+      <div class="hero-meta">
+        <span>🔗 承接第二讲数学表述</span>
+        <span>📐 这是位姿表示第一课</span>
+        <span>🧱 为 SO(3)、SE(3) 打底</span>
+      </div>
+      <div class="toc">
+        <a href="#point-vector">点、向量与坐标系</a>
+        <a href="#inner-outer">内积与外积</a>
+        <a href="#euclidean">坐标系间的欧氏变换</a>
+        <a href="#rotation-matrix">旋转矩阵与 SO(3)</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="point-vector">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把“相机的位姿”这件事，从日常语言彻底翻译成数学对象。学完这节，你要明确知道：点、向量、坐标系、旋转矩阵、SO(3) 分别在描述什么。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第二讲里我们写下了运动方程和观测方程，但里面的 $\boldsymbol{x}$ 还很模糊。这一讲的任务，就是先把“位姿”中的旋转部分讲清楚，让后面的优化变量终于有了严谨的容器。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/c696a7868b1a052673f19e5b13f3bbe6e8bad632774064556e32a523c3a44f49.jpg" alt="第三讲总览图">
+        <figcaption>第三讲总览图。旋转矩阵、欧拉角、四元数、SE(3) 会在本讲后续逐步登场，这节先从最基础的旋转矩阵切入。</figcaption>
+      </figure>
+      <p>书里这一讲一开头就点得很准：三维空间里的刚体运动，本质上是<strong>旋转 + 平移</strong>。平移通常不太难理解，但旋转的表示却远比想象中麻烦，因为它既有几何含义，又带有严格的约束。</p>
+      <p>在进入旋转之前，我们先把最基本的语言统一：</p>
+      <ul>
+        <li><strong>点</strong>：空间中的一个位置</li>
+        <li><strong>向量</strong>：一个几何对象，可以理解成从原点指向某处的箭头</li>
+        <li><strong>坐标</strong>：向量在某一组基下的数值表示</li>
+      </ul>
+      <p>这里最容易混淆的一句是：<strong>向量本身不等于它的坐标</strong>。只有当你选定坐标系，也就是选定一组基 $(\boldsymbol{e}_1,\boldsymbol{e}_2,\boldsymbol{e}_3)$ 后，才能把向量写成数值：</p>
+      <div class="formula-box">$$ \boldsymbol{a} = \begin{bmatrix}\boldsymbol{e}_1 & \boldsymbol{e}_2 & \boldsymbol{e}_3\end{bmatrix}
+\begin{bmatrix}a_1\\a_2\\a_3\end{bmatrix}
+= a_1\boldsymbol{e}_1 + a_2\boldsymbol{e}_2 + a_3\boldsymbol{e}_3. \tag{3.1} $$</div>
+      <p>所以后面当我们说“相机位姿变了”，其实意味着：同一个空间中的点和向量，在不同坐标系里的坐标表达变了，而几何对象本身并没有凭空变成另一个东西。</p>
+    </main>
+
+    <section class="section-card" id="inner-outer">
+      <h2>1. 内积与外积：为什么这里要花笔墨讲它们</h2>
+      <p>因为后面讨论旋转时，最常出现的几何量就是：<strong>两个向量之间的夹角、法向方向、叉积矩阵</strong>。这些都依赖内积和外积。</p>
+      <p>内积的几何意义最熟悉：它描述了投影关系。</p>
+      <div class="formula-box">$$ \boldsymbol{a}\cdot\boldsymbol{b} = \boldsymbol{a}^T\boldsymbol{b}
+= \sum_{i=1}^3 a_i b_i
+= |\boldsymbol{a}|\,|\boldsymbol{b}| \cos\langle \boldsymbol{a}, \boldsymbol{b}\rangle. \tag{3.2} $$</div>
+      <p>外积则更关键，因为它既给出了法向方向，又天然和旋转联系起来：</p>
+      <div class="formula-box">$$ \boldsymbol{a}\times\boldsymbol{b}
+= \begin{bmatrix}
+0 & -a_3 & a_2 \\
+a_3 & 0 & -a_1 \\
+-a_2 & a_1 & 0
+\end{bmatrix}\boldsymbol{b}
+\triangleq \boldsymbol{a}^{\wedge}\boldsymbol{b}. \tag{3.3} $$</div>
+      <p>这一步特别重要：作者用 $\wedge$ 符号把向量改写成一个反对称矩阵。你现在可以先把它看成一个技巧，但到了第四讲你会发现，这几乎是李代数语言的入口。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/4ec2bb24c0c02d687bab738a7eb4fb98b24f79f3bbb1e05e8f84388c14eb679c.jpg" alt="左右手系与向量旋转">
+        <figcaption>图 3-1 左手系、右手系以及向量间旋转的示意图。外积方向和右手法则密切相关，这一点后面会反复出现。</figcaption>
+      </figure>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么作者在这一讲就提前引入 $\wedge$ 符号，而不是等第四讲再说？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为它先把外积改写成线性代数语言，而第四讲的 so(3) 恰好就建立在这种反对称矩阵表示之上。" onclick="lessonKit.answer(this, 'quiz-0018-a')">因为它是从向量旋转走向李代数的桥</button>
+          <button data-correct="no" data-explanation="是否用 C++ 写代码不是这里最主要的原因。" onclick="lessonKit.answer(this, 'quiz-0018-a')">因为 C++ 只能处理矩阵不能处理向量</button>
+          <button data-correct="no" data-explanation="几何意义当然存在，不是为了避开几何。" onclick="lessonKit.answer(this, 'quiz-0018-a')">因为外积没有几何意义</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0018-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="euclidean">
+      <h2>2. 坐标系之间的变换：相机其实一直在“换参考系”</h2>
+      <p>从 SLAM 角度看，相机的运动可以理解成：世界坐标系不动，相机坐标系在动。于是同一个空间点，在世界坐标系下和在相机坐标系下，会有两套不同的坐标表达。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b5f2791b76086fb1ec8c43cd5389a521110c7786b3fe0dd289176259331445bd.jpg" alt="坐标变换示意图">
+        <figcaption>图 3-2 同一个空间点在世界坐标系和相机坐标系下的坐标不同，这正是位姿变换要解决的核心问题。</figcaption>
+      </figure>
+      <p>这里作者引入了一个非常关键的词：<strong>欧氏变换</strong>。它的意思是，刚体运动会改变位置和朝向，但不会改变长度和夹角，也不会把一个正方体扭成一块橡皮泥。</p>
+      <p>所以坐标变换分成两部分：</p>
+      <ul>
+        <li>旋转：由旋转矩阵 $\boldsymbol{R}$ 描述</li>
+        <li>平移：由平移向量 $\boldsymbol{t}$ 描述</li>
+      </ul>
+      <p>这就是后面最经典的位姿变换式：</p>
+      <div class="formula-box">$$ \boldsymbol{a}' = \boldsymbol{R}\boldsymbol{a} + \boldsymbol{t}. \tag{3.8} $$</div>
+      <p>现在你可以把它和第二讲联系起来看：第二讲里的状态变量 $\boldsymbol{x}$，从这一讲开始，已经不再是一个抽象符号，而是在逐步变成“旋转 + 平移”这样可操作的几何对象。</p>
+    </section>
+
+    <section class="section-card" id="rotation-matrix">
+      <h2>3. 旋转矩阵与 SO(3)：旋转不是任意 3×3 矩阵</h2>
+      <p>书里通过两组正交基的关系推导出旋转矩阵，本质上是在说明：旋转矩阵不是凭空定义出来的，它是“同一个向量在旋转前后坐标关系”的自然结果。</p>
+      <p>最后得到的旋转矩阵 $\boldsymbol{R}$ 有两个最核心的约束：</p>
+      <div class="formula-box">$$ \boldsymbol{R}\boldsymbol{R}^T = \boldsymbol{I}, \qquad \det(\boldsymbol{R}) = 1. $$</div>
+      <p>也就是说，旋转矩阵不是普通的 $3\times 3$ 实矩阵。它必须保持正交，而且行列式等于 1。所有满足这些条件的旋转矩阵组成一个集合：</p>
+      <div class="formula-box">$$ SO(3) = \{\boldsymbol{R}\in\mathbb{R}^{3\times3}\mid \boldsymbol{R}\boldsymbol{R}^T=\boldsymbol{I},\ \det(\boldsymbol{R})=1\}. \tag{3.6} $$</div>
+      <p>你现在可以先记住两件事：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第一件</h4>
+          <p>旋转矩阵很直观，但它有冗余。因为 9 个数只描述 3 个自由度的旋转。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二件</h4>
+          <p>它的约束会让后面的求导和优化变得麻烦，这也是第四讲为什么要引出李群李代数。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>这节课真正埋下的伏笔</h4>
+        <p>第三讲在教你“如何表示旋转”，第四讲会问“如何在这种表示上做优化”。所以这节课不是独立知识点，而是整个后端推导链条的第一环。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>向量 vs 坐标</h4>
+          <p>向量是几何对象，坐标是它在某个基下的数值表示，二者不能混为一谈。</p>
+        </div>
+        <div class="mini-card">
+          <h4>外积矩阵化</h4>
+          <p>$\wedge$ 把外积改写成矩阵乘法，是后面李代数语言的直接前导。</p>
+        </div>
+        <div class="mini-card">
+          <h4>旋转矩阵</h4>
+          <p>旋转矩阵属于受约束集合 $SO(3)$，这份约束既是优点，也是后面优化的麻烦来源。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么“向量”和“向量坐标”不是一回事？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为向量是几何空间里的对象，而坐标是这个对象在某一组基下的数值表达。换一组坐标系，同一个向量的坐标就会变，但向量本身并没有变。</div>
+            </details>
+          </li>
+          <li>
+            为什么说旋转矩阵不是任意一个 3×3 矩阵？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它必须满足正交约束 $\boldsymbol{R}\boldsymbol{R}^T=\boldsymbol{I}$ 和行列式约束 $\det(\boldsymbol{R})=1$，只有这样的矩阵才真正表示纯旋转。</div>
+            </details>
+          </li>
+          <li>
+            这节课和第四讲之间最关键的桥是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最关键的桥是把外积写成反对称矩阵的 $\wedge$ 操作，以及旋转矩阵属于受约束集合 $SO(3)$ 这一事实。第四讲会接着解决“如何在这种约束空间上求导和优化”。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0017-第二讲-实践HelloSLAM.html">← 第二讲：实践 Hello SLAM</a>
+        <a class="next" href="0019-第三讲-变换矩阵与齐次坐标.html">变换矩阵与齐次坐标 →</a>
+      </div>
+      <p class="foot-note">这一节看起来只是在讲旋转，但其实已经在悄悄为后面的位姿优化埋线了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

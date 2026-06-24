@@ -3,583 +3,671 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PaperLesson · 论文精读课程</title>
+<title>PaperLesson · 课程总览</title>
 <link rel="stylesheet" href="shared/theme.css">
+<script src="data/course-catalog.js"></script>
 <style>
-  /* ─── Hero ─── */
   .hero {
     background: linear-gradient(135deg, var(--paper-light) 0%, var(--paper) 100%);
     border-bottom: 1px solid var(--border);
     padding: var(--space-20) var(--space-8) var(--space-12);
-    text-align: center;
     position: relative;
     overflow: hidden;
   }
   .hero::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: -60%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+    inset: auto -180px -180px auto;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(204, 120, 92, 0.18) 0%, rgba(204, 120, 92, 0) 68%);
     pointer-events: none;
   }
-  .hero .inner {
+  .hero .inner,
+  .section .inner {
     max-width: var(--content-width);
     margin: 0 auto;
     position: relative;
     z-index: 1;
   }
-  .hero .badge {
-    display: inline-block;
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
+    gap: var(--space-10);
+    align-items: start;
+  }
+  .hero-copy .badge,
+  .group-pill,
+  .collection-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
     background: var(--accent-dim);
     color: var(--accent-deep);
-    padding: .25rem 1rem;
-    border-radius: 999px;
     font-size: var(--text-xs);
-    font-weight: 600;
-    letter-spacing: .08em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    margin-bottom: var(--space-6);
-    font-family: var(--font-sans);
   }
-  .hero h1 {
+  .hero-copy h1 {
     font-size: var(--text-6xl);
-    font-weight: 900;
-    margin-bottom: var(--space-4);
-    letter-spacing: -.02em;
+    margin: var(--space-5) 0 var(--space-4);
+    letter-spacing: -0.03em;
   }
-  .hero h1 .accent { color: var(--accent); }
-  .hero .subtitle {
+  .hero-copy h1 .accent { color: var(--accent); }
+  .hero-copy .subtitle {
     font-family: var(--font-serif);
     font-size: var(--text-lg);
+    line-height: 1.7;
     color: var(--ink-60);
-    max-width: var(--reading-width);
-    margin: 0 auto var(--space-8);
-    line-height: 1.6;
-    font-style: italic;
+    max-width: 820px;
   }
-  .hero .meta-info {
+  .hero-meta {
     display: flex;
-    justify-content: center;
-    gap: var(--space-8);
     flex-wrap: wrap;
-    font-size: var(--text-sm);
-    color: var(--ink-40);
+    gap: var(--space-3);
+    margin-top: var(--space-7);
   }
-  .hero .meta-info span {
-    display: flex;
+  .hero-meta span,
+  .collection-meta span,
+  .group-meta span {
+    display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-  }
-
-  /* ─── Section ─── */
-  .section { padding: var(--space-16) var(--space-8); }
-  .section .inner { max-width: var(--content-width); margin: 0 auto; }
-  .section-header {
-    margin-bottom: var(--space-10);
-    text-align: center;
-  }
-  .section-header h2 { margin-bottom: var(--space-3); }
-  .section-header p { color: var(--ink-60); max-width: 540px; margin: 0 auto; font-size: var(--text-sm); }
-
-  /* ─── Course Timeline ─── */
-  .course-list {
-    display: grid;
-    gap: var(--space-6);
-    counter-reset: course;
-  }
-  .course-card {
-    background: var(--paper-light);
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.82);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-6);
+    font-size: var(--text-xs);
+    color: var(--ink-50);
+  }
+  .hero-panel {
+    background: rgba(255,255,255,0.78);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-7);
+    box-shadow: var(--shadow-sm);
+  }
+  .hero-panel h2 {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-2xl);
+  }
+  .hero-panel p {
+    font-size: var(--text-sm);
+    color: var(--ink-60);
+    margin-bottom: var(--space-4);
+  }
+  .hero-panel .jump-links {
     display: grid;
-    grid-template-columns: 56px 1fr;
-    gap: var(--space-6);
-    transition: all .2s;
-    text-decoration: none;
-    color: inherit;
-    position: relative;
-    overflow: hidden;
-  }
-  .course-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-3px);
-    text-decoration: none;
-    color: inherit;
-    border-color: var(--accent-light);
-  }
-  .course-card .num {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--accent-dim);
-    color: var(--accent-deep);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-serif);
-    font-weight: 700;
-    font-size: var(--text-xl);
-    flex-shrink: 0;
-  }
-  .course-card .body { min-width: 0; }
-  .course-card .body .title-row {
-    display: flex;
-    align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-2);
-    flex-wrap: wrap;
   }
-  .course-card .body .title-row .emoji { font-size: 1.2rem; }
-  .course-card .body h3 {
-    font-size: var(--text-xl);
-    margin: 0;
-    font-weight: 700;
-  }
-  .course-card .body .subtitle {
-    font-family: var(--font-serif);
-    font-size: var(--text-sm);
-    color: var(--ink-60);
-    font-style: italic;
-    margin-bottom: var(--space-3);
-  }
-  .course-card .body p {
-    font-size: var(--text-sm);
-    color: var(--ink-60);
-    margin-bottom: var(--space-3);
-  }
-  .course-card .body .meta-bottom {
+  .hero-panel .jump-links a {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: var(--space-4);
-    flex-wrap: wrap;
-  }
-  .course-card .body .meta-bottom .duration {
-    font-size: var(--text-xs);
-    color: var(--ink-40);
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-  }
-  .course-card .body .tags {
-    display: flex;
-    gap: var(--space-2);
-    flex-wrap: wrap;
-  }
-  .course-card .body .tags .tag {
-    font-size: .65rem;
-    padding: .1em .5em;
-  }
-  .course-card::after {
-    content: '→';
-    position: absolute;
-    right: var(--space-6);
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.5rem;
-    color: var(--ink-20);
-    transition: all .2s;
-  }
-  .course-card:hover::after {
-    color: var(--accent);
-    right: var(--space-5);
-  }
-
-  /* ─── Connector between courses ─── */
-  .course-connector {
-    height: 24px;
-    display: flex;
-    justify-content: center;
-    position: relative;
-  }
-  .course-connector::before {
-    content: '';
-    width: 2px;
-    height: 100%;
-    background: linear-gradient(to bottom, var(--accent-light), var(--accent));
-    opacity: .4;
-  }
-
-  /* ─── Reference Grid ─── */
-  .ref-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-6);
-  }
-  .ref-card {
-    background: var(--paper-light);
+    padding: 0.8rem 0.95rem;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-6);
+    background: var(--paper-light);
+    color: var(--ink-60);
     text-decoration: none;
-    color: inherit;
-    transition: all .2s;
+    transition: all .18s ease;
   }
-  .ref-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-    text-decoration: none;
-    color: inherit;
+  .hero-panel .jump-links a:hover {
     border-color: var(--accent-light);
+    color: var(--accent-deep);
+    transform: translateY(-1px);
+    background: white;
   }
-  .ref-card .emoji { font-size: 2rem; margin-bottom: var(--space-3); display: block; }
-  .ref-card h4 { margin: 0 0 var(--space-2); font-size: var(--text-lg); }
-  .ref-card p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
 
-  /* ─── Stats ─── */
+  .section {
+    padding: var(--space-14) var(--space-8);
+  }
+  .section-header {
+    text-align: center;
+    margin-bottom: var(--space-10);
+  }
+  .section-header p {
+    max-width: 760px;
+    margin: 0 auto;
+    color: var(--ink-60);
+  }
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
-    margin: var(--space-10) 0;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-5);
   }
   .stat {
-    text-align: center;
-    padding: var(--space-6);
-    background: var(--paper-light);
-    border-radius: var(--radius-lg);
+    background: rgba(255,255,255,0.82);
     border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    text-align: center;
   }
   .stat .num {
     font-family: var(--font-serif);
     font-size: var(--text-5xl);
-    font-weight: 900;
     color: var(--accent);
     line-height: 1;
     margin-bottom: var(--space-2);
   }
-  .stat .label { font-size: var(--text-sm); color: var(--ink-60); }
-
-  /* ─── How to Use ─── */
-  .howto-cmd {
-    background: var(--ink);
-    color: #e0e0e0;
-    border-radius: var(--radius-md);
-    padding: var(--space-4) var(--space-6);
-    font-family: var(--font-mono);
+  .stat .label {
+    color: var(--ink-60);
     font-size: var(--text-sm);
-    display: inline-block;
   }
 
-  /* ─── Responsive ─── */
+  .catalog-root {
+    display: grid;
+    gap: var(--space-10);
+  }
+  .group-shell {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-7);
+    box-shadow: var(--shadow-sm);
+  }
+  .group-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-5);
+    align-items: start;
+    margin-bottom: var(--space-7);
+  }
+  .group-header h3 {
+    margin: var(--space-3) 0 var(--space-2);
+    font-size: var(--text-3xl);
+  }
+  .group-header p {
+    color: var(--ink-60);
+    margin: 0;
+    max-width: 760px;
+  }
+  .group-meta,
+  .collection-meta {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .collections-stack {
+    display: grid;
+    gap: var(--space-6);
+  }
+  .collection-card {
+    background: var(--paper-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+  }
+  .collection-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    align-items: start;
+    padding-bottom: var(--space-5);
+    margin-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border-light);
+  }
+  .collection-head h4 {
+    margin: var(--space-3) 0 var(--space-2);
+    font-size: var(--text-2xl);
+  }
+  .collection-head .subtitle {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    color: var(--ink-50);
+    margin-bottom: var(--space-2);
+  }
+  .collection-head p {
+    color: var(--ink-60);
+    margin: 0;
+  }
+  .lesson-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+    gap: var(--space-5);
+  }
+  .lesson-card {
+    position: relative;
+    display: block;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    text-decoration: none;
+    color: inherit;
+    transition: all .18s ease;
+    overflow: hidden;
+  }
+  .lesson-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-light);
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+    color: inherit;
+  }
+  .lesson-card::after {
+    content: "→";
+    position: absolute;
+    top: var(--space-5);
+    right: var(--space-5);
+    color: var(--ink-20);
+    transition: all .18s ease;
+  }
+  .lesson-card:hover::after {
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+  .lesson-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .lesson-num {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-dim);
+    color: var(--accent-deep);
+    font-family: var(--font-serif);
+    font-weight: 800;
+    font-size: var(--text-lg);
+    flex-shrink: 0;
+  }
+  .lesson-card h5 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+  }
+  .lesson-card .subtitle {
+    font-family: var(--font-serif);
+    font-size: var(--text-sm);
+    color: var(--ink-50);
+    margin-bottom: var(--space-3);
+  }
+  .lesson-card p {
+    margin: 0 0 var(--space-3);
+    color: var(--ink-60);
+    font-size: var(--text-sm);
+  }
+  .lesson-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+  .lesson-meta .duration {
+    color: var(--ink-40);
+    font-size: var(--text-xs);
+  }
+  .lesson-tags {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .quick-open {
+    margin-top: var(--space-5);
+    text-align: right;
+  }
+  .howto-cmd {
+    display: inline-block;
+    background: var(--ink);
+    color: #e7ded2;
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: var(--space-5);
+  }
+  .ref-card {
+    display: block;
+    background: rgba(255,255,255,0.82);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    text-decoration: none;
+    color: inherit;
+    transition: all .18s ease;
+  }
+  .ref-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-light);
+    text-decoration: none;
+    color: inherit;
+  }
+  .ref-card .emoji {
+    display: block;
+    font-size: 1.8rem;
+    margin-bottom: var(--space-3);
+  }
+  .ref-card h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+  }
+  .ref-card p {
+    margin: 0;
+    color: var(--ink-60);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 980px) {
+    .hero-grid,
+    .group-header,
+    .collection-head {
+      grid-template-columns: 1fr;
+    }
+    .group-meta,
+    .collection-meta {
+      justify-content: flex-start;
+    }
+  }
+  @media (max-width: 860px) {
+    .stats-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
   @media (max-width: 768px) {
-    .hero h1 { font-size: var(--text-4xl); }
-    .hero { padding: var(--space-12) var(--space-4) var(--space-8); }
-    .stats-row { grid-template-columns: 1fr; }
-    .course-card { grid-template-columns: 1fr; gap: var(--space-4); }
-    .course-card .num { width: 44px; height: 44px; font-size: var(--text-lg); }
-    .course-card::after { display: none; }
-    .section { padding: var(--space-10) var(--space-4); }
+    .hero {
+      padding: var(--space-12) var(--space-4) var(--space-8);
+    }
+    .section {
+      padding: var(--space-10) var(--space-4);
+    }
+    .hero-copy h1 {
+      font-size: var(--text-4xl);
+    }
+    .stats-row,
+    .lesson-grid,
+    .ref-grid {
+      grid-template-columns: 1fr;
+    }
+    .group-shell,
+    .collection-card,
+    .hero-panel {
+      padding: var(--space-5);
+    }
   }
 </style>
 </head>
 <body>
 
-<!-- ─── Header ─── -->
 <header class="site-header">
   <div class="inner">
     <a href="index.html" class="logo">Paper<span>Lesson</span></a>
     <nav>
-      <a href="#courses">课程</a>
+      <a href="#catalog">课程馆</a>
       <a href="#references">参考</a>
       <a href="#records">笔记</a>
     </nav>
   </div>
 </header>
 
-<!-- ─── Hero ─── -->
 <section class="hero">
-  <div class="inner">
-    <div class="badge" id="paperBadge">当前论文 · E2Map</div>
-    <h1>Paper<span class="accent">Lesson</span></h1>
-    <p class="subtitle" id="paperSubtitle">
-      面向组会报告的论文精读课程 — 从全景概览到组会讲解全覆盖
-    </p>
-    <div class="meta-info">
-      <span>⏱ 总时长 ~70 分钟</span>
-      <span>📄 4 节课程</span>
-      <span>🎯 组会报告准备</span>
+  <div class="inner hero-grid">
+    <div class="hero-copy">
+      <div class="badge" id="heroBadge">课程总览</div>
+      <h1>Paper<span class="accent">Lesson</span></h1>
+      <p class="subtitle" id="heroSubtitle">这里不再把所有课程平铺在一条长列表里，而是先分成“论文馆 / 教材馆”这样的上层分馆，再在馆内按具体论文块或书本块展开。以后你继续加入新的论文系列或整本书主线时，只要补数据，不必再重构首页。🙂</p>
+      <div class="hero-meta" id="heroMeta"></div>
     </div>
+    <aside class="hero-panel">
+      <h2>📚 快速跳转</h2>
+      <p>先看分馆，再看具体来源。这样更适合你现在这种“多篇论文 + 一整本书长期连载”的结构。</p>
+      <div class="jump-links" id="jumpLinks"></div>
+    </aside>
   </div>
 </section>
 
-<!-- ─── Stats ─── -->
 <section class="section" style="padding-top:0; padding-bottom:0;">
   <div class="inner">
-    <div class="stats-row">
-      <div class="stat">
-        <div class="num">4</div>
-        <div class="label">精读课程</div>
-      </div>
-      <div class="stat">
-        <div class="num">50+</div>
-        <div class="label">专业术语</div>
-      </div>
-      <div class="stat">
-        <div class="num">1</div>
-        <div class="label">篇论文吃透</div>
-      </div>
-    </div>
+    <div class="stats-row" id="statsRow"></div>
   </div>
 </section>
 
-<!-- ─── Courses Section ─── -->
-<section class="section" id="courses">
+<section class="section" id="catalog">
   <div class="inner">
     <div class="section-header">
-      <h2>📚 精读课程</h2>
+      <h2>📚 课程馆</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p id="courseIntro">每篇论文一套精读课程，逐步深入理解核心内容。</p>
+      <p>先按“馆”管理来源，再在馆内维护具体论文或书本块。以后加新块时，推荐先建一个 <code>group</code>，再往里面追加 <code>collection</code> 和课程条目。</p>
     </div>
-
-    <div class="course-list" id="courseList">
-      <!-- 由 JS 动态渲染 -->
-    </div>
-
-    <!-- 快速启动 -->
-    <div style="margin-top:var(--space-10); text-align:center;">
-      <p style="font-size:var(--text-sm); color:var(--ink-40); margin-bottom:var(--space-4);">快速打开课程：</p>
-      <div class="howto-cmd">start lessons\0001-paper-overview.html</div>
-      <p style="font-size:var(--text-xs); color:var(--ink-40); margin-top:var(--space-3);">或直接双击 lessons/ 目录下的 HTML 文件</p>
-    </div>
+    <div class="catalog-root" id="catalogRoot"></div>
   </div>
 </section>
 
-<!-- ─── References ─── -->
 <section class="section" id="references" style="background: var(--paper-light);">
   <div class="inner">
     <div class="section-header">
       <h2>📖 参考资料</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p>速查工具和拓展资源，伴随课程全程使用。</p>
+      <p>术语表、速查页与项目主页，作为所有课程的配套索引。</p>
     </div>
-
-    <div class="ref-grid" id="refGrid">
-      <!-- 由 JS 动态渲染 -->
-    </div>
+    <div class="ref-grid" id="refGrid"></div>
   </div>
 </section>
 
-<!-- ─── Learning Records ─── -->
 <section class="section" id="records">
   <div class="inner">
     <div class="section-header">
       <h2>📝 学习记录</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p>每次学习的核心收获与反思，可随时回顾修正。</p>
+      <p>阶段性学习笔记和思考回收站，方便从“学了一页”走到“形成自己的知识结构”。</p>
     </div>
-
-    <div class="ref-grid" id="recordsGrid">
-      <!-- 由 JS 动态渲染 -->
-    </div>
+    <div class="ref-grid" id="recordsGrid"></div>
   </div>
 </section>
 
-<!-- ─── 论文官网 ─── -->
-<section class="section" id="sitelinks" style="background: var(--paper-light); padding-bottom:var(--space-8);">
+<section class="section" id="links" style="background: var(--paper-light); padding-bottom:var(--space-8);">
   <div class="inner">
     <div class="section-header">
-      <h2>🔗 论文官网</h2>
+      <h2>🔗 项目与官网</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p>每篇论文的官方项目页与资源链接。</p>
+      <p>不同来源课程对应的官方仓库、项目主页与原始资料入口。</p>
     </div>
-    <div class="ref-grid" id="siteLinksGrid">
-      <!-- 由 JS 动态渲染 -->
-    </div>
+    <div class="ref-grid" id="siteLinksGrid"></div>
   </div>
 </section>
 
-<!-- ─── Footer ─── -->
 <footer class="site-footer">
-  <p>PaperLesson · 以教学驱动深度学习</p>
+  <p>PaperLesson · 先分馆，再挂块，再挂课，更适合长期扩展 🌿</p>
 </footer>
 
 <script>
-// ── Inline data (fallback when fetch fails, e.g. GitHub Pages) ──
-const SITE_DATA = {
-  // 当前正在学习的论文 — 改这里就能切换主页显示的论文
-  currentPaper: {
-    id: "e2map",
-    shortTitle: "E2Map",
-    fullTitle: "E2Map: Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models",
-    mdPath: "资料/E2Map Experience-and-Emotion Map for Self-Reflective Robot Navigation with Language Models.md",
-    lessonCount: 5,
-    totalDuration: "~90 分钟"
-  },
-  // 论文官网链接 — 后续加新论文时在此添加
-  siteLinks: [
-    {
-      title: "E2Map 项目主页",
-      url: "https://e2map.github.io/",
-      emoji: "🌐",
-      description: "论文原文、代码仓库、补充材料与演示视频"
-    }
-  ],
-  lessons: [
-    {
-      id: "0001", path: "lessons/0001-paper-overview.html",
-      paper: "e2map",
-      title: "论文全景概览", subtitle: "背景、动机与贡献",
-      emoji: "📖", duration: "15 分钟",
-      tags: ["背景", "动机", "贡献"],
-      description: "理解论文解决了什么问题、为什么这个问题重要、以及论文的核心贡献是什么。"
-    },
-    {
-      id: "0002", path: "lessons/0002-e2map-method-core.html",
-      paper: "e2map",
-      title: "E2Map 核心技术", subtitle: "地图构建与情绪建模",
-      emoji: "🔧", duration: "20 分钟",
-      tags: ["方法", "数学", "情绪建模"],
-      description: "深入理解 E2Map 的数学定义、情绪建模方法（多元高斯分布）、以及E2Map的更新机制。"
-    },
-    {
-      id: "0003", path: "lessons/0003-navigation-experiments.html",
-      paper: "e2map",
-      title: "导航系统与实验分析", subtitle: "系统流程与三场景评估",
-      emoji: "🤖", duration: "20 分钟",
-      tags: ["系统", "实验", "结果"],
-      description: "理解 E2Map 如何融入完整的导航系统，以及实验三大场景的设计和结果分析。"
-    },
-    {
-      id: "0004", path: "lessons/0004-presentation-guide.html",
-      paper: "e2map",
-      title: "组会报告组织与讲解", subtitle: "PPT 结构、讲解词与 QA 准备",
-      emoji: "🎤", duration: "15 分钟",
-      tags: ["汇报", "PPT", "QA"],
-      description: "学会如何组织一次完整、清晰、有深度的 E2Map 组会报告。"
-    },
-    {
-      id: "0005", path: "lessons/0005-deep-dive-qa.html",
-      paper: "e2map",
-      title: "深入答疑与对比分析", subtitle: "符号澄清、数学直觉、势场法对比",
-      emoji: "🔍", duration: "20 分钟",
-      tags: ["答疑", "数学", "对比"],
-      description: "回答学习中的真实问题：符号含义、权重倒数、协方差初始化、势场法局部极小值、D*与代价地图关系。"
-    }
-  ],
-  references: [
-    {
-      path: "reference/glossary.html",
-      title: "论文术语表",
-      emoji: "📖",
-      description: "50+ 中英对照术语，覆盖方法、系统组件、数学、实验场景。"
-    }
-  ],
-  learningRecords: [
-    {
-      path: "learning-records/0001-e2map-core-insights.md",
-      title: "E2Map 核心要点",
-      emoji: "📝",
-      description: "第一篇学习记录：问题、解决方案、实验结果、关键洞察。"
-    },
-    {
-      path: "learning-records/0002-deep-qa-insights.md",
-      title: "E2Map 深入问答",
-      emoji: "📝",
-      description: "第二篇学习记录：符号澄清、权重归一化、各向同性高斯、势场法对比分析。"
-    }
-  ]
-};
+function getData() {
+  return window.PAPERLESSON_DATA || {
+    featuredCollectionId: "",
+    groups: [],
+    collections: [],
+    lessons: [],
+    references: [],
+    learningRecords: [],
+    siteLinks: []
+  };
+}
 
-// ── Render ──
+function buildStats(data) {
+  const statsRow = document.getElementById("statsRow");
+  if (!statsRow) return;
+  const groups = data.groups || [];
+  const collections = data.collections || [];
+  const lessons = data.lessons || [];
+  const bookCollections = collections.filter((item) => (item.kind || "").includes("教材")).length;
+  const paperCollections = collections.filter((item) => (item.kind || "").includes("论文")).length;
+  const stats = [
+    { num: groups.length, label: "分馆" },
+    { num: collections.length, label: "来源块" },
+    { num: lessons.length, label: "课程页" },
+    { num: bookCollections + " / " + paperCollections, label: "教材块 / 论文块" }
+  ];
+  statsRow.innerHTML = stats.map((stat) => `
+    <div class="stat">
+      <div class="num">${stat.num}</div>
+      <div class="label">${stat.label}</div>
+    </div>
+  `).join("");
+}
+
 function renderHero(data) {
-  const p = data.currentPaper;
-  if (!p) return;
-  const badge = document.getElementById('paperBadge');
-  const subtitle = document.getElementById('paperSubtitle');
-  if (badge) badge.textContent = `当前论文 · ${p.shortTitle}`;
-  if (subtitle) subtitle.textContent = p.fullTitle;
-
-  // Update stats
-  const statNums = document.querySelectorAll('.stat .num');
-  const statLabels = document.querySelectorAll('.stat .label');
-  if (statNums.length >= 3) {
-    statNums[0].textContent = p.lessonCount || data.lessons.filter(l => l.paper === p.id).length;
-    statLabels[0].textContent = '精读课程';
+  const badge = document.getElementById("heroBadge");
+  const subtitle = document.getElementById("heroSubtitle");
+  const meta = document.getElementById("heroMeta");
+  const featured = (data.collections || []).find((item) => item.id === data.featuredCollectionId) || data.collections?.[0];
+  if (featured && badge) {
+    badge.textContent = `当前主线 · ${featured.title}`;
+  }
+  if (featured && subtitle) {
+    subtitle.textContent = `现在首页已经升级成“分馆 → 来源块 → 课程页”的三层结构。当前主线是《${featured.title}》，但你也可以很快切到其他论文块；以后再加新的书或论文时，直接在数据文件里挂进对应分馆就行。🙂`;
+  }
+  if (meta) {
+    const groupCount = (data.groups || []).length;
+    const collectionCount = (data.collections || []).length;
+    const lessonCount = (data.lessons || []).length;
+    meta.innerHTML = `
+      <span>🗂️ ${groupCount} 个分馆</span>
+      <span>📦 ${collectionCount} 个来源块</span>
+      <span>📝 ${lessonCount} 节课程</span>
+      <span>🎯 当前主线 · ${featured ? featured.title : "课程馆"}</span>
+    `;
   }
 }
 
-function renderCourses(data) {
-  const list = document.getElementById('courseList');
-  if (!list) return;
-  list.innerHTML = data.lessons.map((l, i) => {
-    const tagsHtml = (l.tags || []).map(t => `<span class="tag tag-accent">${t}</span>`).join('');
-    const card = `
-      <a href="${l.path}" class="course-card">
-        <div class="num">${String(i + 1).padStart(2, '0')}</div>
-        <div class="body">
-          <div class="title-row">
-            <span class="emoji">${l.emoji || ''}</span>
-            <h3>${l.title}</h3>
-          </div>
-          <div class="subtitle">${l.subtitle || ''}</div>
-          <p>${l.description || ''}</p>
-          <div class="meta-bottom">
-            <span class="duration">⏱ ${l.duration || ''}</span>
-            <div class="tags">${tagsHtml}</div>
-          </div>
-        </div>
+function buildJumpLinks(data) {
+  const jumpLinks = document.getElementById("jumpLinks");
+  if (!jumpLinks) return;
+  jumpLinks.innerHTML = (data.groups || []).map((group) => {
+    const collectionCount = (data.collections || []).filter((item) => item.groupId === group.id).length;
+    return `
+      <a href="#group-${group.id}">
+        <span>${group.emoji || "📚"} ${group.title}</span>
+        <span>${collectionCount} 个块</span>
       </a>
     `;
-    return card;
-  }).join('');
+  }).join("");
 }
 
-function renderReferences(data) {
-  const grid = document.getElementById('refGrid');
-  if (!grid) return;
-  grid.innerHTML = data.references.map(r => `
-    <a href="${r.path}" class="ref-card">
-      <span class="emoji">${r.emoji || ''}</span>
-      <h4>${r.title}</h4>
-      <p>${r.description || ''}</p>
+function renderCatalog(data) {
+  const root = document.getElementById("catalogRoot");
+  if (!root) return;
+
+  const lessonsByCollection = new Map();
+  (data.lessons || []).forEach((lesson) => {
+    const key = lesson.collectionId || lesson.paper || "uncategorized";
+    if (!lessonsByCollection.has(key)) lessonsByCollection.set(key, []);
+    lessonsByCollection.get(key).push(lesson);
+  });
+
+  root.innerHTML = (data.groups || []).map((group) => {
+    const collections = (data.collections || []).filter((item) => item.groupId === group.id);
+    const groupLessonCount = collections.reduce((sum, collection) => {
+      return sum + ((lessonsByCollection.get(collection.id) || []).length);
+    }, 0);
+
+    const collectionsHtml = collections.map((collection) => {
+      const lessons = lessonsByCollection.get(collection.id) || [];
+      const lessonCards = lessons.map((lesson) => {
+        const tags = (lesson.tags || []).map((tag) => `<span class="tag tag-accent">${tag}</span>`).join("");
+        return `
+          <a href="${lesson.path}" class="lesson-card">
+            <div class="lesson-top">
+              <div class="lesson-num">${lesson.id}</div>
+              <span>${lesson.emoji || ""}</span>
+            </div>
+            <h5>${lesson.title}</h5>
+            <div class="subtitle">${lesson.subtitle || ""}</div>
+            <p>${lesson.description || ""}</p>
+            <div class="lesson-meta">
+              <span class="duration">⏱ ${lesson.duration || ""}</span>
+              <div class="lesson-tags">${tags}</div>
+            </div>
+          </a>
+        `;
+      }).join("");
+
+      const collectionMeta = (collection.meta || []).map((item) => `<span>${item}</span>`).join("");
+
+      return `
+        <article class="collection-card" id="collection-${collection.id}">
+          <div class="collection-head">
+            <div>
+              <div class="collection-tag">${collection.kind || "课程块"}</div>
+              <h4>${collection.title}</h4>
+              <div class="subtitle">${collection.subtitle || ""}</div>
+              <p>${collection.description || ""}</p>
+            </div>
+            <div class="collection-meta">${collectionMeta}</div>
+          </div>
+          <div class="lesson-grid">${lessonCards}</div>
+          <div class="quick-open">
+            <span class="howto-cmd">${collection.quickOpen || ""}</span>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    const groupMeta = (group.meta || []).map((item) => `<span>${item}</span>`).join("");
+
+    return `
+      <section class="group-shell" id="group-${group.id}">
+        <div class="group-header">
+          <div>
+            <div class="group-pill">${group.emoji || "📚"} ${group.kind || "课程分馆"}</div>
+            <h3>${group.title}</h3>
+            <p>${group.description || ""}</p>
+          </div>
+          <div class="group-meta">
+            ${groupMeta}
+            <span>📦 ${collections.length} 个来源块</span>
+            <span>📝 ${groupLessonCount} 节课程</span>
+          </div>
+        </div>
+        <div class="collections-stack">${collectionsHtml}</div>
+      </section>
+    `;
+  }).join("");
+}
+
+function renderCards(targetId, items, hrefKey) {
+  const node = document.getElementById(targetId);
+  if (!node) return;
+  node.innerHTML = items.map((item) => `
+    <a href="${item[hrefKey]}" ${hrefKey === "url" ? 'target="_blank"' : ""} class="ref-card">
+      <span class="emoji">${item.emoji || "📄"}</span>
+      <h4>${item.title}</h4>
+      <p>${item.description || ""}</p>
     </a>
-  `).join('');
+  `).join("");
 }
 
-function renderRecords(data) {
-  const grid = document.getElementById('recordsGrid');
-  if (!grid) return;
-  grid.innerHTML = data.learningRecords.map(r => `
-    <a href="${r.path}" class="ref-card">
-      <span class="emoji">${r.emoji || ''}</span>
-      <h4>${r.title}</h4>
-      <p>${r.description || ''}</p>
-    </a>
-  `).join('');
-}
-
-function renderSiteLinks(data) {
-  const grid = document.getElementById('siteLinksGrid');
-  if (!grid || !data.siteLinks) return;
-  grid.innerHTML = data.siteLinks.map(s => `
-    <a href="${s.url}" target="_blank" class="ref-card">
-      <span class="emoji">${s.emoji || '🌐'}</span>
-      <h4>${s.title}</h4>
-      <p>${s.description || ''}</p>
-    </a>
-  `).join('');
-}
-
-// ── Init ──
-(async function init() {
-  let data = SITE_DATA;
-  try {
-    const res = await fetch('data/lessons.json');
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.lessons) data = json;
-    }
-  } catch(e) { /* use inline fallback */ }
+function initPage() {
+  const data = getData();
   renderHero(data);
-  renderCourses(data);
-  renderReferences(data);
-  renderRecords(data);
-  renderSiteLinks(data);
-})();
+  buildJumpLinks(data);
+  buildStats(data);
+  renderCatalog(data);
+  renderCards("refGrid", data.references || [], "path");
+  renderCards("recordsGrid", data.learningRecords || [], "path");
+  renderCards("siteLinksGrid", data.siteLinks || [], "url");
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPage);
+} else {
+  initPage();
+}
 </script>
 
 </body>

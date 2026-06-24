@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · Sim(3)与章节总结 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 7</div>
+      <h1>第四讲 · Sim(3)与章节总结</h1>
+      <p class="subtitle">这一讲既是第四讲的收束，也是视角的再提升：前面我们一直默认尺度固定，但单目 SLAM 里尺度会漂。于是本节补上 Sim(3) 这块拼图，并把整章的知识主线重新串成一张可以带到后面几讲的地图。🗺️</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0030 的代码落地</span>
+        <span>📏 回答单目尺度漂移该如何建模</span>
+        <span>📌 为后面单目系统、回环与位姿图建立更完整视角</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么单目需要 Sim(3)</a>
+        <a href="#lie">sim(3) 怎么理解</a>
+        <a href="#derivative">扰动模型结果怎么看</a>
+        <a href="#summary">整章知识图谱</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>先理解为什么前面一直用的 $SE(3)$ 在单目场景里还不够，再把相似变换群 $Sim(3)$ 视作“多了尺度自由度的刚体变换”，最后把第四讲整体收成一套可复用的认知框架。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>0025-0030 其实都默认了“尺度已经确定”。这在双目、RGB-D 里问题不大，但在单目里会遇到尺度不确定性和尺度漂移，所以原书最后补了 Sim(3) 作为更完整的几何工具。</p>
+        </div>
+      </div>
+
+      <p>原书这里说得很直接：如果你只做双目 SLAM 或 RGB-D SLAM，这节可以先略读；但如果你关心单目系统，就必须知道为什么光有 $SE(3)$ 还不够。</p>
+      <p>根源是单目视觉天生存在<strong>尺度不确定性</strong>。更进一步，在长时间运行中还会出现<strong>尺度漂移</strong>。也就是说，系统即便相对结构是对的，整体尺度也可能慢慢跑偏。此时只用 $SE(3)$ 表示位姿，等于默认“尺度恒定且已知”，这在单目里并不总成立。</p>
+      <p>于是原书把点的变换写成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{p}'
+      =
+      \begin{bmatrix}
+      s\boldsymbol{R} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}
+      \boldsymbol{p}
+      =
+      s\boldsymbol{R}\boldsymbol{p}+\boldsymbol{t}.
+      \tag{4.42}
+      $$</div>
+      <p>这和 $SE(3)$ 相比，多出来的就是尺度因子 $s$。所以你可以先用一句人话理解：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        SE(3)=\text{旋转+平移}
+        \qquad
+        Sim(3)=\text{旋转+平移+整体尺度}
+        $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="lie">
+      <h2>1. Sim(3) 与 sim(3)：只是在 SE(3) 上再多加一维吗？</h2>
+      <p>从结构上看，确实可以先这样理解。原书把相似变换群写成：</p>
+      <div class="formula-box">$$
+      \operatorname{Sim}(3)
+      =
+      \left\{
+      \begin{bmatrix}
+      s\boldsymbol{R} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}
+      \in \mathbb{R}^{4\times 4}
+      \right\}.
+      \tag{4.43}
+      $$</div>
+      <p>对应的李代数则是 7 维向量：</p>
+      <div class="formula-box">$$
+      \mathfrak{sim}(3)
+      =
+      \left\{
+      \boldsymbol{\zeta}
+      \;\middle|\;
+      \boldsymbol{\zeta}=
+      \begin{bmatrix}
+      \boldsymbol{\rho}\\
+      \boldsymbol{\phi}\\
+      \sigma
+      \end{bmatrix}
+      \in\mathbb{R}^{7},
+      \quad
+      \boldsymbol{\zeta}^\wedge
+      =
+      \begin{bmatrix}
+      \sigma\boldsymbol{I}+\boldsymbol{\phi}^\wedge & \boldsymbol{\rho}\\
+      \boldsymbol{0}^T & 0
+      \end{bmatrix}
+      \right\}.
+      \tag{4.44}
+      $$</div>
+      <p>这里最值得停一下的是最后那一维 $\sigma$。它在群上对应的不是“再加一个平移量”，而是一个尺度的对数参数。原书给出的对应关系是：</p>
+      <div class="formula-box">$$
+      s=e^\sigma,
+      \qquad
+      \boldsymbol{R}=\exp(\boldsymbol{\phi}^\wedge),
+      \qquad
+      \boldsymbol{t}=\boldsymbol{J}_s\boldsymbol{\rho}.
+      \tag{4.46}
+      $$</div>
+      <p>所以你不妨这样分层记：</p>
+      <ul>
+        <li>$\boldsymbol{\phi}$ 负责旋转，逻辑与 so(3) 一样</li>
+        <li>$\boldsymbol{\rho}$ 负责平移相关局部坐标，逻辑与 se(3) 类似</li>
+        <li>$\sigma$ 负责尺度，它通过指数映射变成真正的正尺度 $s$</li>
+      </ul>
+      <p>原书还给出了 $J_s$ 的显式表达，但它比 SE(3) 里的 $J$ 更长、更复杂。这一节教学上更重要的不是死背公式，而是先把“尺度也是通过李代数局部量进入优化”的直觉立住。</p>
+      <div class="formula-box">$$
+      \exp(\boldsymbol{\zeta}^\wedge)
+      =
+      \begin{bmatrix}
+      e^\sigma \exp(\boldsymbol{\phi}^\wedge) & \boldsymbol{J}_s\boldsymbol{\rho}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}.
+      \tag{4.45}
+      $$</div>
+    </section>
+
+    <section class="section-card" id="derivative">
+      <h2>2. Sim(3) 的扰动模型：它告诉我们尺度也能被一并优化</h2>
+      <p>原书这里继续沿用第四讲后半段的统一风格：不用把所有细节推满，而是直接给出更实用的扰动模型结果。设相似变换后的点前三维记为 $\boldsymbol{q}$，那么：</p>
+      <div class="formula-box">$$
+      \frac{\partial(\boldsymbol{S}\boldsymbol{p})}{\partial \boldsymbol{\zeta}}
+      =
+      \begin{bmatrix}
+      \boldsymbol{I} & -\boldsymbol{q}^\wedge & \boldsymbol{q}\\
+      \boldsymbol{0}^T & \boldsymbol{0}^T & 0
+      \end{bmatrix}.
+      \tag{4.47}
+      $$</div>
+      <p>这条式子比 SE(3) 多出来的关键块，就是最后那一列 $\boldsymbol{q}$。它在告诉你：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>平移扰动</h4>
+          <p>仍然给出一个单位块，表示点会随平移直接一阶变化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>旋转扰动</h4>
+          <p>仍然通过叉积矩阵 $-\boldsymbol{q}^\wedge$ 进入，这是第四讲一直延续下来的结构。</p>
+        </div>
+        <div class="mini-card">
+          <h4>尺度扰动</h4>
+          <p>会沿着当前点的位置方向伸缩，所以最后多出一个 $\boldsymbol{q}$ 列向量。</p>
+        </div>
+      </div>
+      <p>如果你把这一条和 0029 的 SE(3) 结果对照起来看，就会觉得 Sim(3) 并不神秘。它只是说明：<strong>一旦尺度也要成为优化变量，雅可比里就要给尺度留出自己的通道</strong>。</p>
+
+      <div class="interactive-card tab-group">
+        <h3>互动对比：什么时候 SE(3) 够用，什么时候要 Sim(3)？</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="sim3-compare" data-tab-id="stereo" onclick="lessonKit.openTab('sim3-compare','stereo')">双目 / RGB-D</button>
+          <button data-tab-button="sim3-compare" data-tab-id="mono" onclick="lessonKit.openTab('sim3-compare','mono')">单目</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="sim3-compare" data-tab-id="stereo">
+          <p>双目和 RGB-D 通常能直接观测或恢复绝对尺度，因此 $SE(3)$ 往往就足够描述位姿变化。你当然也可以从更大模型往下约束，但一般没有必要。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="sim3-compare" data-tab-id="mono">
+          <p>单目缺少天然绝对尺度，系统会受到尺度不确定性与尺度漂移影响。此时如果仍然只用 $SE(3)$，优化器没有地方表达“整体该再放大一点还是缩小一点”；Sim(3) 正是把这条自由度显式开放出来。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="summary">
+      <h2>3. 把第四讲重新串起来：你现在手里其实已经有一整套后端语言</h2>
+      <table>
+        <thead>
+          <tr><th>课次</th><th>解决了什么</th><th>会在哪些后续章节复活</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0025 群与李代数的引出</td><td>解释为什么姿态优化需要局部线性空间</td><td>所有后端章节的基本出发点</td></tr>
+          <tr><td>0026 so(3) / se(3)</td><td>把旋转与位姿的小增量写成可操作对象</td><td>位姿更新、误差参数化</td></tr>
+          <tr><td>0027 指数与对数映射</td><td>连通群对象与代数坐标</td><td>log 误差、exp 更新</td></tr>
+          <tr><td>0028 BCH公式</td><td>建立群乘法与代数加法的一阶翻译规则</td><td>局部线性化与 Jacobian 解释</td></tr>
+          <tr><td>0029 求导与扰动模型</td><td>给出实际可用的位姿雅可比模板</td><td>第七、十、十一讲最常用</td></tr>
+          <tr><td>0030 Sophus实践</td><td>把上述几何对象落到 C++ 代码</td><td>后续真实工程实现</td></tr>
+          <tr><td>0031 Sim(3)</td><td>补上单目系统里的尺度自由度</td><td>单目回环、尺度校正、相似变换优化</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>这一讲在全书中的真正位置</h4>
+        <p>第三讲主要在回答“姿态可以怎么表示”；第四讲则在回答“姿态如果要优化、要求导、要更新，应该用什么语言系统”。所以第四讲其实是从几何表示过渡到数值优化的桥。</p>
+      </div>
+
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{第三讲：如何表示运动}
+        \Longrightarrow
+        \text{第四讲：如何在运动上做线性化、求导与更新}
+        \Longrightarrow
+        \text{第六讲以后：如何真正优化 SLAM 问题}
+        $$</div>
+      </div>
+      <p>这也是为什么原书在本讲小结里特意提醒：即使这章偏理论，也务必要理解。因为后面许多“看起来像算法细节”的东西，本质上都在重复使用第四讲建立起来的语言。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Sim(3) 的最小理解</h4>
+          <p>它是把“尺度也会变”这件事正式纳入位姿模型，因此特别适合单目系统。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第四讲真正交付给你的能力</h4>
+          <p>不是孤立的几个公式，而是一整套关于姿态表示、局部增量、更新、误差与求导的共同语言。</p>
+        </div>
+        <div class="mini-card">
+          <h4>继续往后学的姿势</h4>
+          <p>第六讲之后每碰到“位姿优化”，都主动回问：它这里用的是哪种群、哪种代数、哪种扰动模型、哪种更新约定。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说单目系统里只用 $SE(3)$ 往往不够？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为单目缺乏天然绝对尺度，会遇到尺度不确定性和尺度漂移。如果只用 $SE(3)$，优化变量里没有专门的尺度自由度，就无法显式表达“整体应该再放大或缩小多少”。Sim(3) 正是为这个问题补上的模型。</div>
+            </details>
+          </li>
+          <li>
+            在 sim(3) 的 7 维向量里，为什么最后一维 $\sigma$ 不直接当作尺度，而要写成 $s=e^\sigma$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为李代数里更适合放的是局部无约束坐标，而真正的尺度必须保持为正值。用 $s=e^\sigma$ 可以把无约束的实数 $\sigma$ 映射成正尺度 $s$，这和旋转通过指数映射回到群上的思路是一致的。</div>
+            </details>
+          </li>
+          <li>
+            请用一句话概括第四讲在全书中的作用。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>第四讲的作用，是把“姿态如何表示”进一步推进到“姿态如何被局部参数化、如何被求导、如何在优化中更新”，从而为后面所有 SLAM 后端推导建立统一语言。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0030-第四讲-Sophus实践.html">← Sophus实践</a>
+        <a class="next" href="0032-第五讲-针孔相机模型.html">第五讲：相机与图像 →</a>
+      </div>
+      <p class="foot-note">到这里，第四讲已经不只是“会一点李代数”，而是你真正开始具备后端优化阅读能力的起点了 🌿</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

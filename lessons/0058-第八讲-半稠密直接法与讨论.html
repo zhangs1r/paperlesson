@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · 半稠密直接法与讨论 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Lesson 5</div>
+      <h1>第八讲 · 半稠密直接法与讨论</h1>
+      <p class="subtitle">这节不是简单把“点变多”而已，而是在回答一个很工程的问题：既然不是所有像素都值得算，我们该保留哪些？接着，书里还把直接法最关键的优点和最危险的短板都摊开讲清楚。🧩</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0057 的稀疏直接法</span>
+        <span>📷 前瞻第十三讲深度滤波 / 半稠密建图</span>
+        <span>🧭 对第九讲前端设计给出方法选择依据</span>
+      </div>
+      <div class="toc">
+        <a href="#semi">为什么要做半稠密</a>
+        <a href="#fig85">图 8-5 在说明什么</a>
+        <a href="#fig86">一次迭代究竟怎么被梯度引导</a>
+        <a href="#nonconvex">图像非凸性为什么麻烦</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="semi">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这一节的核心判断</h4>
+          <p>直接法并不是“像素越多越好”。更准确的说法是：只有那些对位姿变化敏感的像素，才值得花算力去优化。</p>
+        </div>
+        <div class="callout">
+          <h4>和第十三讲的暗线</h4>
+          <p>第十三讲深度滤波、半稠密地图里，你会再次看到“优先保留有明显梯度的像素”。所以这节不只是前端技巧，也是在给后面的建图思路打基础。</p>
+        </div>
+      </div>
+
+      <p>为什么半稠密是自然的？因为在上一节的 Jacobian 里：</p>
+      <div class="formula-box">$$
+      \boldsymbol{J}
+      =
+      -
+      \frac{\partial I_2}{\partial \boldsymbol{u}}
+      \frac{\partial \boldsymbol{u}}{\partial \delta\boldsymbol{\xi}}.
+      $$</div>
+      <p>如果像素梯度 $\partial I_2/\partial \boldsymbol{u}$ 很小，整条边对位姿更新的影响也会很小。那为什么还要把这些点塞进优化里、白白消耗时间呢？于是就得到半稠密策略：只保留梯度明显的像素。</p>
+
+      <div class="callout">
+        <h4>这和“只取角点”不完全一样</h4>
+        <p>第七讲和 0057 的稀疏方法更像“离散地挑一些好点”；半稠密则是“只要这个地方有足够灰度变化，就可以留下来”，所以它通常会覆盖更多物体边缘和纹理表面。</p>
+      </div>
+
+      <p>原书代码里的筛选逻辑非常直白：</p>
+      <ul>
+        <li>遍历像素</li>
+        <li>估计它的局部梯度</li>
+        <li>梯度太小就跳过</li>
+        <li>深度无效也跳过</li>
+        <li>剩下的像素作为测量，加入优化</li>
+      </ul>
+    </main>
+
+    <section class="section-card" id="fig85">
+      <h2>1. 图 8-5：半稠密像素为什么看起来“像固定在场景里”</h2>
+      <div class="grid-3">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/38668df42a6c921ce2c9a44d09a1e263fc547322cbd2189dce6ef57ae61c3a76.jpg" alt="图 8-5 t0-t2">
+          <figcaption>参考帧与第 2 帧：绿色像素集中在边缘和纹理明显区域，这说明半稠密不是“全图铺满”，而是有选择地保留信息量高的地方。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/15b5d56ee173fe6862fc85eef8538aa92fa4ac8929484d9c7e938e2e430a80b4.jpg" alt="图 8-5 t0-t5">
+          <figcaption>参考帧与第 5 帧：当位姿估计正确时，这些像素会像“钉”在环境结构上一样稳定，不会乱飘。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/e50683fc71e6deaa0d8ce885cbaaffc13b0b537fd627b357eee34abf01720c7b.jpg" alt="图 8-5 t0-t8">
+          <figcaption>参考帧与第 8 帧：即便像素数远多于稀疏法，系统依旧只保留“有用的”部分，这正是半稠密介于稀疏和稠密之间的味道。</figcaption>
+        </figure>
+      </div>
+
+      <p>图 8-5 最容易被误读成“只是绿色更多了”。其实它更深的一层意思是：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>保留的位置有偏好</h4>
+          <p>主要是边缘、纹理、强梯度区域，而不是光滑平面内部。</p>
+        </div>
+        <div class="mini-card">
+          <h4>这是几何与光度共同筛出来的</h4>
+          <p>有深度值、又有梯度，才最适合变成直接法约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>它已经非常接近第十三讲的半稠密地图观念</h4>
+          <p>你看到的不是“点”，而是在往“结构”过渡。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="fig86">
+      <h2>2. 图 8-6：一次迭代是怎样被像素梯度“推着走”的</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/9ce235100b3fda415bbf9b380a62162d17a21c2e0db09d1c0f3c65a1b41c5cff.jpg" alt="图 8-6 一次迭代的图形化显示">
+        <figcaption>图 8-6 一次迭代的图形化显示。它是整章里最值得反复看的图之一，因为它把抽象 Jacobian 变成了一个很具体的故事：当前点太暗了，于是梯度告诉优化器该往哪个方向挪，亮度才能更接近参考值。</figcaption>
+      </figure>
+
+      <p>书里举的例子非常助于建立直觉：参考帧里某点灰度是 229，而当前位姿下投影到第二帧时灰度只有 126，那么误差就是 103。此时看投影点周围亮度变化，如果向右和向下都只会更暗，那优化器就会倾向往左上方修正位姿，让投影点去找更亮的位置。</p>
+
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{误差大}
+        \Rightarrow
+        \text{看局部梯度}
+        \Rightarrow
+        \text{猜该往哪里挪}
+        \Rightarrow
+        \text{综合所有像素意见更新位姿}
+        $$</div>
+      </div>
+
+      <p>这一段一定要和第六讲最小二乘联系着看：优化器不是只听某一个像素的意见，而是把大量像素的“建议方向”叠起来，最后解一个整体最优的位姿增量。</p>
+    </section>
+
+    <section class="section-card" id="nonconvex">
+      <h2>3. 图 8-7：为什么说直接法最大的敌人是图像非凸性</h2>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/3f92c5ae160d146785ba97be6d8370716c78e684a4bd2c86be5e040df5ca8a52.jpg" alt="图 8-7 图像灰度三维化显示">
+          <figcaption>图 8-7 左图把一张图像“抬成三维地形”。你会看到它并不是一座光滑的碗，而是山峰、沟壑、台阶和噪声混在一起。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/8c3ac81106aec1f8ee9f1f6ea364670edccc5680e52fa104a3dbbfc044cc0df7.jpg" alt="图 8-7 路径示意">
+          <figcaption>右图强调的不是具体曲线形状，而是“从一个点走到另一个点不一定有一条平滑下坡路”。这正是局部优化最怕的事情。</figcaption>
+        </figure>
+      </div>
+
+      <p>这张图几乎把直接法最大的短板一口气讲清了：</p>
+      <ul>
+        <li>图像灰度面通常高度非凸</li>
+        <li>局部梯度只在局部可信</li>
+        <li>初值一旦偏得太远，就可能被错误纹理“骗走”</li>
+        <li>于是直接法往往要求小运动、高帧率、相机曝光尽量稳定</li>
+      </ul>
+
+      <div class="callout">
+        <h4>这和第九讲前端设计直接相关</h4>
+        <p>为什么第九讲前端要强调参考帧管理、速度控制、关键帧切换？因为直接法不是“全靠数学公式就能稳”，它非常依赖系统把每次优化都维持在小扰动区域内。</p>
+      </div>
+
+      <h3>优缺点别背口号，要和场景绑在一起理解</h3>
+      <table>
+        <thead>
+          <tr><th>优点</th><th>为什么成立</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>省去描述子计算</td><td>直接用灰度建约束，不再依赖 ORB / BRIEF 之类的匹配链</td></tr>
+          <tr><td>弱纹理下仍可能工作</td><td>只要有灰度变化，不一定非得是漂亮角点</td></tr>
+          <tr><td>可走向半稠密 / 稠密地图</td><td>约束对象本来就是像素，不再局限于离散特征点</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <thead>
+          <tr><th>缺点</th><th>为什么麻烦</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>非凸性强</td><td>局部梯度可能把优化带进错误极小值</td></tr>
+          <tr><td>单个像素区分度低</td><td>容易和其他亮度相近位置混淆，所以常要靠块或更多像素“投票”</td></tr>
+          <tr><td>灰度不变假设脆弱</td><td>曝光变化、阴影、高光都会破坏误差模型</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么半稠密合理</h4>
+          <p>不是所有像素都值得算，梯度明显的像素才真正能给位姿优化提供信息。</p>
+        </div>
+        <div class="mini-card">
+          <h4>图 8-6 教会你的事</h4>
+          <p>Jacobain 不是抽象矩阵，它本质上是在表达“位姿往哪边改，像素会变亮还是变暗”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>图 8-7 的警告</h4>
+          <p>直接法的最大风险不是公式推不出来，而是图像本身太非凸，初值稍差就容易失手。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么半稠密方法通常只保留梯度明显的像素？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为梯度越明显，位姿变化引起的灰度变化越可感知，对 Jacobian 的贡献越大。梯度很小的像素对优化帮助有限，却会增加计算量。</div>
+            </details>
+          </li>
+          <li>
+            图 8-6 中，像素梯度在直接法优化里扮演什么角色？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它提供了局部方向信息，告诉优化器“如果位姿改一点，像素亮度会朝哪个方向变化”，从而把位姿更新和灰度误差下降联系起来。</div>
+            </details>
+          </li>
+          <li>
+            为什么图像非凸性会让直接法比特征点法更怕大运动？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为直接法更依赖局部梯度近似。一旦初始投影偏离真实位置太远，局部梯度就可能来自完全错误的纹理区域，优化会被带进错误局部极小值。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0057-第八讲-稀疏直接法实践.html">← 稀疏直接法实践</a>
+        <a class="next" href="0059-第八讲-章节总结与习题.html">章节总结与习题 →</a>
+      </div>
+      <p class="foot-note">如果你觉得图 8-7 有点“吓人”，这很正常；它正是在提醒我们，直接法的美感和脆弱性其实来自同一个地方 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

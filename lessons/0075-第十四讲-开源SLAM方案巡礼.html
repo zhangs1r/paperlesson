@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十四讲 · 开源SLAM方案巡礼 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十四讲 · 现在与未来 / Lesson 1</div>
+      <h1>第十四讲 · 开源 SLAM 方案巡礼</h1>
+      <p class="subtitle">把书里的开源系统看成一条历史线索：MonoSLAM、PTAM、ORB-SLAM、LSD-SLAM、SVO、RTAB-MAP，各自回答了哪个时代的问题。🏛️</p>
+      <div class="hero-meta">
+        <span>🧵 重点看历史位置与设计取舍</span>
+        <span>🔧 帮你决定后续最值得读哪套代码</span>
+        <span>📚 像逛博物馆一样看系统谱系</span>
+      </div>
+      <div class="toc">
+        <a href="#timeline">先看全景</a>
+        <a href="#feature-line">特征点路线</a>
+        <a href="#direct-line">直接法路线</a>
+        <a href="#rgbd-line">RGB-D 路线</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="timeline">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>不再把这些开源 SLAM 名字当作散乱的专有名词，而是能说出：它们分别诞生在什么背景下、补了上一代系统什么短板。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>前十三讲我们学的是模块；这一课开始学整机。你会看到不同系统如何把前端、后端、回环和建图拼成自己的架构。</p>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>系统</th><th>主要传感器</th><th>代表意义</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MonoSLAM</td><td>单目</td><td>第一个实时单目视觉 SLAM 里程碑</td></tr>
+          <tr><td>PTAM</td><td>单目</td><td>首次明确把 Tracking / Mapping 并行化</td></tr>
+          <tr><td>ORB-SLAM</td><td>单目 / 双目 / RGB-D</td><td>特征点路线的成熟代表</td></tr>
+          <tr><td>LSD-SLAM</td><td>单目</td><td>直接法半稠密 SLAM 的重要里程碑</td></tr>
+          <tr><td>SVO</td><td>单目</td><td>极致轻量的稀疏直接 VO</td></tr>
+          <tr><td>RTAB-MAP</td><td>双目 / RGB-D</td><td>集成度很高的完整应用型系统</td></tr>
+        </tbody>
+      </table>
+    </main>
+
+    <section class="section-card" id="feature-line">
+      <h2>1. 特征点路线：从 MonoSLAM 到 ORB-SLAM</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/1d3e633b340b6e90e8d89ba2d95fe4509b2c6744475f5343f95e33948c20484b.jpg" alt="图 14-1 MonoSLAM 运行截图">
+        <figcaption>图 14-1 MonoSLAM 运行截图。它今天看起来很稀疏，但历史地位极高。</figcaption>
+      </figure>
+      <p><strong>MonoSLAM</strong> 的意义在于“第一次把实时单目 SLAM 做出来”，而不是“今天还最好用”。它基于 EKF，把相机状态和所有路标一起放进滤波器，是早期滤波派的代表。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/7f07fa553d02c75c6cf0344aea85e7c127fb90f623fa3e2d4198b3d199195028.jpg" alt="图 14-2 PTAM 演示截图">
+        <figcaption>图 14-2 PTAM 演示截图。它把 SLAM 和增强现实联系了起来。</figcaption>
+      </figure>
+      <p><strong>PTAM</strong> 做了两件影响深远的事：</p>
+      <ul>
+        <li>第一次清晰地区分并并行化了 Tracking 和 Mapping 两条线程</li>
+        <li>把非线性优化后端真正带进了视觉 SLAM 主流</li>
+      </ul>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/19c165cb94319d3494fe79e655879b8e80a0de4e34ee0178b7f60f89d3438e35.jpg" alt="图 14-3 ORB-SLAM 运行界面">
+        <figcaption>图 14-3 ORB-SLAM 运行界面的一部分。Tracking、局部地图和回环共同构成了它最经典的系统体验。</figcaption>
+      </figure>
+      <p><strong>ORB-SLAM</strong> 则是特征点路线的高峰之一。它把我们前面学过的很多模块都做成了工程上很完整的版本：ORB 特征、回环字典、局部 BA、全局 Pose Graph、重定位和三线程协同。</p>
+      <p>如果你以后想真正精读一套“比较全面、资料多、社区大”的经典代码，ORB-SLAM 仍然是很好的起点。</p>
+    </section>
+
+    <section class="section-card" id="direct-line">
+      <h2>2. 直接法路线：LSD-SLAM 和 SVO 在追求什么</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/87ebcc70436c67a0632f928e62417320f67484786e22a90d94a4c09660fae8f3.jpg" alt="图 14-4 LSD-SLAM 半稠密结果">
+        <figcaption>图 14-4 LSD-SLAM 的半稠密效果示意。它在 CPU 上把直接法推进到了 SLAM 层面。</figcaption>
+      </figure>
+      <p><strong>LSD-SLAM</strong> 的贡献，是让“单目直接法 + 半稠密地图 + 回环 + 后端优化”真正组成一个可运行 SLAM。它非常漂亮地连接了第八讲和第十三讲的思想。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/36b0b6f6d5f3a2ff7d530ddef0556b6592d6f3a4c8885b85de86eef1d16d4b12.jpg" alt="图 14-5 SVO 跟踪关键点的图片">
+        <figcaption>图 14-5 SVO 跟踪关键点的样子。它故意舍弃很多重量级模块，换取极致速度。</figcaption>
+      </figure>
+      <p><strong>SVO</strong> 则像另一种人格：它更像一台高帧率 VO 发动机。它把很多东西都做轻了，因此非常快，也因此不是一个完整意义上的 SLAM。</p>
+      <div class="tab-group">
+        <div class="tab-buttons">
+          <button data-tab-button="lesson0075" data-tab-id="lsd" onclick="lessonKit.openTab('lesson0075','lsd')">LSD-SLAM</button>
+          <button data-tab-button="lesson0075" data-tab-id="svo" onclick="lessonKit.openTab('lesson0075','svo')">SVO</button>
+          <button data-tab-button="lesson0075" data-tab-id="orb" onclick="lessonKit.openTab('lesson0075','orb')">ORB-SLAM 对照</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="lesson0075" data-tab-id="lsd">
+          <p><strong>关键词：</strong>半稠密、直接法、单目、Sim(3)、CPU 实时。</p>
+          <p>适合你在意地图比稀疏点更丰富，但又不想完全依赖 GPU 重建的场景。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="lesson0075" data-tab-id="svo">
+          <p><strong>关键词：</strong>稀疏直接法、极快、轻量、适合无人机 / 嵌入式。</p>
+          <p>适合你首先追求稳定高速 VO，而不是全套回环和全局地图。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="lesson0075" data-tab-id="orb">
+          <p><strong>关键词：</strong>特征点、三线程、重定位强、系统完整。</p>
+          <p>如果你的目标是全模块理解，通常更适合作为系统级学习样本。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>OCR 校正提醒</h4>
+        <p>原始 OCR 把 SVO 展开写成了 <code>Semi-direct Visual Odoemtry</code>，标准写法应为 <strong>Semi-direct Visual Odometry</strong>。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="rgbd-line">
+      <h2>3. RGB-D 路线：RTAB-MAP 更像“能直接拿来用的系统”</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/cd111874abe4ffa2d59d542f0ed0dea23b5f651d73b4cd541974299b8b0f16d4.jpg" alt="图 14-6 RTAB-MAP 运行界面">
+        <figcaption>图 14-6 RTAB-MAP 在实际设备上的运行界面。它的气质很“应用型”。</figcaption>
+      </figure>
+      <p><strong>RTAB-MAP</strong> 的亮点不是某一个单独算法，而是“它几乎把 RGB-D SLAM 里你会想要的东西都集成进来了”：视觉里程计、词袋回环、位姿图优化、点云 / 网格地图、ROS 生态接入。</p>
+      <p>这也解释了书里的评价：它非常适合做应用，但不一定是最适合你做研究入门改代码的第一套系统。因为系统太完整、模块太多，改一个地方经常会牵一片。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>想学系统架构</h4>
+          <p>优先看 ORB-SLAM。</p>
+        </div>
+        <div class="mini-card">
+          <h4>想学轻量 VO</h4>
+          <p>优先看 SVO。</p>
+        </div>
+        <div class="mini-card">
+          <h4>想学直接法 SLAM</h4>
+          <p>优先看 LSD-SLAM / DSO 这一脉。</p>
+        </div>
+        <div class="mini-card">
+          <h4>想做可交付应用</h4>
+          <p>RTAB-MAP 往往是更现实的起点。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你的目标是“尽快在 ROS 里跑起一个能看图、能建图、能回环的现成系统”，书里哪类方案通常更贴近这个目标？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，因为它更偏应用落地，接口和周边生态也更完整。" onclick="lessonKit.answer(this, 'quiz-0075')">RTAB-MAP 这类高集成方案</button>
+          <button data-correct="no" data-explanation="历史价值大，但不适合作为今天的直接应用起点。" onclick="lessonKit.answer(this, 'quiz-0075')">只看 MonoSLAM</button>
+          <button data-correct="no" data-explanation="SVO 更偏轻量 VO，不是全套地图与回环系统。" onclick="lessonKit.answer(this, 'quiz-0075')">只看 SVO</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0075"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>这节课最重要的收获，不是“记住几个系统名”，而是开始形成一种读系统的视角：<strong>每个系统其实都在“完整性、轻量性、鲁棒性、可扩展性、硬件门槛”之间做取舍</strong>。🧵</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 PTAM 是视觉 SLAM 历史上的分水岭？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它明确区分并并行化了 Tracking 和 Mapping，同时把基于优化的后端真正推到主流位置。</div>
+            </details>
+          </li>
+          <li>
+            如果你只有嵌入式算力、又最在意高帧率位姿输出，哪一类系统更符合直觉？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>像 SVO 这样的轻量稀疏直接 VO 更符合，因为它主动舍弃了许多重量级模块来换速度。</div>
+            </details>
+          </li>
+          <li>
+            ORB-SLAM 为什么会被很多研究工作拿来当 baseline？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它模块完整、性能均衡、资料丰富，而且回环与重定位都做得很成熟，适合当通用对照。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0074-第十三讲-RGBD地图OctoMap与TSDF.html">← RGB-D 地图、OctoMap 与 TSDF</a>
+        <a class="next" href="0076-第十四讲-未来方向与全书收束.html">未来方向与全书收束 →</a>
+      </div>
+      <p class="foot-note">这节课像博物馆导览，但每件“展品”背后都对应一个真实设计取舍 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第三讲 · Eigen矩阵基础 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第三讲 · 三维空间刚体运动 / Lesson 3</div>
+      <h1>第三讲 · Eigen 矩阵基础</h1>
+      <p class="subtitle">从这一节开始，第三讲正式从“会看公式”走向“会把公式变成代码”。前两节讲清了旋转矩阵和齐次变换，这一节要把这些数学对象搬进 C++ 里，用 Eigen 真正操作起来。💻</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0018 旋转矩阵</span>
+        <span>🔗 承接 0019 变换矩阵</span>
+        <span>🧱 为 0023 几何模块与第四讲打底</span>
+      </div>
+      <div class="toc">
+        <a href="#why-eigen">为什么先学 Eigen</a>
+        <a href="#matrix-types">矩阵类型与常见坑</a>
+        <a href="#core-code">书中示例怎么理解</a>
+        <a href="#solve-system">解方程与数值直觉</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-eigen">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把 Eigen 看成你后面整本书的“数学执行器”。学完这一节，你应该能看懂 `Matrix3d`、`Vector3d`、动态矩阵、显式类型转换，以及为什么 SLAM 程序里几乎总在用矩阵分解而不是直接求逆。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>0018、0019 已经把 $SO(3)$、欧氏变换、齐次坐标讲清楚了；这一节先不急着上四元数，而是先把“矩阵和向量怎么在代码里落地”补牢。到了 0023，你会发现几何模块其实就是建立在这里的矩阵基础上的。</p>
+        </div>
+      </div>
+      <p>原书在这里突然切到实践，并不是因为作者想中场休息一下，而是因为第三讲后半段的所有姿态表示，都需要一个稳定的线性代数工具来承载。你后面无论写旋转矩阵、四元数、李代数增量，最后都绕不开矩阵、向量、求逆、分解和特征值这些基本操作。</p>
+      <p>书里先给出一个很务实的判断：<strong>Eigen 是 C++ 里最重要的线性代数库之一</strong>。它不仅自己能做矩阵运算，上层很多 SLAM 库也在直接使用它，比如书里明确提到的 <code>g2o</code>、<code>Sophus</code>。所以现在学 Eigen，不是额外加戏，而是在给后面整本书清路。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{第三讲前半程的数学对象} \xrightarrow{\text{Eigen}} \text{可运行的 C++ 表达} \xrightarrow{\text{0023 / 第四讲}} \text{姿态变换与优化代码} $$</div>
+      </div>
+      <div class="callout">
+        <h4>一个容易忽略的点</h4>
+        <p>这节课虽然叫“Eigen 矩阵基础”，但它真正要解决的不是“语法会不会写”，而是“你能不能从一开始就建立正确的数值计算习惯”。这一点在 SLAM 里很关键，因为后面很多 bug 根本不是数学推错，而是矩阵维度、类型和数值稳定性出了问题。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="matrix-types">
+      <h2>1. Eigen 是怎么组织矩阵世界的</h2>
+      <p>原书把 Eigen 的核心类型写得很朴素，但背后的思想非常重要：Eigen 把<strong>矩阵</strong>作为统一的数据单元。向量其实也是特殊的矩阵，例如三维向量就是 $3\times 1$ 的矩阵。</p>
+      <div class="formula-box">$$ \texttt{Eigen::Matrix&lt;Scalar, Rows, Cols&gt;} $$</div>
+      <p>这个模板把三件事同时固定了：</p>
+      <ul>
+        <li>元素类型，比如 <code>float</code> 或 <code>double</code></li>
+        <li>行数</li>
+        <li>列数</li>
+      </ul>
+      <p>于是书里马上举出几个最常用的别名：</p>
+      <table>
+        <thead>
+          <tr><th>写法</th><th>本质</th><th>在第三讲里最常见的用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Eigen::Vector3d</code></td><td>$\texttt{Matrix&lt;double,3,1&gt;}$</td><td>三维向量、平移向量、旋转轴</td></tr>
+          <tr><td><code>Eigen::Matrix3d</code></td><td>$\texttt{Matrix&lt;double,3,3&gt;}$</td><td>旋转矩阵</td></tr>
+          <tr><td><code>Eigen::Matrix4d</code></td><td>$\texttt{Matrix&lt;double,4,4&gt;}$</td><td>齐次变换矩阵</td></tr>
+          <tr><td><code>Eigen::MatrixXd</code></td><td>动态大小双精度矩阵</td><td>尺寸事先不固定的问题</td></tr>
+        </tbody>
+      </table>
+      <p>这里最值得你记住的是原书后面的那句经验：<strong>编译期就知道大小的矩阵，尽量写成固定大小</strong>。比如第三讲的旋转矩阵永远是 $3\times 3$，变换矩阵永远是 $4\times 4$，没有必要把它们写成动态矩阵。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>固定大小的好处</h4>
+          <p>编译器更容易优化，内存布局更清楚，运行通常更快。</p>
+        </div>
+        <div class="mini-card">
+          <h4>动态大小的意义</h4>
+          <p>当你确实不知道矩阵尺寸，例如后面大规模优化问题里的稀疏系统，它才真正派上用场。</p>
+        </div>
+      </div>
+      <p>这也正好对应前两节课：0018 和 0019 里我们遇到的几何对象，大多都是结构稳定的小矩阵，所以写成固定大小是最自然的。</p>
+    </section>
+
+    <section class="section-card" id="core-code">
+      <h2>2. 书中的 `eigenMatrix.cpp` 到底在教什么</h2>
+      <p>原书给出的示例代码非常经典，因为它不是在炫技巧，而是在集中示范 Eigen 最容易出错的几个点。</p>
+      <pre><code class="language-cpp">#include &lt;Eigen/Core&gt;
+#include &lt;Eigen/Dense&gt;
+
+Eigen::Matrix&lt;float, 2, 3&gt; matrix_23;
+Eigen::Vector3d v_3d;
+Eigen::Matrix3d matrix_33 = Eigen::Matrix3d::Zero();</code></pre>
+      <p>你可以把这几行分别理解成三件事：</p>
+      <ol>
+        <li>声明一个固定大小的 $2\times 3$ 浮点矩阵</li>
+        <li>声明一个双精度三维向量</li>
+        <li>声明一个双精度 $3\times 3$ 零矩阵</li>
+      </ol>
+      <p>这里开始，原书其实在悄悄训练你一种“矩阵意识”：不是先想“这是一段 C++ 代码”，而是先想“我现在手里是什么维度、什么类型、什么语义的线性代数对象”。</p>
+      <p>接下来书里用一段非常有代表性的错误示例提醒你：</p>
+      <pre><code class="language-cpp">// 错误：Eigen 不支持自动类型提升
+// Eigen::Matrix&lt;double, 2, 1&gt; result_wrong_type = matrix_23 * v_3d;
+
+Eigen::Matrix&lt;double, 2, 1&gt; result =
+    matrix_23.cast&lt;double&gt;() * v_3d;</code></pre>
+      <p>这是这节课最值得带走的工程习惯之一。普通 C++ 里，<code>float</code> 和 <code>double</code> 混合运算常常会自动提升；但 Eigen 为了性能和模板系统的清晰性，不帮你“默默兜底”。所以当书里提到那个很长的报错：</p>
+      <div class="formula-box">$$ \texttt{YOU MIXED DIFFERENT NUMERIC TYPES} $$</div>
+      <p>它并不是在吓你，而是在明确告诉你：<strong>矩阵类型不一致，请你自己决定怎么转换</strong>。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么书里特意展示 <code>.cast&lt;double&gt;()</code>，而不是直接略过这个细节？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为后面姿态矩阵、雅可比、优化变量会频繁混到一起，如果你现在不建立类型敏感性，后面调试会非常痛苦。" onclick="lessonKit.answer(this, 'quiz-0020-a')">因为 Eigen 的类型和维度必须明确对齐，这会直接影响后面姿态与优化代码</button>
+          <button data-correct="no" data-explanation="不是为了让代码更花哨，而是为了避免模板类型错误。" onclick="lessonKit.answer(this, 'quiz-0020-a')">因为 `cast` 写起来更像现代 C++</button>
+          <button data-correct="no" data-explanation="是否用单精度并不是这里的主旨。" onclick="lessonKit.answer(this, 'quiz-0020-a')">因为 Eigen 只推荐使用 float</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0020-a"></div>
+      </div>
+      <p>书里还给了另一个经典报错：</p>
+      <div class="formula-box">$$ \texttt{YOU MIXED MATRICES OF DIFFERENT SIZES} $$</div>
+      <p>它其实和上一条一样，本质上都在强调：<strong>Eigen 不会帮你模糊地猜意图</strong>。你给它什么尺寸、什么类型，它就按什么严格执行。</p>
+    </section>
+
+    <section class="section-card" id="solve-system">
+      <h2>3. 为什么作者在这里提前谈“不要直接求逆”</h2>
+      <p>书里的例子后半段从矩阵操作一路走到了线性方程求解：</p>
+      <div class="formula-box">$$ \boldsymbol{A}\boldsymbol{x}=\boldsymbol{b}. $$</div>
+      <p>这不是跳题，而是在为后面整本书的优化部分埋伏笔。因为 SLAM 的后端优化最后往往就是在反复求解某种线性化后的方程组。</p>
+      <p>原书先写了最直接的做法：</p>
+      <pre><code class="language-cpp">x = matrix_NN.inverse() * v_Nd;</code></pre>
+      <p>然后立刻补上一句：<strong>直接求逆虽然直观，但运算量大</strong>。随后给出更推荐的 QR 分解做法：</p>
+      <pre><code class="language-cpp">x = matrix_NN.colPivHouseholderQr().solve(v_Nd);</code></pre>
+      <p>这一步非常像老师在提前给你打预防针。现在你可能只觉得“哦，QR 更快”；但等后面学到高斯牛顿、BA、位姿图时，你会发现那时你几乎永远都不想显式求逆，而是更愿意做各种分解。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>现在的理解</h4>
+          <p>QR 分解通常比直接求逆更快、更稳，尤其矩阵一大就明显。</p>
+        </div>
+        <div class="mini-card">
+          <h4>往后的连接</h4>
+          <p>第六讲开始接触非线性优化时，这种“不要裸求逆”的意识会直接变成求解策略。</p>
+        </div>
+      </div>
+      <p>顺手说一句，原书 OCR 在这里把 “trace” 识别成了“遗”、把 <code>target_link_libraries</code> 识别成了 <code>tartget_link_libraries</code>。这些不影响你看懂主线，但如果我们直接照抄进课程，会很干扰理解，所以这里我已经按正确知识点替你校正了。</p>
+      <div class="callout">
+        <h4>和第四讲的隐藏联系</h4>
+        <p>第四讲一旦开始谈李代数和局部线性化，你会频繁看到“先线性化，再解一个线性系统”。所以这节看似只是 C++ 工具课，实际上已经在悄悄建立优化课的数值底色。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Eigen 的定位</h4>
+          <p>它不是单纯的语法库，而是后续所有姿态表示与优化程序的计算底座。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最重要的习惯</h4>
+          <p>固定大小尽量固定写，矩阵维度和数据类型要明确，不要指望编译器替你猜。</p>
+        </div>
+        <div class="mini-card">
+          <h4>数值直觉</h4>
+          <p>解线性方程组时，分解法通常比直接求逆更值得优先考虑。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里会建议旋转矩阵、变换矩阵尽量写成固定大小，而不是动态矩阵？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这些矩阵的尺寸在编译期就已经确定，写成固定大小更利于编译器优化，通常也更高效、更清晰。第三讲里的 $3\times3$ 旋转矩阵和 $4\times4$ 齐次变换矩阵都属于这一类。</div>
+            </details>
+          </li>
+          <li>
+            为什么 `matrix_23 * v_3d` 会报错，而 `matrix_23.cast&lt;double&gt;() * v_3d` 可以？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前者混合了 `float` 和 `double`，Eigen 默认不做自动类型提升；后者显式把矩阵转换成 `double`，类型才与 `Vector3d` 一致。</div>
+            </details>
+          </li>
+          <li>
+            这节课和后面的位姿优化有什么先行联系？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>后面的很多优化步骤都会落成线性方程组求解，所以这节课里“矩阵分解优于直接求逆”“维度和类型要严格一致”的习惯，实际上是在给后端优化做准备。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0019-第三讲-变换矩阵与齐次坐标.html">← 第三讲：变换矩阵与齐次坐标</a>
+        <a class="next" href="0021-第三讲-旋转向量与欧拉角.html">第三讲：旋转向量与欧拉角 →</a>
+      </div>
+      <p class="foot-note">这一节看似在学库，其实是在给后面所有姿态和优化代码准备语法与数值感觉 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

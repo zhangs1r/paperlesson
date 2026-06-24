@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · 直接法动机与光流理论 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Lesson 1</div>
+      <h1>第八讲 · 直接法动机与光流理论</h1>
+      <p class="subtitle">这一讲不是突然换赛道，而是顺着第七讲继续问下去：既然特征提取和描述子匹配那么花时间、那么依赖纹理，我们能不能少算一点，甚至不算描述子，直接拿像素灰度来估计运动？答案就从光流与直接法开始。🌿</p>
+      <div class="hero-meta">
+        <span>🔗 承接第七讲特征点法</span>
+        <span>📷 为第九讲 VO 前端扩展思路</span>
+        <span>🧭 通向第十三讲深度滤波与半稠密建图</span>
+      </div>
+      <div class="toc">
+        <a href="#motivation">为什么要从特征点法走向直接法</a>
+        <a href="#flow">光流的基本图像直觉</a>
+        <a href="#lk">LK 光流推导</a>
+        <a href="#compare">它和第七讲有什么关系</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="motivation">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这一课的真正任务</h4>
+          <p>不是背一个新公式，而是把全书前端思路从“特征匹配”平滑过渡到“灰度驱动”。你要先明白：直接法不是和特征点法完全对立，它是沿着第七讲的问题继续往前追了一步。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>第七讲已经给了你一整套特征点前端：ORB、匹配、PnP、ICP。第八讲开始问：如果描述子太慢、特征太少怎么办？第九讲再把这些前端方案放回统一软件框架里，所以这里是理论分岔口。</p>
+        </div>
+      </div>
+
+      <p>书里先回顾特征点法的三类短板，这个切入非常关键，因为它解释了为什么直接法会在视觉里程计里出现：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>1. 计算代价高</h4>
+          <p>提关键点、算描述子、做匹配，整套流程里最重的部分常常都在这里。第七讲已经让你看到，前端很多时间其实不是花在 PnP 或 BA 上，而是花在特征本身上。</p>
+        </div>
+        <div class="mini-card">
+          <h4>2. 信息丢得多</h4>
+          <p>一张图像往往有几十万像素，但特征点法常只保留几百到几千个点。也就是说，它主动丢掉了大部分亮度信息。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3. 弱纹理会失灵</h4>
+          <p>白墙、走廊、低纹理平面这些场景里，不一定有足够角点。第七讲方法并没有错，只是它需要“看得见可匹配特征”这个前提。</p>
+        </div>
+      </div>
+
+      <p>于是就有了三条逐步减法的路线：</p>
+      <table>
+        <thead>
+          <tr><th>路线</th><th>还提关键点吗</th><th>还算描述子吗</th><th>下一步靠什么</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>光流跟踪</td><td>要</td><td>不要</td><td>LK 光流跟踪关键点位置</td></tr>
+          <tr><td>稀疏直接法</td><td>通常要</td><td>不要</td><td>直接比较这些点周围的灰度</td></tr>
+          <tr><td>半稠密/稠密直接法</td><td>可以不要</td><td>不要</td><td>直接拿大量像素灰度优化位姿</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>一句话看懂第八讲的主线</h4>
+        <p>从“先找对应点，再算运动”，逐步走向“让像素灰度自己约束运动”。这就是直接法相对于第七讲特征点法的核心变化。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="flow">
+      <h2>1. 光流的图像直觉：追踪的是“这个像素往哪儿去了”</h2>
+      <p>直接法是从光流演变出来的，所以书里先讲光流。这个顺序特别合理：光流先解决“像素怎么动”，直接法再在此基础上加上“相机怎么动”的几何模型。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/ed47e20b21897ab03a369aa1be38e152570cbd1278bc2e203f4ba8874be73606.jpg" alt="图 8-1 LK 光流法示意图">
+        <figcaption>图 8-1 LK 光流法示意图。图里最重要的不是时间轴本身，而是“同一个空间点在连续图像里会漂到不同像素位置”这个事实。光流就是在追踪这条漂移轨迹。</figcaption>
+      </figure>
+
+      <p>如果我们把图像看作时间变化的函数 $I(x,y,t)$，那么光流关心的事情就是：同一个空间点，随着相机运动，它在图像中的像素坐标 $(x,y)$ 会怎样变化。</p>
+      <div class="formula-box">$$ I(x+\mathrm{d}x,\; y+\mathrm{d}y,\; t+\mathrm{d}t)=I(x,y,t). \tag{8.1} $$</div>
+      <p>这就是<span class="term">灰度不变假设</span>。它说的是：同一个空间点，换了一个很近的时间看，它的亮度基本不变。</p>
+
+      <div class="callout">
+        <h4>这个假设为什么既强又值得用</h4>
+        <p>它确实会被高光、阴影、自动曝光、动态物体破坏；但如果完全不做这种假设，我们也就无从把“像素移动”和“相机运动”联系起来。第八讲的大部分公式，都是从这句假设长出来的。</p>
+      </div>
+
+      <div class="interactive-card">
+        <h3>先判断一下</h3>
+        <p>为什么说光流和直接法在本质上是一家人？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。它们都建立在灰度不变假设上，只是直接法进一步把像素变化和相机位姿模型绑在了一起。" onclick="lessonKit.answer(this, 'quiz-0054-a')">因为它们都假设同一个空间点的灰度近似不变</button>
+          <button data-correct="no" data-explanation="金字塔只是常见技巧，不是两者同源的根本原因。" onclick="lessonKit.answer(this, 'quiz-0054-a')">因为它们都一定要用图像金字塔</button>
+          <button data-correct="no" data-explanation="特征点法恰恰主要靠匹配关系，不是这层原因。" onclick="lessonKit.answer(this, 'quiz-0054-a')">因为它们和特征点法都完全一样</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0054-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="lk">
+      <h2>2. LK 光流推导：从灰度不变走到一个最小二乘问题</h2>
+      <p>对式 (8.1) 做一阶泰勒展开，保留一阶项，书里得到：</p>
+      <div class="formula-box">$$
+      I(x+\mathrm{d}x,y+\mathrm{d}y,t+\mathrm{d}t)
+      \approx
+      I(x,y,t)+I_x\mathrm{d}x+I_y\mathrm{d}y+I_t\mathrm{d}t. \tag{8.2}
+      $$</div>
+      <p>再和灰度不变条件联立，就变成：</p>
+      <div class="formula-box">$$
+      I_x\mathrm{d}x+I_y\mathrm{d}y+I_t\mathrm{d}t=0. \tag{8.3}
+      $$</div>
+      <p>两边除以 $\mathrm{d}t$，令</p>
+      <div class="formula-box">$$ u=\frac{\mathrm{d}x}{\mathrm{d}t},\qquad v=\frac{\mathrm{d}y}{\mathrm{d}t}, $$</div>
+      <p>就得到最经典的光流约束方程：</p>
+      <div class="formula-box">$$
+      I_xu+I_yv=-I_t. \tag{8.5}
+      $$</div>
+
+      <p>这个式子非常像第七讲里的一条几何约束：它告诉你运动应该满足什么，但它本身还不够解出全部未知量。这里的未知数有两个：$u,v$，所以单个像素只给一条方程，不够。</p>
+      <p>LK 的办法很巧妙：假设一个小窗口里的像素具有相同运动，于是一个 $w\times w$ 小块就能提供 $w^2$ 条方程：</p>
+      <div class="formula-box">$$
+      \begin{bmatrix}I_x&I_y\end{bmatrix}_k
+      \begin{bmatrix}u\\v\end{bmatrix}
+      =-I_{t,k},\qquad k=1,\dots,w^2. \tag{8.6}
+      $$</div>
+      <p>把它们堆起来，写成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{A}
+      \begin{bmatrix}u\\v\end{bmatrix}
+      =-\boldsymbol{b}, \tag{8.8}
+      $$</div>
+      <p>然后直接最小二乘：</p>
+      <div class="formula-box">$$
+      \begin{bmatrix}u\\v\end{bmatrix}^{*}
+      =-(\boldsymbol{A}^{T}\boldsymbol{A})^{-1}\boldsymbol{A}^{T}\boldsymbol{b}. \tag{8.9}
+      $$</div>
+
+      <div class="callout">
+        <h4>和第六讲的联系</h4>
+        <p>这里其实已经在做你第六讲熟悉的那套事：构造误差、堆叠方程、最小二乘求解。只不过这次未知量不是位姿增量，而是一个局部像素速度 $(u,v)$。</p>
+      </div>
+
+      <h3>为什么角点好跟，边缘容易滑，平坦区最糟</h3>
+      <p>这和第七讲角点检测、第六讲矩阵条件数是相通的。$\boldsymbol{A}^{T}\boldsymbol{A}$ 里积累的是窗口内的梯度信息：</p>
+      <ul>
+        <li>两个方向梯度都强：角点，最稳定</li>
+        <li>只有一个方向梯度强：边缘，沿边缘方向容易“滑”</li>
+        <li>两个方向梯度都弱：平坦区，根本没法稳定判断运动</li>
+      </ul>
+      <p>所以第八讲并没有突然背离第七讲，反而是在用“灰度变化”重新解释为什么角点一直这么重要。</p>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. 它和第七讲、 第九讲、 第十三讲分别怎么连起来</h2>
+      <div class="grid-3">
+        <div class="mini-card">
+          <h4>连到第七讲</h4>
+          <p>第七讲是“关键点 + 描述子 + 匹配”。现在你看到第一种简化路线：仍然保留关键点，但不再算描述子，而是靠光流跟踪这些点。这就是从特征匹配走向更轻量前端的第一步。</p>
+        </div>
+        <div class="mini-card">
+          <h4>连到第九讲</h4>
+          <p>第九讲搭 VO 框架时，前端并不一定只能塞 ORB 匹配。你完全可以把这里的光流跟踪接到帧间运动估计上，形成另一种前端实现。</p>
+        </div>
+        <div class="mini-card">
+          <h4>连到第十三讲</h4>
+          <p>第十三讲做深度滤波、半稠密建图时，会再次利用“只保留有明显梯度的像素”这个思想。那时你会发现，第八讲其实已经把半稠密思路的种子埋下了。</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>方法</th><th>优点</th><th>代价 / 风险</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>描述子匹配</td><td>大运动下更稳，误差模型清晰</td><td>计算重，误匹配需要额外筛</td></tr>
+          <tr><td>LK 光流</td><td>省去描述子计算，跟踪效率高</td><td>要求帧间运动小，容易跟丢</td></tr>
+          <tr><td>直接法</td><td>可进一步利用大量像素灰度</td><td>更依赖光照稳定与初值质量</td></tr>
+        </tbody>
+      </table>
+      <p>所以书里说得非常准确：光流法并没有彻底摆脱特征点，它只是把“匹配描述子”换成了“跟踪像素运动”；而直接法才是在这个基础上继续走向“让灰度误差直接驱动位姿优化”。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>动机要记牢</h4>
+          <p>直接法不是为了炫新方法，而是为了减少特征计算代价、减少信息浪费、提升弱纹理场景可用性。</p>
+        </div>
+        <div class="mini-card">
+          <h4>LK 的核心</h4>
+          <p>灰度不变 + 小窗口同运动 + 最小二乘。它是“像素级跟踪”的入门模型。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为下一节铺路</h4>
+          <p>接下来就不只讲理论了，而是把 TUM 数据集、OpenCV 的 <code>calcOpticalFlowPyrLK</code> 跑起来，看它在真实图像上怎样工作。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说第八讲的第一步不是“直接法”，而是“先把匹配描述子换成光流跟踪”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这一步仍然保留关键点，只是不再计算描述子，而是直接跟踪这些关键点在下一帧中的位置。真正的直接法会进一步把灰度误差直接和位姿优化绑定起来。</div>
+            </details>
+          </li>
+          <li>
+            LK 光流里为什么一个像素不足以解出 $(u,v)$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为单个像素只能给出一条方程 $I_xu+I_yv=-I_t$，却有两个未知量 $u,v$。所以 LK 需要引入窗口假设，用一个小块里多条方程一起做最小二乘。</div>
+            </details>
+          </li>
+          <li>
+            为什么角点更稳定、边缘会滑、平坦区不可靠？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为角点在两个方向上都有明显梯度；边缘只在一个方向上有强约束，沿边缘方向约束很弱；平坦区两个方向梯度都弱，几乎没有可用信息。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0053-第七讲-章节总结与习题.html">← 第七讲总结</a>
+        <a class="next" href="0055-第八讲-LK光流实践.html">LK 光流实践 →</a>
+      </div>
+      <p class="foot-note">如果你觉得这节和第七讲很像，那说明你抓住了重点：第八讲不是推翻旧方法，而是在旧方法上做减法与提纯 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

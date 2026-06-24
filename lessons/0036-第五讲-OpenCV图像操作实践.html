@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · OpenCV图像操作实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 5</div>
+      <h1>第五讲 · OpenCV 图像操作实践</h1>
+      <p class="subtitle">理论一旦落地，就会变成库、头文件、CMake、像素循环和拷贝语义。这节课是你从“会读相机模型”走向“会写图像程序”的第一步。🛠️</p>
+      <div class="hero-meta">
+        <span>🔗 承接上一节图像内存表示</span>
+        <span>📦 引入 OpenCV 作为实践工具</span>
+        <span>🚀 为下一节点云拼接做代码热身</span>
+      </div>
+      <div class="toc">
+        <a href="#install">OpenCV 安装与工程配置</a>
+        <a href="#read-show">读取与显示图像</a>
+        <a href="#traverse">逐像素遍历</a>
+        <a href="#copy">深拷贝与浅拷贝</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="install">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>为什么书在这里突然讲环境配置</h4>
+          <p>因为第五讲后半段开始，已经不是“只会看公式”就够了。你需要真正读取图像、访问像素、建立点云，而这些都要先有一个能编译运行的 OpenCV 工程。</p>
+        </div>
+        <div class="callout">
+          <h4>读这一节的心态</h4>
+          <p>别把它看成纯安装说明。它其实在教你一种标准套路：库怎么找、头文件怎么引、CMake 怎么连、程序怎么组织。后面 PCL、g2o、Sophus 都会复用这个套路。</p>
+        </div>
+      </div>
+      <p>原书使用的是 OpenCV 3 系列，并建议从源码安装。今天实际环境未必和书里完全一样，但从学习路径上，这个建议仍然合理：你会更清楚库文件、头文件和 CMake 的关系，而不只是“装完能跑”。</p>
+      <pre><code># 典型流程（以书中的 OpenCV 3 为例）
+sudo apt-get install build-essential libgtk2.0-dev libvtk5-dev libjpeg-dev \
+  libtiff4-dev libjasper-dev libopenexr-dev libtbb-dev
+
+unzip opencv-3.1.0.zip
+cd opencv-3.1.0
+mkdir build
+cd build
+cmake ..
+make -j4
+sudo make install</code></pre>
+      <p>接着在 CMake 里找到 OpenCV：</p>
+      <pre><code>cmake_minimum_required(VERSION 2.8)
+project(imageBasics)
+
+set(CMAKE_CXX_FLAGS "-std=c++11")
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+add_executable(imageBasics imageBasics.cpp)
+target_link_libraries(imageBasics ${OpenCV_LIBS})</code></pre>
+      <div class="callout">
+        <h4>这段 CMake 真正在做什么</h4>
+        <p><code>find_package</code> 找库，<code>include_directories</code> 让编译器知道头文件在哪，<code>target_link_libraries</code> 让链接器知道最终可执行文件要把哪些库连进来。以后看别的 C++ 视觉工程，也几乎都逃不开这三步。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="read-show">
+      <h2>1. 第一段真正的图像程序：读进来、看见它、确认它是什么</h2>
+      <p>书里这一段代码非常适合当“图像程序最小闭环”：读图、判空、打印尺寸、显示、阻塞等待。</p>
+      <pre><code>cv::Mat image = cv::imread(argv[1]);
+if (image.data == nullptr) {
+    cerr << "文件不存在." << endl;
+    return 0;
+}
+
+cout << "图像宽为 " << image.cols
+     << "，高为 " << image.rows
+     << "，通道数为 " << image.channels() << endl;
+
+cv::imshow("image", image);
+cv::waitKey(0);</code></pre>
+      <p>这里每一步都不该被跳过：</p>
+      <ul>
+        <li><code>imread</code> 把磁盘上的图像文件读成 <code>cv::Mat</code></li>
+        <li><code>image.data == nullptr</code> 是基本的健壮性检查</li>
+        <li><code>rows / cols / channels()</code> 让你先确认自己手里拿到的到底是什么图</li>
+        <li><code>imshow + waitKey</code> 用最直接方式确认程序确实读到了你以为的图像</li>
+      </ul>
+      <div class="callout">
+        <h4>这和前面的理论不是两张皮</h4>
+        <p>你打印出来的宽、高、通道数，就是上一节里讲的图像结构；你此时手里看到的像素网格，就是前面几节几何模型最终投到程序里的载体。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="traverse">
+      <h2>2. 逐像素遍历：真正理解 <code>ptr&lt;&gt;</code> 为什么快</h2>
+      <p>书里推荐用行指针遍历图像。这不是炫技，而是因为它非常贴近底层内存布局，速度也往往比高层逐点访问更好。</p>
+      <pre><code>for (size_t y = 0; y &lt; image.rows; y++) {
+    unsigned char* row_ptr = image.ptr&lt;unsigned char&gt;(y);
+    for (size_t x = 0; x &lt; image.cols; x++) {
+        unsigned char* data_ptr = &amp;row_ptr[x * image.channels()];
+        for (int c = 0; c != image.channels(); c++) {
+            unsigned char data = data_ptr[c];
+        }
+    }
+}</code></pre>
+      <p>这里建议你脑中同步想象一张三通道彩色图的内存排布：同一行里，像素一个接一个铺开，而每个像素内部又是 B、G、R 连着存。所以走到第 <code>x</code> 个像素时，要乘上通道数才对。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么先拿行指针</h4>
+          <p>因为每次进入新的一行，只需定位一次行起点，后面列内偏移就很自然。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么再乘通道数</h4>
+          <p>因为一个像素可能不止一个字节。彩色图走一步，不是走 1，而是走 3。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么书还加了计时</h4>
+          <p>因为在视觉程序里，很多算法是否可实时，往往就卡在这种看似平常的像素遍历上。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>自查一下</h3>
+        <p>如果你把 <code>x * image.channels()</code> 错写成了 <code>x</code>，彩色图里会发生什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。你会把像素边界和通道边界混在一起，读出来的数据会错位，颜色解析全乱，严重时还可能越界。" onclick="lessonKit.answer(this, 'quiz-0036-a')">像素与通道边界错位，读到的颜色数据会乱掉</button>
+          <button data-correct="no" data-explanation="不是更快，而是更错。" onclick="lessonKit.answer(this, 'quiz-0036-a')">程序会自动切换成灰度模式</button>
+          <button data-correct="no" data-explanation="这不是 OpenCV 自动纠正的错误。" onclick="lessonKit.answer(this, 'quiz-0036-a')">OpenCV 会自动补上缺失的乘法</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0036-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="copy">
+      <h2>3. 深拷贝 vs 浅拷贝：为什么一改局部，原图也会跟着变</h2>
+      <p>很多同学第一次遇到 <code>cv::Mat</code>，最惊讶的不是 API，而是赋值后的行为。书里专门讲这个，特别好，因为它直接关系到你后面调试时会不会怀疑人生。</p>
+      <pre><code>cv::Mat image_another = image;      // 浅拷贝，共享底层数据
+cv::Mat image_clone = image.clone(); // 深拷贝，复制底层数据</code></pre>
+      <p>浅拷贝意味着：两个对象头部是不同的，但指向同一块像素内存。所以你改其中一张图像的局部，另一张也会“同步受伤”。而 <code>clone()</code> 或 <code>copyTo()</code> 才会真正复制底层数据。</p>
+      <table>
+        <thead>
+          <tr><th>操作</th><th>是否共享底层像素</th><th>适用场景</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Mat B = A</code></td><td>共享</td><td>想省拷贝、只读或明确知道共享语义时</td></tr>
+          <tr><td><code>A.clone()</code></td><td>不共享</td><td>想独立修改一份副本时</td></tr>
+          <tr><td><code>A.copyTo(B)</code></td><td>不共享</td><td>需要拷贝到已有对象时</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <h4>为什么这和后面点云拼接也有关</h4>
+        <p>第 5.4 节会同时处理彩色图、深度图和位姿。如果你在工程里把某张图“顺手赋值后又修改”，可能会不小心破坏原始观测数据，后面定位和建图就会一起受影响。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>工程入口</h4>
+          <p>会写 <code>find_package</code> 和 <code>target_link_libraries</code>，就算真正开始会搭图像工程了。</p>
+        </div>
+        <div class="mini-card">
+          <h4>像素访问</h4>
+          <p><code>ptr&lt;&gt;</code> 的本质是按行拿到底层指针，再按列和通道做偏移。</p>
+        </div>
+        <div class="mini-card">
+          <h4>拷贝语义</h4>
+          <p><code>cv::Mat</code> 默认赋值是浅拷贝，真正要独立副本时得显式深拷贝。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里不建议一上来就只用最省事的高层 API，而是还要讲 <code>ptr&lt;&gt;</code> 和底层访问？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为视觉程序常常需要高效的逐像素处理，理解底层布局后，你才能在性能、正确性和调试上更有把握，而不是只会调用接口却不知道它在做什么。</div>
+            </details>
+          </li>
+          <li>
+            为什么 <code>Mat B = A</code> 后修改 B 可能会影响 A？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这是浅拷贝，两个 <code>cv::Mat</code> 对象共享同一块底层像素数据。要想彼此独立，必须使用 <code>clone()</code> 或 <code>copyTo()</code>。</div>
+            </details>
+          </li>
+          <li>
+            下一节拼接点云时，为什么这一节的“像素读取 + 通道顺序 + 深度类型”都会再次出现？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为点云拼接需要逐像素读取颜色图和深度图：深度图给出几何距离，彩色图给出点云颜色。如果你不清楚类型、通道和索引顺序，点的位置和颜色都会读错。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0035-第五讲-图像在计算机中的表示.html">← 图像在计算机中的表示</a>
+        <a class="next" href="0037-第五讲-拼接点云实践.html">拼接点云实践 →</a>
+      </div>
+      <p class="foot-note">这一节不是“工具说明书”，它其实在帮你建立写视觉程序时最基本的工程手感 🌱</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 拼接点云实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 6</div>
+      <h1>第五讲 · 拼接点云实践</h1>
+      <p class="subtitle">这一节是第五讲真正“收束成一个作品”的地方：内参、外参、像素访问、深度读取，都要一起工作，最后变成一张可视化三维点云地图。☁️</p>
+      <div class="hero-meta">
+        <span>🔗 综合第三到第五讲</span>
+        <span>📐 是投影链条的逆过程</span>
+        <span>🗺️ 直接通向第十三讲点云建图</span>
+      </div>
+      <div class="toc">
+        <a href="#pipeline">整体流程</a>
+        <a href="#math">像素反投影公式</a>
+        <a href="#code">代码逐段理解</a>
+        <a href="#meaning">为什么这一步这么重要</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="pipeline">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这一节像一次阶段考试</h4>
+          <p>前面几节你学到的所有对象，现在都要真的上场：像素坐标、深度图、相机内参、位姿变换、BGR 颜色、OpenCV 像素访问、PCL 点云保存。</p>
+        </div>
+        <div class="callout">
+          <h4>和后文的强联系</h4>
+          <p>第十三讲还会再次回到点云地图，但会加入滤波、八叉树等更完整的地图表达。这里这版“直接拼接”虽然朴素，却是理解后续建图的最佳起点。</p>
+        </div>
+      </div>
+      <p>书里的实验准备了 5 对 RGB-D 图像和它们对应的位姿。思路非常直白：每一帧都反投影成点云，再借助位姿变换把它们放到同一个世界坐标系里，最后把所有帧加起来。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{彩色图 + 深度图} \Longrightarrow \text{每帧局部点云} \Longrightarrow \text{位姿变换到世界系} \Longrightarrow \text{多帧叠加成地图} $$</div>
+      </div>
+      <p>如果你把这条链和前几节连起来看，会发现它其实是在做一件特别漂亮的事：<strong>把第五讲开头“世界点投到像素”的过程，整个倒过来走一遍</strong>。</p>
+    </main>
+
+    <section class="section-card" id="math">
+      <h2>1. 核心数学：像素 + 深度怎样回到三维空间</h2>
+      <p>这一步是整节最值得牢牢记住的公式。已知像素坐标 $(u,v)$、深度值 $d$ 以及内参矩阵，就可以把像素反投影回相机坐标系。</p>
+      <div class="formula-box">$$ d
+\begin{bmatrix}
+u \\ v \\ 1
+\end{bmatrix}
+=
+\boldsymbol{K}\boldsymbol{p}_c. \tag{5.17} $$</div>
+      <p>把它拆开写得更直观，就是：</p>
+      <div class="formula-box">$$
+\begin{aligned}
+z &= d / \text{depthScale}, \\
+x &= \frac{(u-c_x)z}{f_x}, \\
+y &= \frac{(v-c_y)z}{f_y}.
+\end{aligned}
+$$</div>
+      <p>到这里得到的是<strong>相机坐标系</strong>下的三维点。再用第三讲的位姿变换乘上当前帧位姿：</p>
+      <div class="formula-box">$$ \boldsymbol{p}_w = \boldsymbol{T}_{wc}\boldsymbol{p}_c. $$</div>
+      <div class="callout">
+        <h4>这其实就是“逆投影”</h4>
+        <p>第五讲前半部分讲的是投影：世界点 $\to$ 像素。这里则是有了像素和深度后做反投影：像素 $\to$ 相机点 $\to$ 世界点。只不过多了一个深度值，才让这个逆过程变得可解。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="code">
+      <h2>2. 代码逐段看：每一步都在对应前面的理论</h2>
+      <h3>2.1 读入图像和位姿</h3>
+      <pre><code>boost::format fmt("./%s/%d.%s");
+colorImgs.push_back(cv::imread((fmt % "color" % (i+1) % "png").str()));
+depthImgs.push_back(cv::imread((fmt % "depth" % (i+1) % "pgm").str(), -1));
+
+double data[7] = {0};
+for (auto&amp; d : data) fin &gt;&gt; d;
+Eigen::Quaterniond q(data[6], data[3], data[4], data[5]);
+Eigen::Isometry3d T(q);
+T.pretranslate(Eigen::Vector3d(data[0], data[1], data[2]));</code></pre>
+      <p>这里至少有三件你需要明确：</p>
+      <ul>
+        <li>彩色图正常读取，深度图用 <code>-1</code> 保留原始位深，否则 16 位深度容易被错误转换</li>
+        <li>位姿文件给的是平移和四元数，所以又和第三讲的姿态表示接上了</li>
+        <li><code>Eigen::Quaterniond</code> 的构造顺序是 <code>(w, x, y, z)</code>，这和很多文件里的存储顺序不一样，特别容易出错</li>
+      </ul>
+      <h3>2.2 逐像素反投影成点</h3>
+      <pre><code>unsigned int d = depth.ptr&lt;unsigned short&gt;(v)[u];
+if (d == 0) continue;
+
+Eigen::Vector3d point;
+point[2] = double(d) / depthScale;
+point[0] = (u - cx) * point[2] / fx;
+point[1] = (v - cy) * point[2] / fy;
+
+Eigen::Vector3d pointWorld = T * point;</code></pre>
+      <p>这段代码几乎是上一节和前几节的总复习：</p>
+      <table>
+        <thead>
+          <tr><th>代码动作</th><th>对应概念</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>depth.ptr&lt;unsigned short&gt;(v)[u]</code></td><td>第 0035 课讲过的深度图类型与像素访问顺序</td></tr>
+          <tr><td><code>(u-cx)z/fx</code></td><td>第 0032 课讲过的内参逆运算</td></tr>
+          <tr><td><code>T * point</code></td><td>第 0032 课的完整投影链条 + 第三讲位姿变换</td></tr>
+        </tbody>
+      </table>
+      <h3>2.3 颜色一起带进点云</h3>
+      <pre><code>p.b = color.data[v * color.step + u * color.channels()];
+p.g = color.data[v * color.step + u * color.channels() + 1];
+p.r = color.data[v * color.step + u * color.channels() + 2];</code></pre>
+      <p>这一段再次提醒我们：OpenCV 默认是 BGR 顺序，不是 RGB。这里如果写错，点云形状可能对了，但颜色会发疯。</p>
+      <h3>2.4 保存与查看结果</h3>
+      <pre><code>pointCloud-&gt;is_dense = false;
+pcl::io::savePCDFileBinary("map.pcd", *pointCloud);</code></pre>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/de64ac81c4debf0224bfd07395e665c5a5abd2214ea411638faf8099adf754d5.jpg" alt="图 5-9 pcl_viewer 查看点云">
+        <figcaption>图 5-9 展示了最直接的拼接结果。你现在看它，不只是“哇有个三维房间”，而是要意识到：其中每个点都来自一个像素和一个深度值，外加一次位姿变换。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="meaning">
+      <h2>3. 这节实验真正教会你的，不只是“生成了一个 pcd 文件”</h2>
+      <p>这节课的价值，远不只是把结果存成 <code>map.pcd</code>。它在整本书里有几个特别重要的作用：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第一层</h4>
+          <p>它让你第一次看到相机内参与外参是怎样在一个完整任务里同时工作的。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二层</h4>
+          <p>它把“RGB-D 的每个像素都有深度”这个前一节的概念，真正变成了三维几何输出。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三层</h4>
+          <p>它为第十三讲点云地图与滤波做了最直接的铺垫：后面只是把这里的基础拼接，做得更稳、更干净、更可用。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>也要知道它的局限</h4>
+        <p>这种做法是“按位姿直接把点加起来”，并没有进一步优化点云本身。所以若位姿有误差，同一个物体会出现重影。第十三讲会明确讨论这种“鬼影”问题，并加入滤波与更完整的地图表达。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>反投影公式</h4>
+          <p>像素和深度值通过内参逆运算，可恢复相机坐标中的 3D 点。</p>
+        </div>
+        <div class="mini-card">
+          <h4>位姿的作用</h4>
+          <p>第三讲里的位姿变换把每帧局部点云统一放到世界坐标系下。</p>
+        </div>
+        <div class="mini-card">
+          <h4>点云的意义</h4>
+          <p>它是 RGB-D 建图最直接的地图形式，也是第十三讲的起点之一。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么深度值为 0 的像素通常要跳过？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它通常表示该像素没有可靠深度测量，可能是超量程、透明材质、反射异常或传感器无效值。若硬算，会生成大量错误点。</div>
+            </details>
+          </li>
+          <li>
+            为什么点云拼接可以看成“第五讲投影链条的逆过程”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前半讲是三维点投到像素；这里则已知像素和深度，先反投影回相机坐标，再通过位姿变换到世界坐标，方向正好反过来。</div>
+            </details>
+          </li>
+          <li>
+            为什么这节实践和第十三讲点云地图之间既连续，又不完全相同？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>连续在于两者都从 RGB-D 像素生成三维点；不同在于第十三讲会进一步处理噪声、做滤波、讨论更成熟的地图结构，而这一节更像最基本的原理样机。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0036-第五讲-OpenCV图像操作实践.html">← OpenCV 图像操作实践</a>
+        <a class="next" href="0038-第五讲-章节总结.html">第五讲章节总结 →</a>
+      </div>
+      <p class="foot-note">做到这里，你已经不只是“知道 RGB-D 能出点云”，而是清楚它到底是怎样一像素一像素变出来的 ☁️</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

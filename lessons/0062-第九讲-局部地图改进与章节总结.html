@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第九讲 · 局部地图改进与章节总结 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第九讲 · 设计前端 / Lesson 3</div>
+      <h1>第九讲 · 局部地图改进与章节总结</h1>
+      <p class="subtitle">从“只盯上一帧”升级到“开始和一小块地图对话”，这一步前端才真正有了长期工作能力。🗺️</p>
+      <div class="hero-meta">
+        <span>🔗 回应两两帧 VO 的结构缺陷</span>
+        <span>🧭 关键帧与地图开始成形</span>
+        <span>🚪 为第十、十一、十三讲开门</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#why-local-map">为什么要局部地图</a>
+        <a href="#map-maintenance">地图点怎么维护</a>
+        <a href="#results">运行现象怎么看</a>
+        <a href="#chapter-summary">第九讲总收束</a>
+        <a href="#wrap-up">课后练习</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把第九讲前两节里“只看参考帧”的前端改成“当前帧和局部地图匹配”的前端，理解局部地图如何提升鲁棒性，以及它和关键帧、后端、建图之间的关系。</p>
+        </div>
+        <div class="callout">
+          <h4>和后文怎么接</h4>
+          <p>这一课表面上还是前端，但实际上已经碰到了第十讲后端 BA、第十一讲位姿图、第十二讲回环和第十三讲建图的共同边界：<strong>哪些历史信息该保留，哪些该扔掉</strong>。</p>
+        </div>
+      </div>
+      <p>如果说上一节的两两帧 VO 让你体验了“前端能跑起来”，那么这一节要让你体验的是：<strong>为什么只靠能跑还远远不够</strong>。前端真正要长期稳定工作，不能每次都只把命运压在上一帧身上。</p>
+    </main>
+
+    <section class="section-card" id="why-local-map">
+      <h2>1. 为什么局部地图不是小修小补，而是结构升级</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/378980fb4b1eaef7c4415075425b3f20acc997bd18807f5bf571f1dd8c2c4124.jpg" alt="图 9-6 地图 VO 与两两帧 VO 对比">
+        <figcaption>图 9-6 上下两部分对比非常关键。上面是“每次只看上一帧”，下面是“当前帧和一批地图点匹配”。真正改变的不是匹配器，而是前端对历史信息的使用方式。</figcaption>
+      </figure>
+      <p>两两帧 VO 的最大结构问题在于：它只和上一帧发生关系。一旦参考帧模糊、遮挡、匹配不良，当前帧就很难接住，后面还会一连串地受影响。局部地图的引入，等于把“参考对象”从一帧扩大成一小片稳定区域。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>两两帧 VO</h4>
+          <p>依赖 Ref → Curr 这一对关系，链条很脆，一处断裂就会影响后续。</p>
+        </div>
+        <div class="mini-card">
+          <h4>局部地图 VO</h4>
+          <p>当前帧可以和多个地图点建立联系，不必把全部希望押在上一帧质量上。</p>
+        </div>
+        <div class="mini-card">
+          <h4>工程意义</h4>
+          <p>这是从“短时相对估计器”迈向“真正可持续前端”的第一步。</p>
+        </div>
+      </div>
+      <p>所以局部地图这件事和第十三讲“地图长什么样”其实是一体两面。第十三讲会追问地图服务于什么应用；而第九讲先告诉你：哪怕只为了前端定位，地图也已经开始不可或缺了。</p>
+    </section>
+
+    <section class="section-card" id="map-maintenance">
+      <h2>2. 地图点管理：真正难的不是“有地图”，而是“地图别烂掉”</h2>
+      <p>一旦把地图拉进来，问题立刻变成：哪些点该留？哪些点该删？什么时候再补新点？这就是前端工程比演示代码更难的地方。书里给出的策略很朴素，但特别有启发性：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>不在当前视野内的点</h4>
+          <p>先不参与当前匹配，因为它们连被看到的机会都没有。</p>
+        </div>
+        <div class="mini-card">
+          <h4>匹配率长期过低的点</h4>
+          <p>说明它经常被看到却很少真正匹配成功，质量可疑，应逐步剔除。</p>
+        </div>
+        <div class="mini-card">
+          <h4>视角变化过大的点</h4>
+          <p>如果当前视角和它最初建立时差异太大，描述子就容易失效。</p>
+        </div>
+        <div class="mini-card">
+          <h4>地图点数不够时补点</h4>
+          <p>如果当前可用约束太少，就从新关键帧中继续加入新的三维点。</p>
+        </div>
+      </div>
+      <p>这套逻辑的背后，其实是一个很核心的工程哲学：<strong>地图不是越大越好，而是“当前能稳定支持定位”最好</strong>。</p>
+      <p>如果用一个最简单的质量指标来形容，书里会看匹配率：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{match ratio} = \frac{\text{matched\_times}}{\text{visible\_times}}. $$</div>
+      </div>
+      <p>这不是绝对真理，但它很有工程味道：比起追求数学上完美的点，前端更在乎“哪些点长期看来真的能帮我定位”。</p>
+
+      <h3>2.1 为什么关键帧从这里开始越来越重要</h3>
+      <p>局部地图一旦出现，关键帧也就不再只是“偶尔存一下图像”。从现在开始，关键帧承担三件事：</p>
+      <ul>
+        <li>为局部地图提供新的稳定三维点；</li>
+        <li>成为后端优化的主要位姿节点；</li>
+        <li>为第十二讲回环检测提供可检索的历史时刻。</li>
+      </ul>
+      <p>所以你可以把第九讲看作关键帧正式“升职”的一讲。🙂</p>
+    </section>
+
+    <section class="section-card" id="results">
+      <h2>3. 运行结果怎么看：别只盯“有没有画出来”，要盯“约束是否稳定”</h2>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/c63bc4f830237cd635c78410cc7c7db83379957f18f5ef4516e4cbdcae965340.jpg" alt="图 9-7a 局部地图 VO 结果">
+          <figcaption>图 9-7a 中把地图点重新投回图像平面，是为了让你直观看到“这些路标是否像固定在场景里”。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/b35308041f3b4543840c03612b280c69ab01a8f13559e9707080b835454f2c00.jpg" alt="图 9-7b 局部地图 VO 另一个时刻">
+          <figcaption>图 9-7b 换了另一个时刻，重点依然不是界面好不好看，而是投影点有没有明显漂离它该在的结构位置。</figcaption>
+        </figure>
+      </div>
+      <p>这两张图在教学上特别重要，因为它们教你一种工程检查方式：<strong>把估计结果重新投回观测空间，看它是否还说得通</strong>。这和第十讲 BA 最小化重投影误差，其实是同一个思想在不同层级上的体现。</p>
+      <div class="callout">
+        <h4>这一步和第十讲的联系</h4>
+        <p>第九讲局部地图前端是在用“当前帧是否还能被已有地图解释”来检验前端；第十讲 BA 则会把这种解释能力正式写进目标函数，并全局优化它们。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="chapter-summary">
+      <h2>4. 第九讲总收束：前端为什么必须一层一层长出来</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>0.1 版</h4>
+          <p>先有目录、类、参数入口。没有这层骨架，后面都无从挂起。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0.2 版</h4>
+          <p>先把最简单的两两帧 VO 跑起来，暴露参考帧依赖与漂移问题。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0.3 版</h4>
+          <p>在 PnP 后追加非线性优化，说明前端不能只靠一次闭式或 RANSAC 初值。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0.4 版</h4>
+          <p>引入局部地图，让前端从“只吃上一帧”升级到“吃一小块历史约束”。</p>
+        </div>
+      </div>
+      <p>这一讲最值得你带走的一句话是：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{前端不是只会算位姿，而是不断管理“哪些历史信息值得继续约束现在”}. $$</div>
+      </div>
+      <p>有了这句话，你再去看第十讲 BA、第十一讲位姿图、第十二讲回环、第十三讲地图，就会发现它们都在回答同一个更大的问题：<strong>历史信息怎么被保留、压缩、重用和校正</strong>。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>局部地图相对两两帧 VO，最核心的改进到底是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。不是“换了个匹配器”，而是把当前帧的约束来源从单一参考帧扩展成一组稳定地图点。" onclick="lessonKit.answer(this, 'quiz-0062')">把当前帧的约束来源从一帧扩展到一组地图点</button>
+          <button data-correct="no" data-explanation="特征点数可能会调，但这不是结构升级的核心。" onclick="lessonKit.answer(this, 'quiz-0062')">把 ORB 数量翻倍</button>
+          <button data-correct="no" data-explanation="线程数和局部地图不是同一层问题。" onclick="lessonKit.answer(this, 'quiz-0062')">让程序开更多线程</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0062"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 课后练习</h2>
+      <section class="exercise-box">
+        <h3>练习与答案</h3>
+        <ol>
+          <li>
+            为什么说局部地图解决的不是“精度微调”，而是“约束结构升级”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它改变了当前帧估计所依赖的历史信息来源。两两帧只依赖上一帧，而局部地图让当前帧同时受到一批地图点的约束，这是一种结构层面的变化，不只是数值层面的小修补。</div>
+            </details>
+          </li>
+          <li>
+            匹配率、视角变化和是否在视野内，这三个筛选条件分别在防什么问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>匹配率在防“长期不可靠点”，视角变化在防“描述子失真过大的点”，是否在视野内则在防“根本不可能被当前帧观测到的点”。三者共同服务于地图质量控制。</div>
+            </details>
+          </li>
+          <li>
+            第九讲结束后，前端和第十、第十一、第十三讲分别已经建立了什么联系？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>和第十讲的联系是：前端已经开始围绕重投影与局部优化工作；和第十一讲的联系是：关键帧与位姿节点已经具备雏形；和第十三讲的联系是：我们已经拥有了最基础的稀疏地图，但它还不足以直接满足更复杂的导航和建图需求。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0061-第九讲-两两帧VO与PnP优化.html">← 两两帧 VO 与 PnP 优化</a>
+        <a class="next" href="0063-第十讲-状态估计与卡尔曼滤波.html">第十讲 · 状态估计与卡尔曼滤波 →</a>
+      </div>
+      <p class="foot-note">第九讲到这里，前端才算真的长出“系统感”。后面我们要开始认真处理它积累下来的误差了。🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 章节总结 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Wrap-up</div>
+      <h1>第五讲 · 章节总结</h1>
+      <p class="subtitle">第五讲完成了一次很关键的跨越：从第二讲的抽象观测方程，走到了真正的相机模型、像素数据和 RGB-D 点云输出。它是整本书的“视觉入口层”。📚</p>
+      <div class="hero-meta">
+        <span>🔗 承接第三、四讲位姿与优化语言</span>
+        <span>📷 建立完整观测模型</span>
+        <span>🗺️ 为第七讲前端与第十三讲建图铺路</span>
+      </div>
+      <div class="toc">
+        <a href="#chain">本讲主线</a>
+        <a href="#map">知识结构图</a>
+        <a href="#formula">核心公式清单</a>
+        <a href="#position">它在全书中的位置</a>
+        <a href="#exercise">综合练习</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="chain">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>一句话概括第五讲</h4>
+          <p>第五讲回答的是：相机怎样把三维世界看成像素，以及这些像素怎样再次变回可计算、可建图的三维数据。</p>
+        </div>
+        <div class="callout">
+          <h4>为什么它是关键关口</h4>
+          <p>前面第三、四讲提供的是“位姿怎么描述、怎么优化”的数学工具；第五讲则告诉你这些位姿和地图点究竟怎样落到图像测量里。没有这一层，前端和后端都无处着力。</p>
+        </div>
+      </div>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{位姿 } \boldsymbol{T} + \text{地图点 } \boldsymbol{P}_w \Longrightarrow \text{像素测量} \Longrightarrow \text{图像程序访问} \Longrightarrow \text{深度反投影与点云} $$</div>
+      </div>
+      <p>也就是说，第五讲既是“观测模型”一讲，也是“视觉数据长什么样”一讲，更是后面建图实验的前置准备一讲。</p>
+    </main>
+
+    <section class="section-card" id="map">
+      <h2>1. 本讲知识结构图</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>针孔模型</h4>
+          <p>解释三维点如何投到二维成像平面，核心是相似三角形与 $X/Z, Y/Z$ 这样的透视比值。</p>
+        </div>
+        <div class="mini-card">
+          <h4>内参矩阵</h4>
+          <p>把归一化平面上的几何点，转换成真正的像素坐标 $(u,v)$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>畸变模型</h4>
+          <p>说明真实镜头和理想针孔之间的误差层，常以径向畸变和切向畸变来描述。</p>
+        </div>
+        <div class="mini-card">
+          <h4>双目与 RGB-D</h4>
+          <p>回答“深度从哪儿来”。一个靠视差，一个靠主动测量。</p>
+        </div>
+        <div class="mini-card">
+          <h4>图像表示</h4>
+          <p>把“照片”还原成像素、通道、位宽、行列和底层内存布局。</p>
+        </div>
+        <div class="mini-card">
+          <h4>OpenCV 实操</h4>
+          <p>把图像读进来、遍历起来、显示出来，并理解拷贝语义。</p>
+        </div>
+        <div class="mini-card">
+          <h4>点云拼接</h4>
+          <p>把 RGB-D 图像反投影到三维空间，再根据位姿拼到同一世界坐标系。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第十三讲伏笔</h4>
+          <p>点云地图、稠密建图、滤波与八叉树，都会站在本讲的反投影链条上继续往前走。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="formula">
+      <h2>2. 这一讲你最该牢牢记住的公式</h2>
+      <table>
+        <thead>
+          <tr><th>公式</th><th>它在说什么</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>$X' = fX/Z,\ Y' = fY/Z$</td><td>针孔模型里的透视投影，解释近大远小</td></tr>
+          <tr><td>$Z\begin{bmatrix}u\\v\\1\end{bmatrix}=\boldsymbol{K}\begin{bmatrix}X\\Y\\Z\end{bmatrix}$</td><td>相机坐标到像素坐标的内参映射</td></tr>
+          <tr><td>$Z\boldsymbol{p}_{uv}=\boldsymbol{K}(\boldsymbol{R}\boldsymbol{P}_w+\boldsymbol{t})$</td><td>完整观测方程，把世界点、位姿和像素联系起来</td></tr>
+          <tr><td>$x_{\text{dist}}, y_{\text{dist}}$ 的畸变多项式</td><td>真实镜头和理想针孔之间的几何偏差</td></tr>
+          <tr><td>$z = fb/d$</td><td>双目相机通过视差恢复深度</td></tr>
+          <tr><td>$x=(u-c_x)z/f_x,\ y=(v-c_y)z/f_y$</td><td>RGB-D 中像素反投影到相机坐标</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <h4>背公式时别只背字面</h4>
+        <p>更重要的是知道每条公式属于哪一层：投影层、畸变层、深度获取层、图像数据层、反投影层。只要层次不混，你后面看更复杂的算法会稳很多。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="position">
+      <h2>3. 第五讲在全书里的位置</h2>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{第三讲：位姿表示} \Longrightarrow \text{第四讲：李代数与局部优化} \Longrightarrow \boxed{\text{第五讲：相机观测模型}} \Longrightarrow \text{第六讲：非线性优化} \Longrightarrow \text{第七至第十一讲：视觉前后端} $$</div>
+      </div>
+      <p>从这条链你能看出，第五讲其实是在中间起到“接口层”的作用：</p>
+      <ul>
+        <li>往前接第三、四讲的位姿与优化语言</li>
+        <li>往后把这些语言变成真正的像素残差和图像数据处理问题</li>
+      </ul>
+      <p>所以第六讲之后你看到的重投影误差、PnP、前端匹配、后端 BA，本质上都在复用今天的投影模型。</p>
+      <div class="callout">
+        <h4>和第十三讲的特殊联系</h4>
+        <p>第十三讲稠密建图会再次大规模调用第五讲，但方向改成“从像素和深度回到三维点”。所以第五讲既服务于前端定位，也服务于后面的建图表达。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="exercise">
+      <h2>4. 综合练习</h2>
+      <section class="exercise-box">
+        <h3>课后总练习</h3>
+        <ol>
+          <li>
+            试口头说明：从世界坐标点到像素坐标，一共经历了哪些层次？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>先由位姿变换把世界点变到相机坐标系，再做透视除法得到归一化平面坐标，必要时加入畸变模型，最后乘内参矩阵映射到像素平面。</div>
+            </details>
+          </li>
+          <li>
+            为什么第五讲既属于“几何建模”，又属于“程序实现基础”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前半部分讲的是成像几何、深度来源和观测方程，后半部分讲的是这些观测在程序里如何以图像、像素、通道、内存和点云形式出现。它把数学和代码接在了一起。</div>
+            </details>
+          </li>
+          <li>
+            比较单目、双目、RGB-D 在深度获取上的差别，并说说它们各自更适合什么场景。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>单目靠多帧运动恢复深度，便宜但尺度不确定；双目靠视差恢复绝对深度，室内外都可用但匹配代价高；RGB-D 靠主动测量深度，室内稠密建图最直接，但室外和特殊材质环境受限。</div>
+            </details>
+          </li>
+          <li>
+            为什么说第五讲的点云拼接是第十三讲点云地图的“原型版”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为两者都基于 RGB-D 像素反投影成三维点，再根据位姿融合到同一地图中。第十三讲只是在这个基础上进一步讨论滤波、地图结构和可用性问题。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0037-第五讲-拼接点云实践.html">← 拼接点云实践</a>
+        <a class="next" href="0039-第六讲-状态估计与最小二乘引出.html">第六讲：状态估计与最小二乘 →</a>
+      </div>
+      <p class="foot-note">如果说第三、四讲给了你“相机怎么动”的语言，那第五讲给你的就是“相机到底看到了什么”的语言。两者合在一起，SLAM 才真正开始成形 📘</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

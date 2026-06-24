@@ -1,0 +1,96 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2022_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{amsmath,amssymb} % define this before the line numbering.
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{subfigure}
+\usepackage{appendix}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage{fixltx2e}
+\usepackage{pifont}
+\usepackage[procnames]{listings}
+\usepackage{wrapfig}
+\usepackage{dirtytalk}
+\usepackage{subfigure}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{algorithmic}
+\usepackage{wrapfig}
+\input{macro.tex}
+\usepackage{etoolbox}
+
+
+
+\title{Language-driven Semantic Segmentation}
+
+
+\author{Boyi Li\\
+Cornell University, Cornell Tech \\
+\And
+Kilian Q. Weinberger \\
+Cornell University \\
+\And
+Serge Belongie \\
+University of Copenhagen \\
+\And
+Vladlen Koltun \\
+Apple \\
+\And
+Ren\'e Ranftl \\
+Intel Labs \\
+}
+
+
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+
+\begin{document}
+\maketitle
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+\input{sections/abstract.tex}
+\end{abstract}
+
+\input{sections/intro.tex}
+\input{sections/related_work.tex}
+\input{sections/method.tex}
+\input{sections/experiments.tex}
+\input{sections/discussion.tex}
+\input{sections/conclusion.tex}
+\clearpage
+\input{sections/acknowledgement}
+\input{sections/additional}
+{\small
+\bibliographystyle{iclr2022_conference}
+\bibliography{reference}
+}
+
+
+\end{document}
+
+

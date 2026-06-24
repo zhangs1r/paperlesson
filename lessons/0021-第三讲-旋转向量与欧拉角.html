@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第三讲 · 旋转向量与欧拉角 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第三讲 · 三维空间刚体运动 / Lesson 4</div>
+      <h1>第三讲 · 旋转向量与欧拉角</h1>
+      <p class="subtitle">旋转矩阵足够严谨，但对人不够亲切。原书这一节想做的，就是在“数学约束”和“人类直觉”之间找两种过渡语言：旋转向量负责紧凑表达，欧拉角负责直观描述。🧭</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0018 旋转矩阵</span>
+        <span>🔗 承接 0019 齐次变换</span>
+        <span>🧱 为 0022 四元数与 0025 李代数作铺垫</span>
+      </div>
+      <div class="toc">
+        <a href="#axis-angle">为什么要找新表示</a>
+        <a href="#rodrigues">旋转向量与罗德里格斯公式</a>
+        <a href="#euler">欧拉角与万向锁</a>
+        <a href="#image-reading">原图怎么读</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="axis-angle">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>弄清楚两件事：为什么旋转矩阵虽然正确却不够“轻”；以及为什么旋转向量和欧拉角虽然各有优势，却都不是最终答案。</p>
+        </div>
+        <div class="callout">
+          <h4>这节课在全章里的位置</h4>
+          <p>0020 刚把矩阵工具准备好，这一节就开始讨论更紧凑、更直观的旋转表示；下一节四元数会继续回答“有没有既紧凑又不那么容易奇异的表示”，再下一步第四讲就会把旋转向量直接接到李代数上去。</p>
+        </div>
+      </div>
+      <p>原书先抛出一个非常实际的问题：既然旋转矩阵已经能表示旋转、变换矩阵已经能表示六自由度位姿，那为什么还要折腾新的表示方法？答案其实有两条，而且都很重要：</p>
+      <ol>
+        <li>旋转矩阵有 <strong>9 个数却只描述 3 个自由度</strong>，表达上冗余。</li>
+        <li>它还带有严格约束：$$\boldsymbol{R}\boldsymbol{R}^T=\boldsymbol{I},\quad \det(\boldsymbol{R})=1.$$</li>
+      </ol>
+      <p>这两条和 0018 是完全连上的。0018 我们已经看到：旋转矩阵属于 $SO(3)$，它不是任意矩阵。那这一节的思路就是继续追问：<strong>有没有一种更紧凑的三维表示，把旋转“压缩”成 3 个量</strong>？</p>
+      <p>原书给出的第一种答案就是旋转向量，也叫轴角（Axis-Angle）。如果某个旋转是“绕单位轴 $\boldsymbol{n}$ 转了角度 $\theta$”，那就直接用一个向量：</p>
+      <div class="formula-box">$$ \boldsymbol{\phi} = \theta \boldsymbol{n}. $$</div>
+      <p>这个写法很漂亮，因为方向直接表示转轴，长度直接表示角度，维度刚好是 3。更妙的是，它和前面外积矩阵的语言天然相通，所以书里才提前提示：<strong>旋转向量其实已经在朝第四讲的李代数语言靠近</strong>。</p>
+    </main>
+
+    <section class="section-card" id="rodrigues">
+      <h2>1. 旋转向量为什么重要：它把旋转压缩成了 3 维</h2>
+      <p>原书在这里没有展开完整推导，而是直接把最重要的公式给出来，也就是罗德里格斯公式：</p>
+      <div class="formula-box">$$
+      \boldsymbol{R}
+      = \cos\theta \boldsymbol{I}
+      + (1-\cos\theta)\boldsymbol{n}\boldsymbol{n}^T
+      + \sin\theta\,\boldsymbol{n}^{\wedge}. \tag{3.14}
+      $$</div>
+      <p>这条公式很值得停下来读一读。它告诉我们：旋转向量并不是“另一套完全不同的东西”，而是可以被明确地送回旋转矩阵。也就是说：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{轴角 / 旋转向量} \longrightarrow \text{罗德里格斯公式} \longrightarrow SO(3)\text{ 旋转矩阵} $$</div>
+      </div>
+      <p>反过来，如果已知旋转矩阵，也能先通过迹求角度：</p>
+      <div class="formula-box">$$
+      \operatorname{tr}(\boldsymbol{R}) = 1 + 2\cos\theta, \qquad
+      \theta = \arccos \left(\frac{\operatorname{tr}(\boldsymbol{R})-1}{2}\right). \tag{3.15-3.16}
+      $$</div>
+      <p>再利用“旋转轴经过旋转后不变”这件事，去找满足</p>
+      <div class="formula-box">$$ \boldsymbol{R}\boldsymbol{n} = \boldsymbol{n} $$</div>
+      <p>的特征向量，就能把转轴恢复出来。</p>
+      <div class="callout">
+        <h4>这节课最关键的伏笔</h4>
+        <p>原书明确说了，旋转向量其实就是下一讲要深入讨论的李代数入口。所以你现在先把它理解成“旋转的紧凑 3 维坐标”，到了第四讲会突然发现：原来这就是 so(3) 的日常语言。</p>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么旋转向量会被作者说成“下一讲李代数的剧透版”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为它本质上就是把旋转用 3 维局部坐标表达出来，而第四讲的 so(3) 正是在这个方向上把数学结构彻底讲清。" onclick="lessonKit.answer(this, 'quiz-0021-a')">因为它已经把旋转压成局部 3 维表示，和 so(3) 的语言高度一致</button>
+          <button data-correct="no" data-explanation="程序实现方便不是它被强调的根本原因。" onclick="lessonKit.answer(this, 'quiz-0021-a')">因为 Eigen 只能直接处理旋转向量</button>
+          <button data-correct="no" data-explanation="旋转向量也不是完全没有问题，它同样不是终点。" onclick="lessonKit.answer(this, 'quiz-0021-a')">因为旋转向量已经彻底解决了旋转表示的所有问题</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0021-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="euler">
+      <h2>2. 欧拉角为什么直观，但又为什么容易出事</h2>
+      <p>原书接着引出欧拉角，语气其实很诚实：旋转矩阵和旋转向量虽然有数学意义，但对人类不够直观。我们看到一个三维向量或者一个 $3\times 3$ 矩阵，往往并不能立刻脑补出“物体现在朝哪转了”。</p>
+      <p>欧拉角做的事很像把一个复杂旋转拆成三次“单轴动作”。书里选择的是最常见的 <strong>yaw-pitch-roll</strong>，也就是 ZYX 顺序：</p>
+      <ol>
+        <li>先绕 Z 轴转，得到偏航角 yaw</li>
+        <li>再绕旋转后的 Y 轴转，得到俯仰角 pitch</li>
+        <li>最后绕旋转后的 X 轴转，得到滚转角 roll</li>
+      </ol>
+      <p>于是你可以用一个向量去描述：</p>
+      <div class="formula-box">$$ [r,\ p,\ y]^T $$</div>
+      <p>这就是欧拉角最讨喜的地方：它非常适合说人话。比如“抬头一点、向右偏一点、再滚一点”，人脑很容易想象。</p>
+      <p>但原书马上泼了一盆冷水：欧拉角会遇到著名的 <strong>Gimbal Lock</strong>，也就是万向锁。最典型的情况是俯仰角达到 $\pm 90^\circ$ 时，第一次和第三次旋转用到了同一根轴，系统少掉一个自由度。</p>
+      <div class="formula-box">$$ \text{当 pitch} = \pm 90^\circ \text{ 时，三次旋转退化成两次独立旋转。} $$</div>
+      <p>所以原书给出的结论非常明确：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>欧拉角适合</h4>
+          <p>给人看、做界面交互、快速检查结果是否大致正确。</p>
+        </div>
+        <div class="mini-card">
+          <h4>欧拉角不适合</h4>
+          <p>插值、滤波、迭代优化，以及在 SLAM 主流程中直接当姿态变量。</p>
+        </div>
+      </div>
+      <p>这也很好理解：人类喜欢“直观”，优化算法喜欢“稳定”和“无奇异”。这两者不总是一回事。</p>
+    </section>
+
+    <section class="section-card" id="image-reading">
+      <h2>3. 原书图 3-3：这组图真正想让你看见什么</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/21bc352c47c66c6b8fb69c74f9719f9be3fa93a85a782d9936a27a956c87a93b.jpg" alt="欧拉角起始坐标系示意">
+        <figcaption>图 3-3 的上半部分在展示 ZYX 欧拉角的定义起点：从原始坐标系出发，依次进行三次旋转。</figcaption>
+      </figure>
+      <div class="grid-3">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/00374f18742ead1bd32eeb1b75eb0289b243c13cf8fdc15e2d9ba807788515b8.jpg" alt="第一次旋转">
+          <figcaption>第一次旋转：绕 Z 轴转，对应 yaw。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/5cf3f331af385bec924f3ff75a0f552a3e28dad62a3ed92f1ca4c01661b7cf5a.jpg" alt="第二次旋转">
+          <figcaption>第二次旋转：绕已经转过后的 Y 轴继续转，对应 pitch。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/7e3322fab7a201b125e5c9cccee8e3c3a64c420fa17cdf727b7eb183e7ead49a.jpg" alt="第三次旋转">
+          <figcaption>第三次旋转：再绕转过后的 X 轴转，对应 roll。</figcaption>
+        </figure>
+      </div>
+      <p>如果只看上半部分，你会觉得欧拉角非常合理：三个动作分解得很清楚，甚至还有点像飞行器姿态控制里的自然语言。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/f0260a81132e270b41b4919fe54aaff1606d67f1e889fca5d47355304dc9da38.jpg" alt="万向锁起点">
+        <figcaption>图 3-3 的下半部分开始演示万向锁：当第二次旋转把 pitch 推到特殊位置时，系统会丢掉一个自由度。</figcaption>
+      </figure>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/96f1a8405c09f2e2998aad73bd96e195256c7690c34cd7afa8bbe94153350f76.jpg" alt="第二次旋转90度">
+          <figcaption>第二次旋转达到 $90^\circ$ 后，后续旋转轴和前一次产生了重合风险。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/530ee8d4b53ce0457baea30aab108bb92738d0d87569b2b4ae9c6aea1721ea9a.jpg" alt="第三次旋转与第一次重合">
+          <figcaption>第三次旋转变得和第一次“撞轴”，这就是万向锁的本质图像化解释。</figcaption>
+        </figure>
+      </div>
+      <p>所以这张图并不是单纯在讲“欧拉角怎么定义”，更是在提醒你：<strong>直观的表示往往伴随奇异性</strong>。这句话会直接把你推向下一节四元数，也会在第四讲继续变成“为什么我们想在局部无约束空间里优化”。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>旋转向量</h4>
+          <p>把旋转压缩成 3 个量，方向给转轴，长度给转角，并且能通过罗德里格斯公式回到旋转矩阵。</p>
+        </div>
+        <div class="mini-card">
+          <h4>欧拉角</h4>
+          <p>非常直观，适合给人理解姿态，但会遇到奇异性，不适合直接做优化变量。</p>
+        </div>
+        <div class="mini-card">
+          <h4>向后连接</h4>
+          <p>四元数会继续尝试兼顾紧凑和稳定；李代数则会把旋转向量的局部表达系统化。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么作者说旋转矩阵“正确但不够轻”，旋转向量则“更紧凑”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为旋转矩阵有 9 个数但只表达 3 个自由度，还带正交与行列式约束；旋转向量只用 3 个量就把旋转轴和角度装进去了，所以更紧凑。</div>
+            </details>
+          </li>
+          <li>
+            罗德里格斯公式在这节课里的作用是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它把旋转向量对应的轴角表示明确转换成旋转矩阵，说明旋转向量不是孤立定义，而是和 $SO(3)$ 中的旋转矩阵有清晰映射关系。</div>
+            </details>
+          </li>
+          <li>
+            为什么欧拉角更适合“给人看”，却不适合直接做 SLAM 优化？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它很直观，但存在万向锁等奇异性；在迭代、插值和优化中，这种奇异性会让姿态更新变得不稳定，所以工程上通常不直接把欧拉角当主姿态变量。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0020-第三讲-Eigen矩阵基础.html">← 第三讲：Eigen 矩阵基础</a>
+        <a class="next" href="0022-第三讲-四元数.html">第三讲：四元数 →</a>
+      </div>
+      <p class="foot-note">这一节的核心不是死背公式，而是看清“紧凑表示”和“直观表示”各自的代价 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

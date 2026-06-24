@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · 特征点法与 ORB 特征 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 1</div>
+      <h1>特征点法与 ORB 特征</h1>
+      <p class="subtitle">第五讲把相机投影模型讲清楚后，我们终于要让“图像里的点”真正进入运动估计流程了；第六讲又告诉我们后端喜欢吃“误差项”和“初值”。这一节要做的事情，就是解释为什么前端里经常先用 ORB 找到一批稳定、便宜、能跨帧复现的图像锚点。📍</p>
+      <div class="hero-meta">
+        <span>📷 回扣第五讲相机成像</span>
+        <span>🧮 为第六讲优化提供可匹配观测</span>
+        <span>🚀 直连第九讲 VO 前端框架</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么特征点法会出现</a>
+        <a href="#orb">ORB 到底由什么组成</a>
+        <a href="#fast">FAST 角点与方向估计</a>
+        <a href="#brief">BRIEF 描述子与匹配直觉</a>
+        <a href="#engineering">工程上为什么它常被选中</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>你需要真正明白：特征点不是“图像里随便挑几个点”，而是前端为后续 <code>PnP</code>、<code>ICP</code>、回环检测、局部优化准备的可复现观测锚点。</p>
+        </div>
+        <div class="callout">
+          <h4>这节课在全书的位置</h4>
+          <p>第七讲是从“模型”走向“前端估计”的第一步。第八讲会给出直接法路线，第九讲会把这一讲的 ORB、匹配、PnP 真正装进一个 VO 框架里。</p>
+        </div>
+      </div>
+      <p>书里这一讲一上来，先强调了一件特别重要的事：相机每帧给我们的是几十万像素，但前端不可能把所有像素都一股脑拿去做几何估计。于是我们会先找出一批<strong>在不同视角下还能认出来、而且数量远少于像素总数</strong>的局部区域，把它们当作“场景里的标记”。这就是特征点法的出发点。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/61add6d388a4dc8937b2700c517876a4c7dbc1ff7e534ff3880556751a6fecd5.jpg" alt="原书图7-2 ORB特征点检测结果">
+        <figcaption>原书图 7-2。图中那些彩色圆圈不是装饰，而是在告诉你：ORB 前端不会处理整张图的每一个像素，而是先选一批局部上“像自己、又不像别人”的观测点。</figcaption>
+      </figure>
+      <p>一个适合做 SLAM 前端的特征，书里给了四个关键词，我们把它翻译得更教学一点：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>可重复性</h4>
+          <p>同一个书角、门把手、桌角，换个轻微视角后还能再次被提取出来。</p>
+        </div>
+        <div class="mini-card">
+          <h4>可区别性</h4>
+          <p>它周围的局部外观要足够独特，避免和旁边一大片纹理长得一模一样。</p>
+        </div>
+        <div class="mini-card">
+          <h4>高效率</h4>
+          <p>CPU 上必须能跑得动，否则第九讲 VO 主循环根本达不到实时。</p>
+        </div>
+        <div class="mini-card">
+          <h4>局部性</h4>
+          <p>它描述的是一个小区域，这样遮挡、局部光照变化时不会把整张图都拖垮。</p>
+        </div>
+      </div>
+      <p>所以从这一刻起，我们可以把“图像特征”理解成一个二元组：</p>
+      <div class="formula-box flow-formula">关键点 <code>Keypoint</code> = 它在图像中的位置与方向<br>描述子 <code>Descriptor</code> = 它周围局部外观的编码</div>
+      <p>后面所有匹配、两帧位姿估计、三角化、局部地图维护，都是围绕这两个东西转起来的。🙂</p>
+    </main>
+
+    <section class="section-card" id="orb">
+      <h2>1. 为什么这本书拿 ORB 当代表</h2>
+      <p>原书在这一节非常明确地给出一个工程判断：<strong>ORB 是“质量与速度之间的折中”</strong>。这句话你后面会反复感受到。</p>
+      <p>如果只追求鲁棒性，SIFT、SURF 的确更“重武器”；但它们在 CPU 上太慢，前端会被拖死。相反，ORB 不是最豪华的特征，却极其适合实时 SLAM：</p>
+      <ul>
+        <li>它的关键点部分来自 <code>FAST</code>，检测极快。</li>
+        <li>它的描述子部分来自 <code>BRIEF</code>，是二进制向量，匹配时只要算汉明距离。</li>
+        <li>它又通过图像金字塔和方向估计，补上了尺度与旋转鲁棒性。</li>
+      </ul>
+      <p>所以 ORB 并不是“书里随便举的一个例子”，而是因为它恰好踩在实时系统最在意的那个平衡点上。到第十二讲你会看到，回环检测里也沿用了 ORB 字典；到第十四讲你还会见到 ORB-SLAM 把整套系统都建立在 ORB 上。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么说 ORB 特别适合第九讲那种实时 VO 前端？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。它不是理论上最强的特征，但 FAST + BRIEF 的组合足够快，而且还能通过方向与尺度补偿保持不错的鲁棒性。" onclick="lessonKit.answer(this, 'quiz-0046-a')">因为它在速度和鲁棒性之间取得了很实用的平衡</button>
+          <button data-correct="no" data-explanation="这说反了。ORB 恰恰是因为比 SIFT、SURF 轻得多，才更适合实时系统。" onclick="lessonKit.answer(this, 'quiz-0046-a')">因为它比 SIFT 和 SURF 更重、更复杂</button>
+          <button data-correct="no" data-explanation="ORB 并不是直接法，它仍然属于特征点法路线。" onclick="lessonKit.answer(this, 'quiz-0046-a')">因为它完全不需要关键点和描述子</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0046-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="fast">
+      <h2>2. ORB 的第一半：Oriented FAST</h2>
+      <p>ORB 不是一个单一算法，而是“改进 FAST 关键点 + 改进 BRIEF 描述子”的组合。我们先看第一半：<strong>Oriented FAST</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/934cbea11956b402a4fc047dba471e183ebcc9b048abe9a2fdd1eb51a0bf7d9f.jpg" alt="原书图7-3 FAST特征点示意图">
+        <figcaption>原书图 7-3。它真正想说明的是 FAST 的局部测试规则：只看一个像素周围 16 个采样点的亮暗关系，就能很快判断“这里是不是角点”。</figcaption>
+      </figure>
+
+      <h3>2.1 FAST 为什么快</h3>
+      <p>FAST 的思路非常朴素：如果像素 $p$ 附近存在一段连续的邻域点，要么明显比它亮，要么明显比它暗，那么这里很可能是一个角点。用公式写，设中心像素灰度为 $I_p$，阈值为 $T$，在半径为 3 的圆上选 16 个点：</p>
+      <div class="formula-box">$$
+      \text{如果圆上存在连续 } N \text{ 个点满足 }
+      I(x_i) > I_p + T
+      \text{ 或 }
+      I(x_i) < I_p - T,
+      \text{ 则 } p \text{ 被认为是角点。}
+      $$</div>
+      <p>常见的是 <code>FAST-12</code>，也就是要求连续 12 个点满足条件。它快的原因很直白：基本上只是在做亮度比较，没有昂贵的卷积和尺度空间搜索。</p>
+
+      <h3>2.2 为什么原始 FAST 还不够</h3>
+      <p>但原始 FAST 拿来直接做 SLAM 还不行，至少有三个问题：</p>
+      <ul>
+        <li>它没有方向，旋转后不稳定。</li>
+        <li>它没有尺度表达，远近变化时容易失真。</li>
+        <li>它提取得太多，还会在高纹理区域“扎堆”。</li>
+      </ul>
+      <p>ORB 对这三个问题分别做了补丁：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>数量控制</h4>
+          <p>先提大量 FAST 角点，再按 Harris 响应排序，只保留前 <code>N</code> 个。</p>
+        </div>
+        <div class="mini-card">
+          <h4>尺度不变性</h4>
+          <p>在图像金字塔的每一层都做检测，让“远处看是角点”的东西在不同尺度都能被抓住。</p>
+        </div>
+        <div class="mini-card">
+          <h4>旋转不变性</h4>
+          <p>使用灰度质心法给每个关键点定义主方向，让后续描述子知道“该朝哪个方向看”。</p>
+        </div>
+      </div>
+
+      <h3>2.3 灰度质心法要看懂什么</h3>
+      <p>这一段很容易被背成公式，但其实它表达的是一个很直观的想法：<strong>关键点附近的亮度分布如果不对称，就能给我们一个“偏向哪里”的方向</strong>。</p>
+      <p>在小图像块 $B$ 上定义矩：</p>
+      <div class="formula-box">$$
+      m_{pq} = \sum_{x,y \in B} x^p y^q I(x,y), \qquad p,q \in \{0,1\}.
+      $$</div>
+      <p>于是灰度质心就是：</p>
+      <div class="formula-box">$$
+      C = \left(\frac{m_{10}}{m_{00}}, \frac{m_{01}}{m_{00}}\right).
+      $$</div>
+      <p>把图像块几何中心 $O$ 连到质心 $C$，就得到主方向：</p>
+      <div class="formula-box">$$
+      \theta = \arctan\left(\frac{m_{01}}{m_{10}}\right).
+      $$</div>
+      <p>这一步和第五讲的相机模型没有直接公式连接，但在工程意义上却很重要：因为第七讲前端后面做的匹配，默认会遇到轻微转头、轻微视角变化，关键点如果没有方向，描述子一旋转就乱了。</p>
+    </section>
+
+    <section class="section-card" id="brief">
+      <h2>3. ORB 的第二半：Rotated BRIEF</h2>
+      <p>关键点只告诉我们“在哪儿”，还没告诉我们“它长什么样”。这就轮到描述子出场了。</p>
+      <p>BRIEF 的核心非常干脆：在关键点附近取很多对像素 $(p,q)$，只比较谁更亮。如果 $I(p) > I(q)$ 就写 1，否则写 0。重复很多次，就得到一个二进制串。</p>
+      <div class="formula-box">$$
+      \tau(p,q) =
+      \begin{cases}
+      1, & I(p) > I(q),\\
+      0, & I(p) \le I(q).
+      \end{cases}
+      $$</div>
+      <p>假设我们做了 256 次这种比较，就会得到一个 256 位的二进制描述子。它快就快在两个地方：</p>
+      <ul>
+        <li>生成描述子时只做亮度比较。</li>
+        <li>匹配时只做按位异或，再统计不同位数，也就是汉明距离。</li>
+      </ul>
+      <p>原始 BRIEF 的问题是：图像一旋转，这些比较对的位置关系就变了。于是 ORB 用前面算出来的主方向 $\theta$ 去“旋转采样模式”，得到 <strong>Steered BRIEF</strong>。这就是 ORB 里 “Oriented / Rotated” 那一半的来历。</p>
+
+      <h3>3.1 汉明距离为什么在这里这么关键</h3>
+      <p>前面第六讲讲优化时，我们经常面对的是连续变量；而 ORB 描述子的匹配是另一个世界，它只关心二进制编码有几位不同。两段描述子 $d_1,d_2$ 的汉明距离可以理解为：</p>
+      <div class="formula-box">$$
+      d_H(d_1,d_2) = \text{两个二进制串中不同位的个数。}
+      $$</div>
+      <p>这使得 ORB 匹配极快，也正因此它非常适合作为第九讲 VO 前端的高频操作。如果这里太慢，后面 <code>poseEstimationPnP()</code> 根本来不及跑。</p>
+
+      <div class="tab-group interactive-card">
+        <h3>三种角色别混淆</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="orb-roles" data-tab-id="role-1" onclick="lessonKit.openTab('orb-roles','role-1')">关键点</button>
+          <button data-tab-button="orb-roles" data-tab-id="role-2" onclick="lessonKit.openTab('orb-roles','role-2')">描述子</button>
+          <button data-tab-button="orb-roles" data-tab-id="role-3" onclick="lessonKit.openTab('orb-roles','role-3')">匹配</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="orb-roles" data-tab-id="role-1">
+          <p><strong>关键点</strong>回答的是“图像里哪些位置值得持续关注”。在 ORB 里它主要来自改进后的 FAST。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="orb-roles" data-tab-id="role-2">
+          <p><strong>描述子</strong>回答的是“这个位置周围的局部外观如何编码”。在 ORB 里它来自旋转补偿后的 BRIEF。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="orb-roles" data-tab-id="role-3">
+          <p><strong>匹配</strong>回答的是“上一帧的这个点，在下一帧最像谁”。ORB 通常用汉明距离完成这件事。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="engineering">
+      <h2>4. 把这一节放回整本书里看</h2>
+      <p>到这里你可以把第七讲前半段总结成一句话：<strong>ORB 先把图像压缩成一批可复现、可编码、可快速匹配的局部观测</strong>。这件事是后续所有几何求解的入口。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>和第五讲的联系</h4>
+          <p>第五讲的相机模型告诉我们像素是如何来自三维点的；这一讲则反过来告诉我们，前端要在像素平面上先找到哪些点值得追踪。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和第六讲的联系</h4>
+          <p>第六讲里的误差函数需要观测量。ORB 和匹配结果，正是在给后面的 <code>E</code>、<code>PnP</code>、BA 提供离散观测。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和第九讲的联系</h4>
+          <p>第九讲的 VO 框架里，Frame、Feature、MapPoint 的联动都建立在这一讲的前端特征抽取逻辑上。</p>
+        </div>
+      </div>
+      <p>所以这节课虽然在讲一个“图像特征”，其实已经是整条特征点法路线的地基了。你后面如果觉得 PnP、BA、回环检测很抽象，通常不是这些方法本身太难，而是没有把“前端到底交给后端什么数据”想明白。🌿</p>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么原始 FAST 不能直接拿来做稳健的 SLAM 前端？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它没有方向、尺度表达不足、数量也不好控制，容易出现角点扎堆。ORB 通过 Harris 响应筛选、图像金字塔和灰度质心法分别补上了这些短板。</div>
+            </details>
+          </li>
+          <li>
+            ORB 为什么说是“关键点 + 描述子”的组合，而不是单一算法？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它的关键点部分来自改进 FAST，描述子部分来自改进 BRIEF。前者回答“看哪里”，后者回答“长什么样”，两者缺一不可。</div>
+            </details>
+          </li>
+          <li>
+            灰度质心法在 ORB 中真正解决了什么问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它给关键点定义了主方向，让描述子在旋转后仍能使用同一个局部参考方向进行编码，从而增强旋转不变性。</div>
+            </details>
+          </li>
+          <li>
+            为什么 BRIEF 这种二进制描述子特别适合实时匹配？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它的生成和比较都极轻量，匹配时只需要算汉明距离，可以通过按位运算高效完成，远快于浮点描述子的欧氏距离计算。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0045-第六讲-章节总结与习题.html">← 第六讲：章节总结与习题</a>
+        <a class="next" href="0047-第七讲-特征匹配与实践.html">下一课：特征匹配与实践 →</a>
+      </div>
+      <p class="foot-note">如果你愿意，现在就把这一课记成一句人话：ORB 让图像里“值得追踪的点”变得既能被看见，也能被快速认出来。✨</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

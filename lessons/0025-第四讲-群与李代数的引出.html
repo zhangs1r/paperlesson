@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · 群与李代数的引出 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 1</div>
+      <h1>第四讲 · 群与李代数的引出</h1>
+      <p class="subtitle">第四讲最重要的不是定义本身，而是“为什么我们不得不走到这里”。如果只会用旋转矩阵，却不会在它上面求导和更新，后面的位姿优化几乎无从谈起。📘</p>
+      <div class="hero-meta">
+        <span>🔗 承接第三讲 SO(3) / SE(3)</span>
+        <span>🧠 这一讲解决“如何优化旋转”</span>
+        <span>📌 后面位姿图推导的底层来源</span>
+      </div>
+      <div class="toc">
+        <a href="#motivation">为什么需要李代数</a>
+        <a href="#group">什么是群</a>
+        <a href="#derive">李代数如何被引出</a>
+        <a href="#definition">李代数定义</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="motivation">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>不是死背抽象代数定义，而是先真正理解：为什么旋转矩阵、变换矩阵一旦进入优化问题，就会逼着我们使用李群与李代数。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第三讲已经告诉我们位姿常写成 $SO(3)$ 和 $SE(3)$ 对象；这一讲要解决的新问题是：这些对象有约束、不能随便加减，那后面的误差最小化和求导怎么办？</p>
+        </div>
+      </div>
+      <p>作者在这一讲开头抛出的核心矛盾非常值得记住：我们想优化位姿，但位姿并不是一个普通向量。特别是旋转矩阵 $\boldsymbol{R}$，它必须始终满足</p>
+      <div class="formula-box">$$ \boldsymbol{R}\boldsymbol{R}^T = \boldsymbol{I}, \qquad \det(\boldsymbol{R}) = 1. $$</div>
+      <p>这意味着：</p>
+      <ul>
+        <li>你不能把它当作一个自由的 9 维变量随意更新</li>
+        <li>两个旋转矩阵可以相乘，但不能随便相加后还指望结果仍是旋转矩阵</li>
+        <li>传统欧氏空间里的“加一个小增量再求导”思路会立刻变得别扭</li>
+      </ul>
+      <p>所以第四讲真正要解决的，不是“引入一些高深名词”，而是很朴素的问题：<strong>如何把带约束的旋转 / 位姿对象，搬到一个更适合做局部线性化和求导的空间里</strong>。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{李群上的受约束变量} \Longrightarrow \text{局部无约束增量表示} \Longrightarrow \text{更方便求导与优化} $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="group">
+      <h2>1. 群：为什么第三讲里的 SO(3)、SE(3) 会被称为“群”</h2>
+      <p>这一小节最重要的不是背四条公理，而是先把“群”看成一种对运算封闭的集合。若一个集合配上一种运算后满足四个条件，它就是群：</p>
+      <table>
+        <thead>
+          <tr><th>性质</th><th>直观解释</th><th>在旋转里的表现</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>封闭性</td><td>集合里两个元素运算完还在集合里</td><td>两个旋转矩阵相乘还是旋转矩阵</td></tr>
+          <tr><td>结合律</td><td>先算哪一对不影响结果</td><td>矩阵乘法天然满足</td></tr>
+          <tr><td>幺元</td><td>存在一个“什么都不做”的元素</td><td>单位矩阵 $\boldsymbol{I}$</td></tr>
+          <tr><td>逆元</td><td>每个元素都有反向操作</td><td>$\boldsymbol{R}^{-1} = \boldsymbol{R}^T$</td></tr>
+        </tbody>
+      </table>
+      <p>所以你现在可以重新理解第三讲里的两个对象：</p>
+      <ul>
+        <li>$SO(3)$：三维旋转矩阵在乘法下构成的群</li>
+        <li>$SE(3)$：三维刚体变换矩阵在乘法下构成的群</li>
+      </ul>
+      <p>它们进一步还是<strong>李群</strong>，因为这些元素不是离散点，而是连续变化的。这一点对后面“取导数、做局部线性近似”非常关键。</p>
+    </section>
+
+    <section class="section-card" id="derive">
+      <h2>2. 李代数不是拍脑袋定义出来的，而是从旋转变化率里长出来的</h2>
+      <p>这部分是第四讲最关键的思想。书里的路线不是“先给定义，再举例”，而是反过来：<strong>先看旋转矩阵在时间上怎么变化，再发现自然会冒出一个反对称矩阵对象</strong>。</p>
+      <p>因为旋转矩阵始终满足 $\boldsymbol{R}(t)\boldsymbol{R}(t)^T=\boldsymbol{I}$，对时间求导后有：</p>
+      <div class="formula-box">$$ \dot{\boldsymbol{R}}(t)\boldsymbol{R}(t)^T + \boldsymbol{R}(t)\dot{\boldsymbol{R}}(t)^T = 0. $$</div>
+      <p>于是可以推出：</p>
+      <div class="formula-box">$$ \dot{\boldsymbol{R}}(t)\boldsymbol{R}(t)^T = -\big(\dot{\boldsymbol{R}}(t)\boldsymbol{R}(t)^T\big)^T. \tag{4.6} $$</div>
+      <p>也就是说，这个量一定是<strong>反对称矩阵</strong>。而你在第三讲已经见过：任意一个 3 维向量，都能通过 $\wedge$ 变成反对称矩阵。所以自然存在某个向量 $\boldsymbol{\phi}(t)$，使得：</p>
+      <div class="formula-box">$$ \dot{\boldsymbol{R}}(t)\boldsymbol{R}(t)^T = \boldsymbol{\phi}(t)^{\wedge}. $$</div>
+      <p>把它右乘回去，就得到：</p>
+      <div class="formula-box">$$ \dot{\boldsymbol{R}}(t) = \boldsymbol{\phi}(t)^{\wedge}\boldsymbol{R}(t). \tag{4.8} $$</div>
+      <p>这一步非常重要，因为它说明：旋转矩阵的局部变化，可以用一个三维向量来驱动。这个向量所在的局部线性空间，就是我们后面所说的李代数。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/795d42d61eac9d91c37415d37e925d27fd3c107bcff0df1c83b6b70c6df60918.jpg" alt="SO3 流形与正切空间示意图">
+        <figcaption>原书图示最想表达的其实就是这件事：$SO(3)$ 是一个曲空间，而李代数是它在单位元附近的切空间。我们在切空间里做小量操作，再映回群上。</figcaption>
+      </figure>
+      <p>进一步，当 $\boldsymbol{\phi}$ 近似常量时，这个微分方程的解就引出了指数映射：</p>
+      <div class="formula-box">$$ \boldsymbol{R}(t) = \exp(\boldsymbol{\phi}_0^{\wedge} t). \tag{4.10} $$</div>
+      <p>这就是为什么第四讲后面会反复出现 <code>exp</code> 和 <code>log</code>。它们不是额外的符号噪声，而是在连接“群上的姿态”和“代数上的增量”。</p>
+    </section>
+
+    <section class="section-card" id="definition">
+      <h2>3. 李代数定义：现在再看，它就不抽象了</h2>
+      <p>在理解完“李代数从哪里来”之后，再看定义就会轻松很多。李代数由集合、数域和李括号组成，满足封闭性、双线性、自反性和雅可比恒等式。</p>
+      <p>但在这本书的语境里，你最该抓住的是：<strong>三维向量空间配上叉积，本身就是一个最直观的李代数例子</strong>。这就是为什么 so(3) 最后会既像向量空间、又像反对称矩阵空间。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么这一定义在 SLAM 里有用</h4>
+          <p>因为它给了我们一个局部线性空间，能承载“微小姿态增量”这种东西。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么不必现在死磕全部公理</h4>
+          <p>因为这本书更偏实用。你只要先知道它为求导和优化服务，后面再带着问题回看公理会更容易。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果旋转矩阵能像普通向量一样自由做加法和求导，我们还需要李代数吗？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。正因为旋转矩阵带有正交与行列式约束，才需要一个更适合做局部增量和求导的空间。" onclick="lessonKit.answer(this, 'quiz-0025-a')">不需要，问题正是它不能自由加减</button>
+          <button data-correct="no" data-explanation="群论当然重要，但在这本书里李代数不是为了证明漂亮，而是为了优化可做。" onclick="lessonKit.answer(this, 'quiz-0025-a')">还是需要，因为群论更高级</button>
+          <button data-correct="no" data-explanation="恰恰相反，李代数最大的作用之一就是让优化更方便。" onclick="lessonKit.answer(this, 'quiz-0025-a')">还是需要，因为它让数值优化更麻烦</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0025-a"></div>
+      </div>
+      <div class="callout">
+        <h4>和后面哪一讲关系最大？</h4>
+        <p>第四讲后半部分会把这里的思路落成 so(3)、se(3)、指数映射、扰动模型；而第十一讲位姿图误差对位姿求导时，几乎就是在反复调用这里打下的语言系统。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>这节课解决了什么</h4>
+          <p>解决了“旋转矩阵有约束，后面怎么在它上面做优化”这个根问题。</p>
+        </div>
+        <div class="mini-card">
+          <h4>李代数从哪来</h4>
+          <p>不是拍脑袋规定，而是从旋转矩阵的连续变化率和反对称矩阵结构里自然引出的。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它重要</h4>
+          <p>因为没有这套语言，后面位姿增量、局部线性化、图优化求导都会非常笨重。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么第四讲一开始不是直接讲 so(3) 公式，而是先讲“群”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为作者想先说明旋转矩阵和变换矩阵属于什么样的运算结构。只有先知道它们在乘法下构成群，后面再引入“对应的局部线性空间”才顺理成章。</div>
+            </details>
+          </li>
+          <li>
+            为什么说李代数是李群在单位元附近的“局部线性化空间”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为李群本身是带曲率的连续空间，不方便直接做普通向量那样的线性操作；而李代数位于它的切空间中，可以近似承载小增量和线性化求导。</div>
+            </details>
+          </li>
+          <li>
+            这节课和第三讲之间最关键的连接点是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最关键的连接点是第三讲里的反对称矩阵 $\wedge$ 表达。第四讲正是沿着“外积矩阵化 → 反对称矩阵 → 旋转局部变化率”这条线把李代数引了出来。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0024-第三讲-其他变换与总结.html">← 第三讲：其他变换与总结</a>
+        <a class="next" href="0026-第四讲-so3与se3李代数.html">so(3) 与 se(3) 李代数 →</a>
+      </div>
+      <p class="foot-note">这一讲的真正关键词不是“抽象”，而是“终于找到能在位姿上做局部求导和更新的语言” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

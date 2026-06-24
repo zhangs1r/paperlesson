@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十三讲 · 极线搜索与深度滤波 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十三讲 · 建图 / Lesson 2</div>
+      <h1>第十三讲 · 极线搜索与深度滤波</h1>
+      <p class="subtitle">这是第十三讲最硬核的一节：极线、块匹配、NCC、单像素几何不确定性、高斯融合，全都要在这里串起来。📏</p>
+      <div class="hero-meta">
+        <span>🔗 连接第七讲三角测量与第八讲直接法</span>
+        <span>🧪 含 REMODE 单目稠密重建实验</span>
+        <span>📐 公式较多，但都很关键</span>
+      </div>
+      <div class="toc">
+        <a href="#epipolar">极线搜索</a>
+        <a href="#filter">高斯深度滤波</a>
+        <a href="#practice">程序与结果</a>
+        <a href="#analysis">为什么会错</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="epipolar">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>从“一个像素为什么能慢慢收敛出深度”这个问题出发，理解极线搜索、块匹配、NCC 和深度滤波的整条链路。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第七讲负责三角化，第八讲负责亮度一致性，这一课相当于把二者真正焊在一起。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/5be118415c8258bd9e98c69cda9b8f1253b03bea4434f24ed40b5a25f4f8dcf1.jpg" alt="图 13-2 极线搜索示意图">
+        <figcaption>图 13-2 极线搜索示意图。单目相机看到的是方向，不是距离，所以同一像素可能对应参考帧射线上的一整段空间点。</figcaption>
+      </figure>
+      <p>对稠密重建来说，最难的不是三角化本身，而是<strong>先找对对应点</strong>。因为你没有像 ORB 那样的描述子去全局匹配，只能在另一帧的极线上搜索“谁最像”。</p>
+      <p>于是我们从“像素灰度不变”进一步加强成“局部图像块灰度结构尽量不变”，这就引出了块匹配。</p>
+      <div class="formula-box">$$ S_{SAD}(A,B)=\sum_{i,j} |A(i,j)-B(i,j)|, \qquad S_{SSD}(A,B)=\sum_{i,j} (A(i,j)-B(i,j))^2. \tag{13.1-13.2} $$</div>
+      <div class="formula-box">$$ S_{NCC}(A,B)=\frac{\sum_{i,j} A(i,j)B(i,j)}{\sqrt{\sum_{i,j}A(i,j)^2 \sum_{i,j}B(i,j)^2}}. \tag{13.3} $$</div>
+      <p>书里和代码最终更偏向 NCC，因为它对整体亮度变化更稳一些。进一步还会使用去均值 NCC，这和第八讲直接法对光度扰动的敏感性是一脉相承的。</p>
+    </main>
+
+    <section class="section-card" id="filter">
+      <h2>1. 高斯深度滤波：新观测怎样更新旧深度</h2>
+      <p>书里在这里做了一个很漂亮的简化：假设某像素当前深度估计服从高斯分布</p>
+      <div class="formula-box">$$ P(d)=\mathcal{N}(\mu,\sigma^2), \qquad P(d_{obs})=\mathcal{N}(\mu_{obs},\sigma_{obs}^2). \tag{13.4-13.5} $$</div>
+      <p>新观测进来之后，两个高斯相乘仍然是高斯，于是得到融合后的均值和方差：</p>
+      <div class="formula-box">$$ \mu_{fuse} = \frac{\sigma_{obs}^2\mu + \sigma^2\mu_{obs}}{\sigma^2 + \sigma_{obs}^2}, \qquad \sigma_{fuse}^2 = \frac{\sigma^2\sigma_{obs}^2}{\sigma^2 + \sigma_{obs}^2}. \tag{13.6} $$</div>
+      <p>这套更新式的直觉非常强：谁的方差更小，谁说话更有分量。也就是说，<strong>更确定的观测会把均值拉得更多</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/dc4fb89e3a1a655702f7c04d8e8ceeec27c5e0c4db9785d5a06e74df61449d42.jpg" alt="图 13-4 单像素误差引起的深度不确定性分析">
+        <figcaption>图 13-4 用一个像素误差估计深度不确定性。像素位置只差 1 个点，沿三角几何放大后，深度误差可能并不小。</figcaption>
+      </figure>
+      <p>书里随后用三角关系推出，如果当前帧匹配位置有一个像素的不确定性，那么它会造成深度上的不确定性：</p>
+      <div class="formula-box">$$ \delta\beta = \arctan\frac{1}{f}, \qquad \sigma_{obs} \approx \|p\| - \|p'\|. \tag{13.8-13.11} $$</div>
+      <p>这里最重要的不是背公式，而是理解：<strong>像素定位误差会通过成像几何被放大成深度误差</strong>。而这种放大程度，和基线、视角夹角、像素位置都有关。</p>
+    </section>
+
+    <section class="section-card" id="practice">
+      <h2>2. 程序怎么把这些公式真的跑起来</h2>
+      <p>书里的示例数据来自 REMODE 测试集：一段单目俯视视频，外加每帧真值位姿。做法是固定第一帧为参考帧，反复拿后续帧去更新第一帧每个像素的深度。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/c2527716e04c416292616bd3324dd40c9cf573f4fe25be0eb0e3ad925a5f34f4.jpg" alt="图 13-5 REMODE 数据示意图">
+        <figcaption>图 13-5 REMODE 数据示意。参考帧之后的多帧图像，会不断为参考帧像素提供新观测。</figcaption>
+      </figure>
+      <pre><code>for each pixel in ref:
+  if variance too small or too large: continue
+  search correspondence on epipolar line
+  if NCC good enough:
+    triangulate depth
+    estimate depth covariance
+    fuse with previous Gaussian</code></pre>
+      <p>代码里几个关键点特别值得记住：</p>
+      <ul>
+        <li>极线搜索范围不是拍脑袋定的，而是围绕当前深度均值的 $\pm 3\sigma$</li>
+        <li>NCC 最高点若低于阈值（书里示例约 0.85），宁可不要</li>
+        <li>方差太小表示已收敛，方差太大表示发散，也可以跳过</li>
+      </ul>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/53791f0112316e4da208c5b623d3e268f4aea3e6c74fd6fd0487301fc876437c.jpg" alt="图 13-6 单目稠密重建运行截图">
+        <figcaption>图 13-6 程序运行结果示意。随着迭代增多，深度图会从模糊不稳逐步收敛。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="analysis">
+      <h2>3. 为什么结果不会完美：梯度、逆深度、仿射变换</h2>
+      <p>书里后半节的分析非常珍贵，因为它没有说“程序能跑就行”，而是认真解释了结果为什么还不够好。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>纹理不足</h4>
+          <p>纯白墙、打印机表面这类弱纹理区域，块匹配没有区分度，深度自然不稳定。</p>
+        </div>
+        <div class="mini-card">
+          <h4>梯度方向问题</h4>
+          <p>当像素梯度与极线近乎平行时，沿极线移动仍会得到类似匹配，深度不确定性会变大。</p>
+        </div>
+        <div class="mini-card">
+          <h4>正深度参数化不理想</h4>
+          <p>深度分布常常偏态甚至包含“很远”的可能，逆深度更稳定，也更常见于现代系统。</p>
+        </div>
+        <div class="mini-card">
+          <h4>旋转导致块形变</h4>
+          <p>相机转动后，同一局部图像块不再只是平移，匹配前可以做局部仿射矫正。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/d5e94c03a9748b7ac3d4a4b5495284d16d9ec13e0f3b0a2722f0b351f2a4789a.jpg" alt="图 13-7 梯度方向与极线关系示意">
+        <figcaption>图 13-7 梯度方向与极线方向的关系。梯度若平行于极线，匹配定位会变得含糊。</figcaption>
+      </figure>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个区域几乎没有纹理，但相机轨迹很准，深度估计仍然容易失败的主要原因是？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。轨迹再准，也不能凭空制造纹理信息。" onclick="lessonKit.answer(this, 'quiz-0073')">块匹配缺乏区分度</button>
+          <button data-correct="no" data-explanation="问题更早发生在观测生成阶段。" onclick="lessonKit.answer(this, 'quiz-0073')">高斯融合公式错了</button>
+          <button data-correct="no" data-explanation="初始化会影响收敛速度，但不是无纹理区域失败的根源。" onclick="lessonKit.answer(this, 'quiz-0073')">方差初始化太小</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0073"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>如果你把这节课学透，以后看到深度滤波、半稠密重建、SVO / LSD-SLAM 里的很多细节都会更顺手，因为你已经知道：它们都在围绕“匹配怎样更稳、深度怎样更合理地表示、误差怎样更真实地建模”这三件事打磨。🧩</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么极线搜索通常只在深度均值附近的一个有限区间里做，而不是整条极线都扫？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为当前深度估计已经给出了先验范围。围绕均值的有限区间搜索既更快，也更符合已有置信度。</div>
+            </details>
+          </li>
+          <li>
+            请用自己的话解释式 (13.6) 的物理意义。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它表示把旧深度估计和新观测进行加权融合，权重由各自方差决定；越确定的一方在新均值里权重越大，融合后总方差会下降。</div>
+            </details>
+          </li>
+          <li>
+            为什么现代很多系统更喜欢逆深度而不是正深度？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为逆深度更适合表达远处点和不对称的不确定性，数值上也更稳定，更容易形成近似高斯的更新。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0072-第十三讲-为什么SLAM还需要建图.html">← 为什么 SLAM 还需要建图</a>
+        <a class="next" href="0074-第十三讲-RGBD地图OctoMap与TSDF.html">RGB-D 地图、OctoMap 与 TSDF →</a>
+      </div>
+      <p class="foot-note">这一节是真正把第七讲、第八讲和第十讲再次焊在一起的一课 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

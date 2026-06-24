@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · 特征匹配与实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 2</div>
+      <h1>特征匹配与实践</h1>
+      <p class="subtitle">上一课解决了“哪些点值得提”。这一课要解决“上一帧的这个点，在下一帧里到底是谁”。别小看这一步，它就是第七讲后半段所有几何约束的入口；一旦匹配错了，后面的 <code>E</code>、<code>PnP</code>、<code>ICP</code> 都会跟着偏。🧷</p>
+      <div class="hero-meta">
+        <span>🖼️ 使用原书图 7-4、7-5</span>
+        <span>⚙️ OpenCV ORB + BFMatcher</span>
+        <span>🎯 为后面两帧位姿估计准备输入</span>
+      </div>
+      <div class="toc">
+        <a href="#setup">实验数据与任务</a>
+        <a href="#pipeline">五步代码流程</a>
+        <a href="#filtering">距离筛选为什么这样写</a>
+        <a href="#failure">误匹配为什么是大问题</a>
+        <a href="#bridge">它怎样通向后面几节</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="setup">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把 ORB 的提取、描述、匹配、筛选串成一个可执行的前端小流程，并理解每一步在后面位姿估计里的作用。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文的联系</h4>
+          <p>前一课给了 ORB 的原理，这一课把它落成 OpenCV 代码；下一课开始的对极几何、PnP、ICP，都默认你已经有了一批相对靠谱的匹配点对。</p>
+        </div>
+      </div>
+      <p>原书给这节实践准备了两张来自公开数据集的图像。它们的相机运动并不剧烈，正好适合我们观察：ORB 能提到什么点，匹配之后又能留下多少对可用对应关系。</p>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/e84a23ecd78159010644dab4c517a0d2499798bc4ed74ec7f583f57fb1e2b888.jpg" alt="原书图7-5第一帧实验图像">
+          <figcaption>图 7-5 左图。注意桌面、键盘、显示器边缘等位置，它们会成为很自然的 ORB 候选区域。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/fd6f400ab7f1a9e2bdc6a3b5c6ad099992f29871e56933131f1349a7e4b13bc2.jpg" alt="原书图7-5第二帧实验图像">
+          <figcaption>图 7-5 右图。相机只发生了小幅移动，因此这是练习特征匹配和后续两帧估计的理想输入。</figcaption>
+        </figure>
+      </div>
+      <p>从教学角度讲，这节实验其实在做五件连续的小事：</p>
+      <div class="formula-box flow-formula">读取图像 → 检测 ORB 关键点 → 计算 BRIEF 描述子 → 按汉明距离匹配 → 过滤掉明显不靠谱的匹配</div>
+      <p>你可以把它看成第九讲 VO 前端主循环的一次极小型预演。🙂</p>
+    </main>
+
+    <section class="section-card" id="pipeline">
+      <h2>1. 代码不是一大坨，而是五个清晰步骤</h2>
+      <p>书里的示例代码虽然不长，但非常适合做“逐段带读”。如果你只是机械跑通，会觉得它像 OpenCV API 清单；如果你把每一步的角色看清楚，后面第九讲读源码时会轻松很多。</p>
+
+      <h3>1.1 第一步：初始化 ORB</h3>
+      <pre><code>#include &lt;opencv2/core/core.hpp&gt;
+#include &lt;opencv2/features2d/features2d.hpp&gt;
+#include &lt;opencv2/highgui/highgui.hpp&gt;
+
+Ptr&lt;ORB&gt; orb = ORB::create(
+    500, 1.2f, 8, 31, 0, 2,
+    ORB::HARRIS_SCORE, 31, 20
+);</code></pre>
+      <p>这里最值得你记住的不是参数本身，而是它们背后的前端思想：</p>
+      <ul>
+        <li><code>500</code> 控制最多保留多少个关键点，对应上一课的“数量可控”。</li>
+        <li><code>1.2f, 8</code> 对应图像金字塔的缩放因子和层数，也就是尺度不变性的工程实现。</li>
+        <li><code>ORB::HARRIS_SCORE</code> 说明最终保留哪些 FAST 点，不是凭随机，而是按更稳定的响应值排序。</li>
+      </ul>
+
+      <h3>1.2 第二步：只找位置，不算外观</h3>
+      <pre><code>vector&lt;KeyPoint&gt; keypoints_1, keypoints_2;
+orb-&gt;detect(img_1, keypoints_1);
+orb-&gt;detect(img_2, keypoints_2);</code></pre>
+      <p>这一步只是在回答“图像里哪些位置值得记住”。它输出的是关键点位置、尺度、方向等信息，还没有真正生成描述子。</p>
+
+      <h3>1.3 第三步：根据关键点去编码局部外观</h3>
+      <pre><code>Mat descriptors_1, descriptors_2;
+orb-&gt;compute(img_1, keypoints_1, descriptors_1);
+orb-&gt;compute(img_2, keypoints_2, descriptors_2);</code></pre>
+      <p>这一步才真正产生 BRIEF 风格的二进制描述子。也就是说，<code>detect()</code> 和 <code>compute()</code> 在语义上是分开的：前者找位置，后者给这些位置贴上“外观编码”。</p>
+
+      <h3>1.4 第四步：暴力匹配，但距离度量要选对</h3>
+      <pre><code>vector&lt;DMatch&gt; matches;
+BFMatcher matcher(NORM_HAMMING);
+matcher.match(descriptors_1, descriptors_2, matches);</code></pre>
+      <p>这里必须是 <code>NORM_HAMMING</code>，因为 ORB 描述子是二进制串。上一课说过，二进制串之间最自然的相似度就是汉明距离，也就是“不同位数的个数”。</p>
+
+      <h3>1.5 第五步：筛掉看起来就很可疑的匹配</h3>
+      <pre><code>double min_dist = 10000, max_dist = 0;
+for (int i = 0; i &lt; descriptors_1.rows; i++) {
+    double dist = matches[i].distance;
+    if (dist &lt; min_dist) min_dist = dist;
+    if (dist &gt; max_dist) max_dist = dist;
+}
+
+vector&lt;DMatch&gt; good_matches;
+for (int i = 0; i &lt; descriptors_1.rows; i++) {
+    if (matches[i].distance &lt;= max(2 * min_dist, 30.0)) {
+        good_matches.push_back(matches[i]);
+    }
+}</code></pre>
+      <p>这一段看起来像经验规则，但工程上非常常见。它表达的是：<strong>先找出本次匹配里“最像”的那批点，再用它作为阈值基线</strong>。不过原书也很诚实，这不是严格理论推导，而是好用的经验式。</p>
+    </section>
+
+    <section class="section-card" id="filtering">
+      <h2>2. 为什么筛选规则写成 <code>max(2 * min_dist, 30.0)</code></h2>
+      <p>这段代码如果只是背下来，后面你就很难自己调参数。我们把它拆成两半看：</p>
+      <div class="formula-box">$$
+      \text{保留匹配} \iff \text{distance} \le \max(2\cdot \text{min\_dist},\,30.0).
+      $$</div>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么有 <code>2 × min_dist</code></h4>
+          <p>它想表达“只要距离没有比当前最好匹配差太多，就先留下来当候选”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么还要有 <code>30.0</code></h4>
+          <p>因为有时最小距离会异常地小，比如接近 0。如果只按 <code>2 × min_dist</code>，阈值会过分苛刻，反而把很多本来还不错的匹配全丢掉。</p>
+        </div>
+      </div>
+      <p>所以这条规则本质上是在做一个平衡：既别把明显很差的匹配放进来，也别因为一两个“神仙匹配”把阈值压得过低。</p>
+
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/58080dc3f965b798961a297f5cc62376405dfd18ea7bc340ce511976f160de56.jpg" alt="原书图7-4 两帧图像间的特征匹配">
+        <figcaption>原书图 7-4。这张图真正想你观察的是：即便肉眼看上去大多数连线都“像那么回事”，里面依然可能混着误匹配，所以距离筛选和后续 RANSAC 都不能省。</figcaption>
+      </figure>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果我们把“距离筛选”这一步完全去掉，会直接带来什么风险？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。后面估计 E、H、PnP 或 ICP 时，会把大量明显错误的对应关系也算进去，几何结果会更不稳定。" onclick="lessonKit.answer(this, 'quiz-0047-a')">后面的几何估计会更容易被误匹配拖偏</button>
+          <button data-correct="no" data-explanation="速度不会更快，通常只会让后面求解更脆弱。" onclick="lessonKit.answer(this, 'quiz-0047-a')">后面的位姿估计会更准，因为用了更多点</button>
+          <button data-correct="no" data-explanation="筛选与否不会改变 ORB 的尺度不变性，它只影响候选匹配质量。" onclick="lessonKit.answer(this, 'quiz-0047-a')">ORB 会突然失去尺度不变性</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0047-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="failure">
+      <h2>3. 误匹配为什么始终是视觉前端的瓶颈</h2>
+      <p>原书在这节里有一句很值得记住的话：<strong>误匹配是长期以来一直没有被彻底解决的问题</strong>。这不是夸张。</p>
+      <p>原因很现实：</p>
+      <ul>
+        <li>重复纹理太多，比如键盘、窗格、地砖、书架。</li>
+        <li>局部特征只看一小块区域，看不见更大尺度的语义信息。</li>
+        <li>光照变化、反光、轻微模糊都会让描述子产生漂移。</li>
+      </ul>
+      <p>所以实际系统里的策略从来不是“匹配一次就信了”，而是层层筛：</p>
+      <div class="formula-box flow-formula">描述子距离筛选 → 交叉检查或最近邻比值 → RANSAC / 几何一致性 → 后端鲁棒核</div>
+      <p>这也正是第六讲优化为什么重要的另一个原因：好的前端匹配能给后端一个更可靠的初值，而好的后端又能反过来抑制少量剩余误匹配的破坏力。</p>
+    </section>
+
+    <section class="section-card" id="bridge">
+      <h2>4. 这一节怎样通向后面的 2D-2D、3D-2D、3D-3D</h2>
+      <p>当我们拿到 <code>good_matches</code> 之后，后面的岔路其实非常清楚：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>单目：2D-2D</h4>
+          <p>如果只有两帧像素坐标，就走对极几何，估计本质矩阵和相对位姿。</p>
+        </div>
+        <div class="mini-card">
+          <h4>有一侧深度：3D-2D</h4>
+          <p>如果上一帧地图点或深度已知，就走 PnP，再配合 BA 优化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>两侧都有深度：3D-3D</h4>
+          <p>如果两帧都能提供三维点，就可以用 ICP 或其变种直接对齐。</p>
+        </div>
+      </div>
+      <p>所以这一课不是一节孤立的 OpenCV 入门，而是把第七讲后半段的三条求解路线同时点亮了。到第九讲你会看到，VO 前端的状态机其实就是在这些数据结构和估计器之间来回切换。🚀</p>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么 ORB 匹配中常用汉明距离，而不是欧氏距离？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 ORB 的描述子是二进制串，汉明距离正好衡量不同位数的个数，计算也能通过位运算高效完成；欧氏距离更适合浮点型描述子，如 SIFT。</div>
+            </details>
+          </li>
+          <li>
+            <code>detect()</code> 和 <code>compute()</code> 在语义上分别负责什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div><code>detect()</code> 负责找关键点位置、方向和尺度等信息；<code>compute()</code> 负责根据这些关键点位置提取局部描述子。</div>
+            </details>
+          </li>
+          <li>
+            为什么只靠距离筛选还不够，后面通常还要加 RANSAC？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为局部外观相似不等于几何上自洽。RANSAC 会进一步利用极几何、PnP 或其他模型约束，删除那些虽然描述子相似、但在全局几何上讲不通的匹配。</div>
+            </details>
+          </li>
+          <li>
+            如果你打算把这段代码嵌入第九讲 VO 主循环，最需要额外关注什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>要关注实时性、特征分布是否均匀、误匹配比例、丢帧时如何回退，以及匹配结果怎样稳定地喂给 PnP / BA / 局部地图模块。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0046-第七讲-特征点法与ORB特征.html">← 上一课：特征点法与 ORB</a>
+        <a class="next" href="0048-第七讲-对极几何与本质矩阵.html">下一课：对极几何与本质矩阵 →</a>
+      </div>
+      <p class="foot-note">这节课最重要的 takeaway 很简单：匹配不是后面几何的附属品，它本身就是前端成败的第一道关。🌿</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

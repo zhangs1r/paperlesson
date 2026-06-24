@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十三讲 · RGBD地图、OctoMap与TSDF | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十三讲 · 建图 / Lesson 3</div>
+      <h1>第十三讲 · RGB-D 地图、OctoMap 与 TSDF</h1>
+      <p class="subtitle">从最直观的点云拼接出发，一路走到八叉树占据图和 TSDF。你会看到“地图形式”怎样服务于不同任务。🧱</p>
+      <div class="hero-meta">
+        <span>🌈 RGB-D 让稠密建图轻松很多</span>
+        <span>🧭 导航、可视化、重建各有偏好的地图表达</span>
+        <span>📦 重点理解点云 vs 占据图 vs TSDF</span>
+      </div>
+      <div class="toc">
+        <a href="#point-cloud">点云地图</a>
+        <a href="#octomap">八叉树地图</a>
+        <a href="#tsdf">TSDF</a>
+        <a href="#compare">怎么选地图</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="point-cloud">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>建立一张非常实用的地图认知表：什么时候直接拼点云就够，什么时候需要占据图，什么时候要用 TSDF 这种更重的表面表示。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一课我们费很大劲才从单目里“推”深度，这一课你会感受到：RGB-D 相机为什么常被称作稠密建图的幸福模式。</p>
+        </div>
+      </div>
+      <p>RGB-D 的最大优势很简单：深度是传感器直接给的，不必像单目那样每个像素自己推。于是第一种最自然的地图，就是把每帧 RGB-D 图像转成点云，再根据位姿拼到一起。</p>
+      <pre><code>point[2] = d / depthScale;
+point[0] = (u - cx) * point[2] / fx;
+point[1] = (v - cy) * point[2] / fy;
+pointWorld = T * point;</code></pre>
+      <p>书里在点云拼接基础上又加了两步常见滤波：</p>
+      <ul>
+        <li>统计外点去除：删掉孤立噪声点</li>
+        <li>体素滤波：把空间降采样，避免近重复点占满内存</li>
+      </ul>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/02fb543744b5047c8e901bf5087a0d1706be84f41a9b22d56265a21aa1615ca3.jpg" alt="图 13-8 滤波前点云">
+        <figcaption>图 13-8 左：滤波前点云。噪声点和冗余点都很多。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/6a1bf99bc38e6118ae05983a1121002c002ffabec5b0d7ff503c177c5cb02b0d.jpg" alt="图 13-8 滤波后点云">
+        <figcaption>图 13-8 右：滤波后点云。地图明显干净了，但本质上仍然只是离散点集合。</figcaption>
+      </figure>
+    </main>
+
+    <section class="section-card" id="octomap">
+      <h2>1. 为什么点云还不够，于是有了八叉树占据图</h2>
+      <p>点云很好看，但对导航并不友好。它不擅长回答一个导航系统最爱问的问题：<strong>“这个空间点能不能穿过去？”</strong></p>
+      <p>八叉树地图的思路是把三维空间按层级切成小立方体，每个体素不再只存“有一个点”，而是存“这里被占据的概率”。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/8232461e04eb4c385ec8a5be86faa7828cdb11623cbcb26071230d4dcef4f4a6.jpg" alt="图 13-10 八叉树示意图">
+        <figcaption>图 13-10 八叉树示意图。空间越细分，分辨率越高；同时只有需要展开的地方才继续展开。</figcaption>
+      </figure>
+      <p>书里在这里引入了 log-odds，非常值得记：</p>
+      <div class="formula-box">$$ y = \operatorname{logit}(x) = \log\left(\frac{x}{1-x}\right), \qquad x = \operatorname{logit}^{-1}(y)=\frac{e^y}{e^y+1}. \tag{13.17-13.18} $$</div>
+      <p>这样做的好处是，连续多次观测可以变成简单的加法更新：</p>
+      <div class="formula-box">$$ L(n \mid z_{1:t+1}) = L(n \mid z_{1:t}) + L(n \mid z_t). \tag{13.19} $$</div>
+      <p>也就是说，占据图不是简单地在说“有没有东西”，而是在不断累积“这里像不像被占据”。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/2128d2aa98f2aa7f02bffb9337ec503a6fa55685a7c526b895fb96617785d783.jpg" alt="高分辨率 OctoMap">
+        <figcaption>图 13-11 高分辨率八叉树地图显示。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/364cc6cc3ad53f43f6f39bd7c007999dcb66efda1202c7c849a2b6a709dc9d8a.jpg" alt="低分辨率 OctoMap">
+        <figcaption>图 13-11 低一层分辨率时的八叉树地图显示。更粗，但更省。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="tsdf">
+      <h2>2. TSDF 在乎的不是“这个体素有没有点”，而是“离表面还有多远”</h2>
+      <p>如果你的目标不只是导航，而是要构出平滑、连续、可视化友好的表面，那么点云和占据图都还不够细腻。于是出现了 TSDF（截断符号距离函数）。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/38f6f8606a4b8c9e8beb9ef606583bfa7bae350f16def68e355880510e8ce6d7.jpg" alt="图 13-13 TSDF 体素示意">
+        <figcaption>图 13-13 TSDF 的体素空间示意。</figcaption>
+      </figure>
+      <p>TSDF 体素里存的不是“点”也不是“占据概率”，而是：</p>
+      <ul>
+        <li>如果体素在表面前方：距离为正</li>
+        <li>如果体素在表面后方：距离为负</li>
+        <li>在表面附近：值穿过零</li>
+      </ul>
+      <p>因此，表面实际上出现在 <strong>TSDF 由负变正的零交叉位置</strong>。这比生硬拼接点云更容易得到平滑表面，也更适合后续的重建和渲染。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b790a558a0a3ad5a71776aae6527c3a57d9936a20f41002713944133e3e644bd.jpg" alt="图 13-13 截断符号距离值示意">
+        <figcaption>图 13-13 体素中截断符号距离值的示意。</figcaption>
+      </figure>
+      <p>书里也顺带点了一句很关键的工程现实：很多 TSDF / Fusion 系列之所以强，是因为它们大量依赖 GPU 并行。也就是说，它们更偏“重建系统”，不完全等同于轻量实时 SLAM。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/c24b8044a1cdccb1c48f7e7d176a612beb37cddc270276330fb55427406fac61.jpg" alt="图 13-12 实时三维重建结果">
+        <figcaption>图 13-12 实时三维重建方向中的代表性结果之一。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. 三类地图到底怎么选</h2>
+      <table>
+        <thead>
+          <tr><th>地图形式</th><th>最适合的任务</th><th>优点</th><th>局限</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>点云地图</td><td>基础可视化、调试</td><td>直接、简单、容易生成</td><td>不擅长导航查询，也不天然表达表面</td></tr>
+          <tr><td>八叉树占据图</td><td>导航、避障、空间占据查询</td><td>压缩好、可多分辨率、可更新</td><td>外观表达一般</td></tr>
+          <tr><td>TSDF / Fusion</td><td>高质量表面重建、沉浸式可视化</td><td>表面平滑、几何细致</td><td>计算重、常依赖 GPU</td></tr>
+        </tbody>
+      </table>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你要做一个室内服务机器人，让它能规划路径并避开障碍物，三者里最直接该优先考虑哪类地图？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，因为导航与避障首先需要的是占据查询。" onclick="lessonKit.answer(this, 'quiz-0074')">八叉树 / 占据图</button>
+          <button data-correct="no" data-explanation="点云可视化很好，但并不直接回答可通行性。" onclick="lessonKit.answer(this, 'quiz-0074')">只有点云就足够</button>
+          <button data-correct="no" data-explanation="TSDF 很精细，但不一定是导航任务最直接的第一选择。" onclick="lessonKit.answer(this, 'quiz-0074')">TSDF 一定最优</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0074"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>第十三讲讲到这里，你对“地图”应该已经不再只有一个模糊印象了。地图不是单个产物，而是一组围绕任务需求做出的表示选择：<strong>定位爱稀疏，导航爱占据，重建爱表面</strong>。🧭</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么八叉树比“体素化后的点云”更省空间？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为八叉树只在需要细分的区域展开，大片连续空白或连续占据区域可以由高层节点概括，不必把每个小格都显式存出来。</div>
+            </details>
+          </li>
+          <li>
+            请用一句话解释 log-odds 更新为什么方便。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为多次观测融合会从概率乘法关系变成加法累积，数值实现更简单稳定。</div>
+            </details>
+          </li>
+          <li>
+            如果你的目标是做一个视觉效果很细腻的三维场景浏览器，点云、占据图、TSDF 里你更偏向哪一个？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>更偏向 TSDF 或类似表面重建方法，因为它直接表达表面几何，更容易生成平滑连续、视觉友好的结果。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0073-第十三讲-极线搜索与深度滤波.html">← 极线搜索与深度滤波</a>
+        <a class="next" href="0075-第十四讲-开源SLAM方案巡礼.html">开源 SLAM 方案巡礼 →</a>
+      </div>
+      <p class="foot-note">这一节是“地图表达为什么会分家”的关键补丁 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 4 · 组会报告组织与讲解要点 — E2Map 组会精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
+  .lesson-header .meta { display: flex; gap: 1rem; font-size: .85rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.2rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-size: 1rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+  .highlight { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .highlight strong { color: var(--accent-deep); }
+  .quote { background: #fff9e6; border-left: 4px solid #f7b731; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .quote .en { font-style: italic; color: var(--ink-60); font-size: .85rem; margin-bottom: .3rem; }
+  .formula { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: center; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); }
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: 1rem 0; text-align: center; }
+  .flow .step { background: var(--paper-light); padding: .6rem .3rem; border-radius: 8px; box-shadow: var(--shadow-sm); font-size: .8rem; border: 1px solid var(--border); }
+  .flow .step .label { font-weight: 600; color: var(--accent); }
+  .key-point { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .key-point .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+  .key-point .card .num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .key-point .card .label { font-size: .85rem; color: var(--ink-60); }
+  .diagram-box { background: var(--ink); color: #e0e0e0; border-radius: 10px; padding: 1rem; margin: 1rem 0; font-family: "Menlo", "Consolas", monospace; font-size: .8rem; line-height: 1.6; }
+  .diagram-box .title { color: #4cc9f0; font-weight: 600; margin-bottom: .5rem; font-size: .9rem; }
+  .diagram-box .comment { color: var(--ink-40); }
+  .algo-box { background: var(--ink); color: #e0e0e0; border-radius: 10px; padding: 1rem; margin: 1rem 0; font-family: "Menlo", "Consolas", monospace; font-size: .8rem; line-height: 1.7; }
+  .algo-box .comment { color: var(--ink-40); }
+  .algo-box .key { color: #4cc9f0; }
+  .quiz { background: var(--paper); border-radius: 8px; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--border); }
+  .quiz h4 { color: var(--accent-deep); margin-bottom: .5rem; font-size: .95rem; }
+  .quiz ol { padding-left: 1.2rem; font-size: .9rem; }
+  .quiz ol li { margin-bottom: .4rem; }
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav a { color: var(--accent-deep); text-decoration: none; }
+  .nav a:hover { text-decoration: underline; color: var(--accent); }
+  .slide-plan { border: 2px dashed var(--accent); border-radius: 10px; padding: 1rem; margin: 1rem 0; }
+  .slide-plan h4 { color: var(--accent); margin-bottom: .5rem; }
+  .slide-plan .sl { display: grid; grid-template-columns: 60px 1fr; gap: .3rem; font-size: .85rem; margin-bottom: .3rem; }
+  .slide-plan .sl .num { font-weight: 700; color: var(--accent-deep); }
+  .slide-plan .sl .content { color: var(--ink-60); }
+  .qa-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: .8rem; margin: .5rem 0; }
+  .qa-card .q { font-weight: 600; color: var(--ink); margin-bottom: .3rem; font-size: .9rem; }
+  .qa-card .q::before { content: "Q: "; color: var(--accent); }
+  .qa-card .a { font-size: .85rem; color: var(--ink-60); }
+  .qa-card .a::before { content: "A: "; color: var(--success); }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .tip strong { color: #155724; }
+  .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .warning strong { color: #856404; }
+  .scenario-card { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .scenario-card .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.1); overflow: hidden; }
+  .scenario-card .card .body { padding: .6rem .8rem; }
+  .scenario-card .card .body h4 { font-size: .9rem; color: var(--accent-deep); margin-bottom: .3rem; }
+  .scenario-card .card .body p { font-size: .78rem; color: var(--ink-60); }
+  .score-high { color: #155724; background: #d4edda; }
+  .score-low { color: #721c24; background: #f8d7da; }
+  @media (max-width: 768px) { .key-point, .flow, .scenario-card { grid-template-columns: 1fr; } }
+</style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>🎤 第 4 课：组会报告组织与讲解要点</h1>
+  <div class="meta">
+    <span>如何组织一场精彩的论文汇报</span>
+    <span>⏱ 阅读时间：15 分钟</span>
+    <span>📄 组会精读课程 · 第 4 课 / 共 4 课</span>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>🎯 本课目标：</strong>学会如何组织一次<strong>完整、清晰、有深度</strong>的 E2Map 组会报告，包括 PPT 结构、讲解要点、常见 QA 准备。
+</div>
+
+<h2>1. 推荐 PPT 结构（20-25 分钟报告）</h2>
+
+<div class="slide-plan">
+  <h4>📋 PPT 逐页计划</h4>
+  
+  <div class="sl">
+    <div class="num">1</div>
+    <div class="content"><strong>标题页</strong> — 论文标题、作者、发表信息、你的名字</div>
+  </div>
+  <div class="sl">
+    <div class="num">2</div>
+    <div class="content"><strong>报告大纲</strong> — 5 个部分概览</div>
+  </div>
+  
+  <p style="margin:.5rem 0 .3rem; font-weight:600; color:#3a0ca3;">Part I: 背景与动机（4-5 分钟）</p>
+  <div class="sl">
+    <div class="num">3</div>
+    <div class="content"><strong>LLM 机器人学现状</strong> — 三条路线（任务分解、代码生成、空间锚定）+ 共同局限：静态环境</div>
+  </div>
+  <div class="sl">
+    <div class="num">4</div>
+    <div class="content"><strong>问题的严重性</strong> — 随机环境的例子（突然开门、人从墙后走出）+ 为什么静态规划不够</div>
+  </div>
+  <div class="sl">
+    <div class="num">5</div>
+    <div class="content"><strong>人类灵感</strong> — Damasio 情绪与稳态理论 → 机器人"情绪记忆"的类比</div>
+  </div>
+  
+  <p style="margin:.5rem 0 .3rem; font-weight:600; color:#3a0ca3;">Part II: 方法核心（7-8 分钟）</p>
+  <div class="sl">
+    <div class="num">6</div>
+    <div class="content"><strong>E2Map 定义</strong> — 三维张量的数学公式 + VLMap + 情绪通道</div>
+  </div>
+  <div class="sl">
+    <div class="num">7</div>
+    <div class="content"><strong>情绪建模</strong> — 高斯分布加权求和，公式 + 直观理解（"热力图"）</div>
+  </div>
+  <div class="sl">
+    <div class="num">8</div>
+    <div class="content"><strong>系统架构图</strong> — Fig. 2 系统概览，讲解四个子模块</div>
+  </div>
+  <div class="sl">
+    <div class="num">9</div>
+    <div class="content"><strong>事件描述器 + 情绪评估器</strong> — 三张图像输入 → 文本描述 → 评分（upsetness+guiltiness）</div>
+  </div>
+  <div class="sl">
+    <div class="num">10</div>
+    <div class="content"><strong>E2Map 更新</strong> — Weber-Fechner 定律 + 协方差更新 + 权重补偿</div>
+  </div>
+  
+  <p style="margin:.5rem 0 .3rem; font-weight:600; color:#3a0ca3;">Part III: 系统流程（3-4 分钟）</p>
+  <div class="sl">
+    <div class="num">11</div>
+    <div class="content"><strong>完整流程图</strong> — Algorithm 1 讲解：目标选择 → D*规划 → MPPI控制 → 事件处理 → 重规划</div>
+  </div>
+  
+  <p style="margin:.5rem 0 .3rem; font-weight:600; color:#3a0ca3;">Part IV: 实验分析（5-6 分钟）</p>
+  <div class="sl">
+    <div class="num">12</div>
+    <div class="content"><strong>实验设置</strong> — Gazebo 仿真 + 真实会议室环境</div>
+  </div>
+  <div class="sl">
+    <div class="num">13</div>
+    <div class="content"><strong>三大场景</strong> — 危险标志（静态变化）、人-墙（动态）、动态门（动态）</div>
+  </div>
+  <div class="sl">
+    <div class="num">14</div>
+    <div class="content"><strong>仿真结果</strong> — 表格对比 + 柱状图（推荐自制）</div>
+  </div>
+  <div class="sl">
+    <div class="num">15</div>
+    <div class="content"><strong>定性分析</strong> — Fig. 6 行为调整可视化（事件前后 E2Map 变化）</div>
+  </div>
+  <div class="sl">
+    <div class="num">16</div>
+    <div class="content"><strong>真实世界结果</strong> — 验证方法的可迁移性</div>
+  </div>
+  
+  <p style="margin:.5rem 0 .3rem; font-weight:600; color:#3a0ca3;">Part V: 讨论与总结（3 分钟）</p>
+  <div class="sl">
+    <div class="num">17</div>
+    <div class="content"><strong>贡献总结</strong> — 三点核心贡献</div>
+  </div>
+  <div class="sl">
+    <div class="num">18</div>
+    <div class="content"><strong>局限性 + 未来方向</strong> — 坦诚评价论文不足</div>
+  </div>
+  <div class="sl">
+    <div class="num">19</div>
+    <div class="content"><strong>个人思考</strong> — 你的观点和启发</div>
+  </div>
+  <div class="sl">
+    <div class="num">20</div>
+    <div class="content"><strong>Q&A</strong> — 谢谢，欢迎提问</div>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>💡 建议：</strong>图表尽量自制，而不是直接截取论文图片。这能体现你真的理解了这个方法，而不是"翻译幻灯片"。可以用 PowerPoint 或 draw.io 重绘系统架构图。
+</div>
+
+<h2>2. 讲解要点</h2>
+
+<h3>2.1 如何讲清楚"情绪"</h3>
+<p>这是最容易引起听众困惑的点，建议这样讲：</p>
+
+<div class="highlight">
+  <strong>🗣️ 推荐讲解词：</strong><br>
+  "论文中的'情绪'是一个严格的数学概念，不是说机器人真的'生气了'。它是用<strong>高斯分布的加权求和</strong>来表征的——简而言之，就是给地图上每一个有物体的格子赋予一个'感受值'。机器人在某处撞到人了，那这里的高斯分布就扩大，周围的格子也都被'传染'了负面感受。下次规划路径的时候，D* 算法看到这里的代价值高，就会自动绕开。所以本质上，这是一种<strong>自适应的代价地图</strong>。"
+</div>
+
+<h3>2.2 如何讲清楚 E2Map 更新</h3>
+<div class="highlight">
+  <strong>🗣️ 推荐讲解词：</strong><br>
+  "更新的关键在于<strong>两个参数</strong>：协方差 \(\Sigma\) 控制'情绪影响多大范围'，权重 \(w\) 控制'情绪有多强'。撞到人了，情绪分数高 → 协方差变大（影响范围扩大）→ 但同时高斯分布的中心值会下降 → 所以我们用权重补偿，保持碰撞点的情绪强度不变。最终效果就是：碰撞点本身情绪很强，周围的区域也受到波及——这样下次机器人远远地就会绕开。"
+</div>
+
+<h3>2.3 如何讲实验结果</h3>
+<div class="highlight">
+  <strong>🗣️ 推荐讲解词：</strong><br>
+  "最值得注意的是 VLMaps 在静态环境下也是 10/10，和 E2Map 一样好。但一旦环境发生变化或者出现动态物体，VLMaps 的成绩直接降到 0/10。这说明<strong>VLMaps 没有记忆</strong>——它每次都从头规划，所以每次都撞到同一个障碍物。而 E2Map 记下了上次的碰撞，所以第二次就绕开了。这就是自反思的价值。"
+</div>
+
+<h2>3. 常见 Q&A 准备</h2>
+
+<div class="qa-card">
+  <div class="q">这个方法是不是就是势场法的一个变种？</div>
+  <div class="a">这个问题很有可能被问到！回答要点：① 情绪确实起到类似"斥力势场"的作用；② 但论文特意用了独立的 D* 规划器，而不是把目标作为"吸引力"，从而避免了势场法的局部极小值问题；③ 更重要的是，势场法的场是预先设计的，而 E2Map 的情绪场是<strong>从经验中学习并动态更新</strong>的。</div>
+</div>
+
+<div class="qa-card">
+  <div class="q">为什么 E2Map 在 danger sign 场景中不是 10/10？</div>
+  <div class="a">第一次导航时机器人会撞到危险标志（因为没有经验），这次碰撞触发 E2Map 更新。更新后，后续 9 次都成功避开了。所以 9/10 其实说明：第一次失败是"交学费"，之后 100% 成功了。这是一个很好的讨论点——可以引出"一次经验驱动调整"的含义。</div>
+</div>
+
+<div class="qa-card">
+  <div class="q">这个方法需要 LLM 调用，实际部署的延迟和成本问题怎么解决？</div>
+  <div class="a">论文中的 LLM/LMM 调用只在事件发生后触发，正常导航过程中不调用。但是每次事件处理确实需要 GPT-4o 和 Llama3 的推理时间。未来可以用更小的模型或边缘部署优化。</div>
+</div>
+
+<div class="qa-card">
+  <div class="q">E2Map 和 VLMaps 的对比公平吗？VLMaps 没有设计事件处理和更新机制，当然比不过。 </div>
+  <div class="a">这个问题有一定的道理。但论文想说明的恰恰是：<strong>在动态环境中，没有自反思能力的导航系统是不够的</strong>。如果选择同样具备学习能力的基线（如强化学习方法），E2Map 的优势又在于"单次调整"vs 强化学习的"多次迭代"。可以展开讨论不同的范式取舍。</div>
+</div>
+
+<div class="qa-card">
+  <div class="q">真实环境为什么没做 dynamic door 实验？</div>
+  <div class="a">论文说为了避免损坏机器人和门。这说明该方法中的碰撞检测和反应机制还不够安全。这是一个诚实的局限。</div>
+</div>
+
+<div class="qa-card">
+  <div class="q">情绪评估器的评分是否可靠？会不会有偏差？</div>
+  <div class="a">论文使用了少样本提示来规范输出，但从本质上看，LLM 的评分确实可能存在不一致性。这是一个值得探讨的问题——也许可以用多个 LLM 投票，或设计更严格的评估标准。</div>
+</div>
+
+<h2>4. 给你的额外建议</h2>
+
+<div class="tip">
+  <strong>💡 在组会上展现深度的三个技巧：</strong>
+  <ol style="margin-left:1.2rem; margin-top:.3rem;">
+    <li><strong>对比分析</strong>：不要只报结果，要解释"为什么VLMaps在静态中满分而在动态中零分？"——因为它的地图不更新</li>
+    <li><strong>联系已有研究</strong>：如果你们组有人做过导航/规划相关的工作，主动建立联系——"和我们之前用的××方法相比，E2Map的优点是……"</li>
+    <li><strong>提出延伸思考</strong>：在报告结尾抛出 1-2 个开放性思考题，如"如果要把E2Map用到我们的机器人平台上，最大的工程挑战会是什么？"</li>
+  </ol>
+</div>
+
+<div class="warning">
+  <strong>⚠️ 常见错误：</strong>
+  <ul style="margin-left:1.2rem; margin-top:.3rem;">
+    <li>不要把"情绪"拟人化得太夸张——听众会误解论文不是科幻</li>
+    <li>不要跳过数学公式——但可以先用直觉讲清楚，再展示公式</li>
+    <li>不要只读幻灯片上的字——要解释、要对比、要分析</li>
+  </ul>
+</div>
+
+<h2>5. 课程总结</h2>
+
+<p>四节课到这里就结束了！回顾一下你学到了什么：</p>
+
+<table>
+  <tr><th>课程</th><th>核心内容</th><th>组会应用</th></tr>
+  <tr><td>第 1 课：全景概览</td><td>问题背景、动机、贡献</td><td>PPT Part I</td></tr>
+  <tr><td>第 2 课：E2Map 核心技术</td><td>地图定义、情绪建模、更新机制</td><td>PPT Part II</td></tr>
+  <tr><td>第 3 课：导航系统与实验</td><td>系统流程、三场景实验、结果分析</td><td>PPT Part III + IV</td></tr>
+  <tr><td>第 4 课：组会报告要点</td><td>PPT 结构、讲解词、QA 准备</td><td>PPT 全部 + 演练</td></tr>
+</table>
+
+<div class="highlight">
+  <strong>✅ 现在你已经准备好做一次高质量的 E2Map 组会报告了！</strong><br>
+  打开浏览器查看课程：<code>start lessons\0001-论文全景概览.html</code><br>
+  查阅术语表：<code>start reference\glossary.html</code>
+</div>
+
+<h2>📝 最后思考</h2>
+
+<div class="quiz">
+  <h4>✏️ 组会模拟题</h4>
+  <ol>
+    <li>用你的话（不需要看笔记）向一个不懂的人解释 E2Map 是做什么的。（1 分钟内）</li>
+    <li>有三个典型场景的实验结果，你能不能用 2 分钟讲清楚为什么 E2Map 好？</li>
+    <li>如果导师问"这个方法有哪些不足？你觉得怎么改进？"，你准备怎么回答？</li>
+  </ol>
+  <div style="margin-top:.8rem; font-size:.85rem; color:#6c757d;">
+    <p>💡 随时可以找我模拟组会问答！</p>
+  </div>
+</div>
+
+<h2>🔗 参考资源</h2>
+<ul style="font-size:.9rem; margin-left:1.2rem;">
+  <li><a href="../reference/glossary.html" target="_blank">📖 术语表参考文档</a></li>
+  <li><a href="../RESOURCES.md" target="_blank">📚 资源列表</a></li>
+  <li><a href="https://e2map.github.io/" target="_blank">🌐 E2Map 项目主页（含视频和代码）</a></li>
+  <li><a href="https://github.com/ChanKim0610/e2map" target="_blank">💻 E2Map GitHub 源码</a></li>
+</ul>
+
+<div class="nav">
+  <a href="0003-导航与实验分析.html">← 上一课：导航系统与实验分析</a>
+  <span></span>
+</div>
+
+</body>
+</html>

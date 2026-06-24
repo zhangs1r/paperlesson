@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · 对极几何实践与三角测量 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 4</div>
+      <h1>对极几何实践与三角测量</h1>
+      <p class="subtitle">上一课把理论桥搭好了，这一课要做两件真正落地的事：先用 OpenCV 从匹配点估计两帧相对运动，再用三角测量把“只有 2D 对应”的世界，第一次抬成带深度的稀疏三维点。📏</p>
+      <div class="hero-meta">
+        <span>🧪 用 <code>findEssentialMat</code> / <code>recoverPose</code></span>
+        <span>📐 原书图 7-9、7-10</span>
+        <span>🚀 直接通向第九讲初始化与局部地图</span>
+      </div>
+      <div class="toc">
+        <a href="#pose">实践：由匹配点恢复位姿</a>
+        <a href="#scale">尺度不确定性与纯旋转问题</a>
+        <a href="#triangulation">三角测量怎么来的</a>
+        <a href="#contradiction">三角化的矛盾</a>
+        <a href="#bridge">它怎样变成第九讲的前端基础</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="pose">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>理解代码里每个 OpenCV 接口背后的几何含义，不把 <code>recoverPose()</code> 当黑盒；同时吃透“单目初始化”为什么既必要又脆弱。</p>
+        </div>
+        <div class="callout">
+          <h4>和后续章节的联系</h4>
+          <p>第九讲两帧初始化、局部地图建立都依赖这里的位姿恢复和三角化；第十三讲稠密重建则会把这套三角化思想扩展到更密的像素集合。</p>
+        </div>
+      </div>
+      <p>原书的第一个实践动作很清晰：拿上一课得到的匹配点，分别计算基础矩阵、本质矩阵和单应矩阵，然后从本质矩阵里恢复 $R,t$。</p>
+      <pre><code>Mat F = findFundamentalMat(points1, points2, CV_FM_8POINT);
+Mat E = findEssentialMat(points1, points2, focal_length, principal_point, RANSAC);
+Mat H = findHomography(points1, points2, RANSAC, 3);
+recoverPose(E, points1, points2, R, t, focal_length, principal_point);</code></pre>
+      <p>这里四行代码，分别对应四层含义：</p>
+      <ul>
+        <li><code>findFundamentalMat</code>：在像素平面上估计二维几何约束。</li>
+        <li><code>findEssentialMat</code>：在已知内参下，转去归一化平面估计更直接的相对运动约束。</li>
+        <li><code>findHomography</code>：给平面场景或退化情况一条备选路线。</li>
+        <li><code>recoverPose</code>：从 <code>E</code> 里选出满足正深度的一组 $R,t$。</li>
+      </ul>
+      <p>这一步和第六讲优化的关系也值得点出来：这里得到的是一个<strong>几何初值</strong>，它未必已经最优，但足够让后面的三角化和更精细的位姿优化开始工作。</p>
+    </main>
+
+    <section class="section-card" id="scale">
+      <h2>1. 单目初始化最核心的两个现实限制</h2>
+      <p>原书对这两点讲得非常到位，而且它们恰好是很多初学者最容易忽略的：</p>
+
+      <h3>1.1 尺度不确定性不是小瑕疵，而是单目先天属性</h3>
+      <p>由本质矩阵恢复的平移向量只有方向，没有真实尺度。也就是说，如果输出里有一项是 $t_x \approx 0.82$，你并不能知道它是 0.82 米、0.82 厘米，还是某个归一化后的单位。</p>
+      <p>这就是书里反复提到的 <span class="term">Scale Ambiguity</span>。工程上常见做法有两种：</p>
+      <ul>
+        <li>把 $t$ 归一化，让 $\|t\|=1$。</li>
+        <li>或把初始化时三角化点的平均深度归一化到某个固定值。</li>
+      </ul>
+      <p>本质上都是在“给整个系统选一个内部尺度单位”。第九讲单目 VO 若从这里起步，后面整条轨迹和局部地图都会继承这个单位。</p>
+
+      <h3>1.2 纯旋转为什么会让单目初始化失败</h3>
+      <p>如果相机只转不平移，那么 $t=0$，于是：</p>
+      <div class="formula-box">$$
+      E = t^\wedge R = 0.
+      $$</div>
+      <p>这时你无法从本质矩阵中恢复出有效平移，更重要的是：没有基线，就没有三角形，也就没有三角测量。换句话说，<strong>纯旋转时你可以“看见变化”，却无法“撑起深度”</strong>。</p>
+      <p>这也是为什么很多有经验的人做单目初始化时，会故意做一个左右平移，而不是原地转头。这里的知识，到第九讲两两帧 VO 和局部地图那里会再次出现。</p>
+    </section>
+
+    <section class="section-card" id="triangulation">
+      <h2>2. 三角测量：从两帧像素对应恢复稀疏深度</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/38b5fbba68b318395b5e74b0eafd07b4d24ad9865e06e67c0b542b07c8765d45.jpg" alt="原书图7-9 三角化获得地图点深度">
+        <figcaption>原书图 7-9。它想说明的不是“有个三角形”，而是：一旦两帧相对位姿已知，同一个像素在两帧中的视线交会就能提供深度估计，这就是单目地图最初的来源。</figcaption>
+      </figure>
+      <p>设两个匹配点在归一化平面上的坐标为 $x_1,x_2$，两帧间运动为 $(R,t)$，则它们满足：</p>
+      <div class="formula-box">$$
+      s_1 x_1 = s_2 R x_2 + t.
+      \tag{7.24}
+      $$</div>
+      <p>这里未知的是两个深度尺度 $s_1,s_2$。书里给出的思路是，对两边左乘 $x_1^\wedge$，从而消去 $s_1$：</p>
+      <div class="formula-box">$$
+      0 = s_2 x_1^\wedge R x_2 + x_1^\wedge t.
+      \tag{7.25}
+      $$</div>
+      <p>于是就能解出 $s_2$，回代再解 $s_1$。实际实现中，OpenCV 的 <code>triangulatePoints()</code> 会帮你完成线性三角化，但你必须知道它背后做的正是这件事。</p>
+
+      <pre><code>Mat T1 = (Mat_&lt;double&gt;(3,4) &lt;&lt;
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0);
+Mat T2 = (Mat_&lt;double&gt;(3,4) &lt;&lt;
+    R(0,0), R(0,1), R(0,2), t(0,0),
+    R(1,0), R(1,1), R(1,2), t(1,0),
+    R(2,0), R(2,1), R(2,2), t(2,0));
+cv::triangulatePoints(T1, T2, pts_1, pts_2, pts_4d);</code></pre>
+      <p>这里的两个投影矩阵分别表示第一帧和第二帧的相机姿态。三角化得到的是齐次坐标，后面还要做一次归一化。</p>
+    </section>
+
+    <section class="section-card" id="contradiction">
+      <h2>3. 三角化的矛盾：为什么初始化既怕平移太小，也怕平移太大</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b6db52ce2781998262ba2c431637a4302c93da1243e10d3937c36b1c74212950.jpg" alt="原书图7-10 三角测量的矛盾">
+        <figcaption>原书图 7-10。它非常值得多看一眼：基线小的时候，像素级噪声会放大成很大的深度不确定性；基线大时深度更准，但两帧外观差异也更大，匹配更难。</figcaption>
+      </figure>
+      <p>原书把这个现象叫“三角测量的矛盾”，我建议你把它记成一句更口语的话：</p>
+      <div class="formula-box flow-formula">想要深度更准，就希望相机平移更大；<br>可一旦平移更大，图像外观变化也更剧烈，匹配更容易失败。</div>
+      <p>这也是为什么第七讲和第九讲都会非常在意“初始化动作”和“匹配质量”：你不能只盯着公式本身，还得考虑系统在真实运动下能不能同时满足匹配和几何两边的要求。</p>
+      <p>这里还顺便埋下了第十三讲的线索。原书说，如果我们不断从更多视角重复观察同一个点，并把深度当成随机变量不断融合，就能得到深度滤波器。换句话说，第十三讲的稠密或半稠密重建，不是推翻这里的三角化，而是把它做得更连续、更统计化。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么单目初始化常常建议做“适度侧向平移”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。这样既能给三角化提供足够基线，又不会让两帧外观变化过猛，是匹配稳定性和深度精度之间的折中。" onclick="lessonKit.answer(this, 'quiz-0049-a')">因为它兼顾了可匹配性和三角化精度</button>
+          <button data-correct="no" data-explanation="原地旋转恰恰最不利于单目初始化，因为没有平移就没有可靠深度。" onclick="lessonKit.answer(this, 'quiz-0049-a')">因为原地旋转最有利于恢复绝对尺度</button>
+          <button data-correct="no" data-explanation="三角化很依赖平移，不是越小越好。" onclick="lessonKit.answer(this, 'quiz-0049-a')">因为平移越小，三角化总会更稳定</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0049-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="bridge">
+      <h2>4. 从这节课走向第九讲 VO 前端</h2>
+      <p>如果你把这节课看懂了，第九讲很多工程设计会突然顺眼很多：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>初始化为什么特殊</h4>
+          <p>因为只有初始化阶段，系统还没有现成地图点，只能靠 2D-2D 和三角化先搭出第一批稀疏结构。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么后面会转向 PnP</h4>
+          <p>一旦三角化出了第一批 3D 点，后续帧就不必一直停留在 2D-2D，而可以转向更稳定的 3D-2D 位姿估计。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么局部地图重要</h4>
+          <p>因为三角化出的点如果不能被继续观测和维护，就只是“一次性的深度猜测”，很难支撑稳健 VO。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说单目初始化必须有平移，而不能只有纯旋转？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为纯旋转时 $t=0$，本质矩阵退化，无法恢复有效平移；更关键的是没有基线就无法进行三角测量，也就不能建立初始深度和地图。</div>
+            </details>
+          </li>
+          <li>
+            三角测量的输入到底是什么，输出又是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>输入是两帧中同一空间点的匹配像素坐标，以及两帧之间的相对位姿；输出是该空间点在某个参考坐标系下的三维位置或等价深度。</div>
+            </details>
+          </li>
+          <li>
+            “尺度不确定性”会怎样影响单目系统后续的轨迹和地图？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>系统只能在一个内部约定的尺度单位下工作，所以整条轨迹和地图都只在相对尺度上正确，而没有真实物理尺度，除非再引入外部尺度信息。</div>
+            </details>
+          </li>
+          <li>
+            为什么说三角化的矛盾会直接影响前端设计？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前端既要保证匹配成功率，又要尽量获得靠谱深度。平移太小深度噪声大，平移太大匹配变差，所以系统必须在运动模式和数据筛选上做平衡。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0048-第七讲-对极几何与本质矩阵.html">← 上一课：对极几何与本质矩阵</a>
+        <a class="next" href="0050-第七讲-PnP理论基础.html">下一课：PnP 理论基础 →</a>
+      </div>
+      <p class="foot-note">这节课可以当作一句话记住：2D-2D 负责把单目“启动起来”，三角化负责把第一批深度“托起来”。✨</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

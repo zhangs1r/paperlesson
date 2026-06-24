@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第二讲 · 实践HelloSLAM | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第二讲 · 初识SLAM / Lesson 3</div>
+      <h1>第二讲 · 实践：Hello SLAM</h1>
+      <p class="subtitle">从零搭起第一个 SLAM 练习工程。它看起来只是“输出一句话”，但真正要练的是后面十几讲都会反复用到的 Linux + CMake + C++ 基础工作流。💻</p>
+      <div class="hero-meta">
+        <span>🛠️ 实践课</span>
+        <span>🔗 为后面所有代码实验打底</span>
+        <span>📦 CMake、库、IDE 都在这节先过一遍</span>
+      </div>
+      <div class="toc">
+        <a href="#why-linux">为什么是 Linux</a>
+        <a href="#hello">Hello SLAM</a>
+        <a href="#cmake">使用 CMake</a>
+        <a href="#library">使用库</a>
+        <a href="#ide">IDE 与调试</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-linux">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>你要真正掌握后面所有实践课都默认你懂的那套工作流：Linux 终端、g++、CMake、build 目录、库链接和基本调试意识。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>前两节课我们一直在讲系统和数学，这一节要把“我知道 SLAM 在干嘛”变成“我能开始动手写、编、跑程序”。后面第 3 到第 14 讲的所有代码，都站在这节课的基础上。</p>
+        </div>
+      </div>
+      <p>原书在这里讲得很实在：为什么要用 Linux？不是因为它“更酷”，而是因为后面会用到的大量视觉 SLAM 相关库，在 Linux 下配置和协作都最自然。你可以把它理解成：<strong>这不是课程的主题，但它是课程的地板</strong>。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么不用 Windows 作为默认环境</h4>
+          <p>因为很多库在 Windows 下也能用，但配置成本和踩坑成本显著更高，不适合这本书的教学主线。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么不展开讲安装系统</h4>
+          <p>因为这本书的重点是学 SLAM，不是写操作系统安装手册。安装资料网上很多，这里只抓和后面实验直接相关的部分。</p>
+        </div>
+      </div>
+    </main>
+
+    <section class="section-card" id="hello">
+      <h2>1. Hello SLAM：第一个程序练的其实不是“输出字符串”</h2>
+      <p>这节最表面的任务当然是写一个最简单的 C++ 程序：</p>
+      <pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main(int argc, char** argv) {
+  cout &lt;&lt; "Hello SLAM!" &lt;&lt; endl;
+  return 0;
+}</code></pre>
+      <p>但真正该练的是这一整套动作链：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{写源文件} \rightarrow \text{调用编译器} \rightarrow \text{得到可执行文件} \rightarrow \text{运行验证} $$</div>
+      </div>
+      <p>书里先让你直接用 <code>g++ helloSLAM.cpp</code> 编译，是为了让你看到最原始的关系：<strong>C++ 源文件不是程序本身，编译后得到的可执行文件才是</strong>。</p>
+      <div class="callout">
+        <h4>这一步和后面哪一讲会反复相遇？</h4>
+        <p>几乎每一讲。第 3 讲的 Eigen、第 5 讲的 OpenCV、第 6 讲的 Ceres / g2o、第 7 讲以后的所有实验，都默认你已经知道“写一个源文件、编译它、运行它”是怎样一回事。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="cmake">
+      <h2>2. 为什么很快就要从 g++ 过渡到 CMake</h2>
+      <p>书里在这里做了一个很重要的教学切换：先让你感受到“单文件直接编译”有多简单，再告诉你“工程一旦变大，这种方式马上会失控”。</p>
+      <p>于是 CMake 出场。最小版本的 <code>CMakeLists.txt</code> 就是：</p>
+      <pre><code>cmake_minimum_required(VERSION 2.8)
+project(HelloSLAM)
+add_executable(helloSLAM helloSLAM.cpp)</code></pre>
+      <p>它其实在做三件事：</p>
+      <ul>
+        <li>声明这是一个 CMake 工程</li>
+        <li>告诉系统这个工程叫什么</li>
+        <li>告诉系统要从哪个源文件生成哪个可执行目标</li>
+      </ul>
+      <p>更关键的是，书里在这里就引入了一个后面非常常见的习惯：<strong>单独建 build 目录</strong>。</p>
+      <pre><code>mkdir build
+cd build
+cmake ..
+make</code></pre>
+      <p>这个习惯的重要性远大于表面看上去的“整洁”。它意味着：<strong>源代码目录和编译产物目录分离</strong>。以后你改代码、换参数、换依赖库、重新编译，都会轻松很多。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么书里推荐把中间文件都放进 <code>build/</code> 而不是留在源码目录？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。这样工程更整洁，也更方便反复构建和清理，后面维护大型工程时收益非常大。" onclick="lessonKit.answer(this, 'quiz-0017-a')">为了把源码和编译产物分离</button>
+          <button data-correct="no" data-explanation="速度不是这里最核心的理由。" onclick="lessonKit.answer(this, 'quiz-0017-a')">为了让程序运行更快</button>
+          <button data-correct="no" data-explanation="可执行文件名字可以指定，但这不是 build 目录的根本意义。" onclick="lessonKit.answer(this, 'quiz-0017-a')">为了自动修改可执行文件名</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0017-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="library">
+      <h2>3. 使用库：从“一个程序”走向“一个工程”</h2>
+      <p>当书里开始讲库时，它其实是在帮你建立更重要的工程意识：<strong>不是所有代码都应该塞进 main 里</strong>。真正的 SLAM 工程一定会拆成函数、类、模块、库。</p>
+      <p>书里的例子非常小，但思想很正宗：先把函数声明放进头文件，再把实现写进源文件，最后通过 CMake 把它编译成库并链接到主程序。</p>
+      <pre><code>// libHelloSLAM.h
+void printHello();
+
+// libHelloSLAM.cpp
+void printHello() {
+  cout &lt;&lt; "Hello SLAM" &lt;&lt; endl;
+}</code></pre>
+      <p>然后在 CMake 里：</p>
+      <pre><code>add_library(hello_shared SHARED libHelloSLAM.cpp)
+add_executable(useHello useHello.cpp)
+target_link_libraries(useHello hello_shared)</code></pre>
+      <p>这组动作值得你后面反复回想。因为从第 5 讲开始，你不再只是在“写一个程序”，而是在不断把 OpenCV、Eigen、PCL、Ceres、g2o 这些外部库接到自己工程里。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>头文件做什么</h4>
+          <p>告诉使用者：库里有哪些函数、类、接口可以调用。</p>
+        </div>
+        <div class="mini-card">
+          <h4>源文件做什么</h4>
+          <p>真正提供实现逻辑，被编译器编成目标文件和库文件。</p>
+        </div>
+        <div class="mini-card">
+          <h4>链接做什么</h4>
+          <p>让你的主程序在编译 / 运行时知道这些实现究竟来自哪一个库。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="ide">
+      <h2>4. IDE 与调试：为什么这一讲要提 KDevelop</h2>
+      <p>书里这里提 KDevelop，不是因为它必须用，而是因为作者想尽早把你拉出“只会编辑纯文本”的状态，进入稍微像样一点的工程开发体验：跳转、补全、编译、断点调试。</p>
+      <p>但这节课真正想传达的，是一个更底层的态度：<strong>无论 IDE 用什么，底层仍然是 CMake + 编译器 + 调试器</strong>。</p>
+      <p>所以你完全可以把这部分迁移成自己的现代工作流理解：</p>
+      <ul>
+        <li>编辑器 / IDE 只是界面</li>
+        <li>CMake 才是工程描述</li>
+        <li>编译器和调试器才真正执行你的程序</li>
+      </ul>
+      <div class="callout">
+        <h4>这节课真正学到的“可迁移能力”</h4>
+        <p>不是会不会 KDevelop，而是你知道：以后碰到任何一个第三方库工程，只要它是 CMake 工程，你都知道该怎么看它、怎么编译它、怎么把它接进自己的程序里。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Hello SLAM 真正练的是什么</h4>
+          <p>不是输出一行字，而是“写源文件 → 编译 → 运行 → 验证”这条最基本开发闭环。</p>
+        </div>
+        <div class="mini-card">
+          <h4>CMake 为什么重要</h4>
+          <p>因为从这节以后，你面对的将不是单个文件，而是越来越像样的 C++ 工程。</p>
+        </div>
+        <div class="mini-card">
+          <h4>库和链接为什么要现在学</h4>
+          <p>因为后面几乎所有 SLAM 实验都会依赖外部库，而不是单文件独立程序。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里先让你用 g++ 直接编，再引入 CMake，而不是一上来就只讲 CMake？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为先看到最原始的“源文件如何变成程序”，你才更容易理解 CMake 是在替你管理什么。否则 CMake 只会像一个神秘命令黑箱。</div>
+            </details>
+          </li>
+          <li>
+            如果你忘了在 CMake 中把主程序链接到某个库上，最典型会发生什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>通常会在链接阶段报错，提示某些符号 / 函数找不到定义。因为头文件只告诉了编译器“有这个函数”，真正的实现还得靠链接器从对应库里找出来。</div>
+            </details>
+          </li>
+          <li>
+            这节实践课和后面哪类课程关系最紧？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>几乎和所有实践课都紧，尤其是第 3、5、6、7 讲之后的 Eigen、OpenCV、Ceres、g2o、PCL 相关代码实验。它们都默认你已经掌握这节课的工程基础。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0016-第二讲-SLAM的数学表述.html">← SLAM 的数学表述</a>
+        <a class="next" href="0018-第三讲-旋转矩阵.html">第三讲：旋转矩阵 →</a>
+      </div>
+      <p class="foot-note">这一讲看起来基础，但后面每一次“编不过”“链不上”“库找不到”时，你都会回来感谢它 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

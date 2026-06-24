@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十一讲 · 位姿图的动机与误差模型 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十一讲 · 后端 2 / Lesson 1</div>
+      <h1>第十一讲 · 位姿图的动机与误差模型</h1>
+      <p class="subtitle">从 Bundle Adjustment 走到 Pose Graph，我们究竟舍弃了什么，又为什么必须这样做。🙂</p>
+      <div class="hero-meta">
+        <span>🔗 衔接第十讲 BA</span>
+        <span>📐 重点在误差定义</span>
+        <span>🧭 为 g2o / gtsam 实践铺路</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#why-pose-graph">为什么要位姿图</a>
+        <a href="#error-model">误差模型</a>
+        <a href="#jacobian-intuition">雅可比直觉</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把第十讲里“位姿 + 路标点”的 BA 思路，自然过渡到“只保留位姿节点”的 Pose Graph 思路，并真正看懂它优化的量到底是什么。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第九讲我们搭了 VO 框架，第十讲把 BA、Schur 消元和鲁棒核讲清楚；这一课相当于告诉你：当地图很大时，后端为什么要变得更节制。</p>
+        </div>
+      </div>
+      <div class="paper-divider"></div>
+      <p>先抓住一句最关键的话：<strong>位姿图不是“比 BA 更高级的优化”，而是“在更大场景中更现实的取舍”</strong>。前面我们已经知道，BA 把每个相机位姿和每个路标点都放进优化变量里，所以很精细；但一旦轨迹变长，路标点数量会远多于位姿节点，计算规模会迅速膨胀。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/fb04bfd9857752dc2e4d676201bb58c83bd5715b815169a07c361c6140a09a6c.jpg" alt="图 11-1 Pose Graph 示意图">
+        <figcaption>图 11-1 Pose Graph 示意图。当我们不再优化 BA 中的路标点，只保留关键帧位姿之间的约束时，问题规模会小很多。</figcaption>
+      </figure>
+    </main>
+
+    <section class="section-card" id="why-pose-graph">
+      <h2>1. 为什么第十一讲会从 BA 走向 Pose Graph</h2>
+      <p>回头看第十讲，BA 最强的地方在于：每条重投影误差边都把<strong>一个相机位姿</strong>和<strong>一个路标点</strong>牢牢拴在一起，所以优化结果很细、几何利用率很高。但同样也带来一个代价：每多一帧，通常就会伴随更多特征点、更多观测边和更大的稀疏线性系统。</p>
+      <p>书里在这里提出了一个非常朴素但很重要的判断：<strong>那些已经收敛的路标点，未必要在全局尺度上被反复优化</strong>。它们已经完成了“约束位姿”的使命，此时继续带着它们满图跑，性价比不高。</p>
+      <p>于是我们把问题重写成：</p>
+      <ul>
+        <li>节点：关键帧位姿 $\xi_1,\xi_2,\dots,\xi_n$</li>
+        <li>边：两个位姿之间的相对观测，比如里程计边、回环边</li>
+      </ul>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{BA}:(T_i, P_j) \longrightarrow \text{固定或吸收路标约束} \longrightarrow \text{Pose Graph}:(T_i, T_j) $$</div>
+      </div>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么它更快</h4>
+          <p>因为变量数从“位姿 + 路标”缩减成“只有位姿”。这不是小修小补，而是问题规模层级的变化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它不如 BA 细</h4>
+          <p>因为你不再显式优化路标点，所以像素级重投影信息被折叠进位姿间约束，精细度会下降。</p>
+        </div>
+        <div class="mini-card">
+          <h4>什么时候特别有用</h4>
+          <p>当机器人已经走了很远、关键帧越来越多、回环开始出现时，Pose Graph 是做全局整理最自然的工具。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="error-model">
+      <h2>2. 位姿图里的节点、边和误差到底是什么</h2>
+      <p>这一讲真正的数学核心，不在“位姿图这个名字”，而在于<strong>如何把两帧之间的相对位姿差写成一个可优化的误差项</strong>。</p>
+      <p>对两个位姿节点 $T_i$ 和 $T_j$，观测告诉我们，它们之间的相对运动应该接近：</p>
+      <div class="formula-box">$$ \Delta T_{ij} = T_i^{-1} T_j. \tag{11.2} $$</div>
+      <p>但现实里等式不会严格成立，所以我们把观测值移到右边，构造误差：</p>
+      <div class="formula-box">$$ e_{ij} = \log\!\left(\Delta T_{ij}^{-1} T_i^{-1} T_j\right)^\vee. \tag{11.3} $$</div>
+      <p>这句公式可以这样读：如果当前估计出来的相对位姿和观测到的相对位姿完全一致，那么括号里的李群元素就接近单位元，取对数之后误差 $e_{ij}$ 就接近零；如果不一致，这个误差就偏离零，优化器就会努力把它拉回去。</p>
+      <p>于是总体目标函数自然写成：</p>
+      <div class="formula-box">$$ \min_{\{\xi\}} \frac{1}{2}\sum_{(i,j)\in\mathcal{E}} e_{ij}^T \Sigma_{ij}^{-1} e_{ij}. \tag{11.11} $$</div>
+      <p>你可以把它和第六讲的最小二乘、第十讲的 BA 对照着看：形式几乎没有变，<strong>真正变化的是误差项的来源</strong>。第十讲的误差来自像素重投影，这里变成了位姿与位姿之间的相对变换误差。</p>
+    </section>
+
+    <section class="section-card" id="jacobian-intuition">
+      <h2>3. 为什么又回到了第四讲的李代数</h2>
+      <p>第十一讲重新把李代数拿出来，并不是为了重复第四讲，而是因为位姿图的优化变量本身就是位姿。只要变量生活在 $SE(3)$ 上，扰动模型和求导就绕不开李群李代数。</p>
+      <p>对 $\xi_i$ 和 $\xi_j$ 分别加左扰动之后，书里给出的关键结果是：</p>
+      <div class="formula-box">$$ \frac{\partial e_{ij}}{\partial \delta \xi_i} = -J_r^{-1}(e_{ij})\,\mathrm{Ad}(T_j^{-1}), \qquad \frac{\partial e_{ij}}{\partial \delta \xi_j} = J_r^{-1}(e_{ij})\,\mathrm{Ad}(T_j^{-1}). \tag{11.8-11.9} $$</div>
+      <p>看起来硬，但意思其实不神秘：<strong>一条边同时约束两个位姿</strong>，所以它对前一个位姿的导数和对后一个位姿的导数，结构上天然相反。你甚至可以把它想象成“拉同一根弹簧的两头，方向自然相反”。</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>为什么会出现伴随矩阵 $\mathrm{Ad}$</h4>
+          <p>因为扰动不是在普通欧氏空间里随便平移，而是在李群元素之间做“搬运”。伴随矩阵描述的正是这种小量在不同位姿坐标系之间的传播。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么常把 $J_r^{-1}$ 近似成 $I$</h4>
+          <p>当误差已经比较小时，这样做计算更简单、工程上也常常够用。但它本质上是近似，不是定义本身。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个系统只保留位姿节点，不再优化路标点，它最直接减少的是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，这正是 Pose Graph 能在大场景下显著变轻的第一原因。" onclick="lessonKit.answer(this, 'quiz-0066')">减少优化变量数量</button>
+          <button data-correct="no" data-explanation="分辨率和位姿图不是同一层的问题。" onclick="lessonKit.answer(this, 'quiz-0066')">减少相机分辨率</button>
+          <button data-correct="no" data-explanation="未必。很多 Pose Graph 仍然由特征法前端提供约束。" onclick="lessonKit.answer(this, 'quiz-0066')">让前端不再需要特征点</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0066"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>一句话理解</h4>
+          <p>位姿图就是把“地图点的复杂性”压缩成“位姿间的约束”，从而让全局后端更可扩展。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和第十讲的边界</h4>
+          <p>第十讲讲的是“怎么精细优化”；这一课讲的是“什么时候应该更粗但更稳地优化”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>下一课预告</h4>
+          <p>下一节我们不再只谈公式，而是把书里的 g2o 球形例子、李代数自定义顶点边和实际结果真正串起来。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            用自己的话解释：为什么“舍弃路标点优化”并不等于“路标点没有价值”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为路标点已经在前端匹配和相对位姿估计阶段提供了约束，只是到全局优化阶段，我们把这些约束折叠成位姿边，而不是继续把每个路标点都作为显式变量带着跑。</div>
+            </details>
+          </li>
+          <li>
+            把式 (11.3) 读成自然语言，不要直接抄公式。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>可以读成：当前估计出来的相对位姿 $T_i^{-1}T_j$，与观测给出的相对位姿 $\Delta T_{ij}$ 之间，还差多少；这个“差多少”被用李代数向量形式写成误差。</div>
+            </details>
+          </li>
+          <li>
+            想一想：如果系统已经出现明显回环，Pose Graph 比单纯里程计更有优势的根本原因是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它允许把“当前位置和很久以前某位置其实是同一地点”这种长程约束直接放进图里，从而纠正纯里程计不断累积的漂移。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0065-第十讲-g2o与Ceres实践BA与章节总结.html">← 第十讲 · g2o 与 Ceres 实践 BA</a>
+        <a class="next" href="0067-第十一讲-g2o位姿图优化实践.html">g2o 位姿图优化实践 →</a>
+      </div>
+      <p class="foot-note">这节课如果哪一步还想更慢一点，我们就把那一步再拆开讲一遍 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

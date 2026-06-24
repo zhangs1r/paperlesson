@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第二讲 · SLAM系统框架与核心模块 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第二讲 · 初识SLAM / Lesson 1</div>
+      <h1>第二讲 · SLAM 系统框架与核心模块</h1>
+      <p class="subtitle">从一台“小萝卜”机器人出发，把视觉 SLAM 先看成一套完整系统，而不是一堆散碎算法。🤖</p>
+      <div class="hero-meta">
+        <span>🔗 衔接前言里的全书地图</span>
+        <span>🏗️ 这一讲先立系统骨架</span>
+        <span>📍 后面各讲都会回到这里</span>
+      </div>
+      <div class="toc">
+        <a href="#robot">小萝卜故事</a>
+        <a href="#sensors">三类视觉传感器</a>
+        <a href="#framework">经典框架</a>
+        <a href="#drift">累计漂移</a>
+        <a href="#maps">地图类型</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="robot">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>先别急着推公式。我们先把一个视觉 SLAM 系统的整体骨架看清楚：输入什么，模块怎么分，各模块各自负责什么，为什么它们必须协同工作。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>前言告诉我们整本书在学什么；这一课开始把那张“全书地图”落实成第一张真正的系统框图。之后第 3 到第 6 讲学的数学，都会服务于这里的某个模块。</p>
+        </div>
+      </div>
+      <p>书里这讲最适合用“小萝卜”来理解。你可以把它想象成一台带着相机和计算单元的小机器人，我们希望它在一个陌生房间里自己走动，并且随时知道两件事：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>定位</h4>
+          <p>我现在在哪？我的朝向是什么？</p>
+        </div>
+        <div class="mini-card">
+          <h4>建图</h4>
+          <p>这个房间长什么样？哪些地方能走，哪些地方有障碍？</p>
+        </div>
+      </div>
+      <p>这其实就是 SLAM 四个字母背后的直接含义：<strong>Simultaneous Localization and Mapping</strong>，同步定位与地图构建。</p>
+      <p>而最重要的一点是：这两个问题不是分开的。因为定位通常需要地图当参照，建图又依赖当前位置是否估得准。所以它们天然耦合，不能简单拆开各做各的。</p>
+    </main>
+
+    <section class="section-card" id="sensors">
+      <h2>1. 如果都叫“视觉 SLAM”，为什么相机还分很多种</h2>
+      <p>书里这一段不是在列硬件目录，而是在帮你建立“不同传感器带来不同难题”的感觉。最常见的三类视觉传感器是：</p>
+      <table>
+        <thead>
+          <tr><th>类型</th><th>如何获得深度</th><th>优势</th><th>典型问题</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>单目</td><td>单张图没有深度，需要靠运动恢复</td><td>结构最简单、成本最低</td><td>尺度不确定性最突出</td></tr>
+          <tr><td>双目</td><td>靠左右视差恢复深度</td><td>天然具备尺度信息</td><td>视差计算较重，标定要求更高</td></tr>
+          <tr><td>RGB-D</td><td>传感器直接测深度</td><td>深度获取直接、对纹理要求低</td><td>量程有限、室外容易受干扰</td></tr>
+        </tbody>
+      </table>
+      <p>书里特别强调单目的一件事：<strong>它会遇到尺度不确定性</strong>。如果只看一张图，你无法区分“很大的物体在远处”和“很小的物体在近处”，因为它们在图像中的投影可能完全一样。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{单张图像} \Longrightarrow \text{方向信息较强，但绝对尺度信息缺失} $$</div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你想最快消除“单目尺度不确定性”，下面哪种补充信息最直接？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。已知物体真实大小、本体 IMU、双目基线、RGB-D 深度，本质上都在补“绝对尺度”这一维信息。" onclick="lessonKit.answer(this, 'quiz-0015-a')">给系统一个已知尺度参照</button>
+          <button data-correct="no" data-explanation="更高清并不会自动提供绝对尺度。" onclick="lessonKit.answer(this, 'quiz-0015-a')">把分辨率调高</button>
+          <button data-correct="no" data-explanation="算得更快不等于信息更多。" onclick="lessonKit.answer(this, 'quiz-0015-a')">换更快 CPU</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0015-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="framework">
+      <h2>2. 经典视觉 SLAM 框架：后面整本书都在填这张图</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/012206f544aa62655a64182b5c288157a849901fd0c253349a2f896e2beeea59.jpg" alt="图 2-7 整体视觉 SLAM 流程图">
+        <figcaption>图 2-7 经典视觉 SLAM 框架。后面第 7 到第 14 讲，本质上都在展开这张图里的某一块。</figcaption>
+      </figure>
+      <p>这一讲最核心的学习成果，就是把这五个模块的职责分清：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>1. 传感器信息读取</h4>
+          <p>读取相机图像以及可能存在的 IMU、编码器等数据，并做时间同步与预处理。</p>
+        </div>
+        <div class="mini-card">
+          <h4>2. 视觉里程计（前端）</h4>
+          <p>快速估计相邻帧之间的相机运动，维护局部地图，提供轨迹初值。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3. 后端优化</h4>
+          <p>整合前端观测和回环信息，做全局一致性优化。这部分和第 6、10、11 讲联系最紧。</p>
+        </div>
+        <div class="mini-card">
+          <h4>4. 回环检测</h4>
+          <p>判断“我是不是回到以前来过的地方”，为后端提供长程约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>5. 建图</h4>
+          <p>把前面估计出的结构和轨迹组织成应用真正能用的地图表达。</p>
+        </div>
+      </div>
+      <p>这里特别要抓住一个分界线：<strong>前端负责快，后端负责稳</strong>。前端往往要实时响应，后端则更关心全局一致和抗噪声能力。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{传感器数据} \rightarrow \text{前端初值} \rightarrow \text{后端校正} \rightarrow \text{地图输出} $$</div>
+      </div>
+    </section>
+
+    <section class="section-card" id="drift">
+      <h2>3. 为什么只靠前端不够：累计漂移几乎不可避免</h2>
+      <p>书里这里讲得很直白：如果每次位姿估计都有一点小误差，那么这些误差会不断串起来，最后把整条轨迹拉歪。这就是<strong>累计漂移</strong>。</p>
+      <p>你可以把它想成这样：第一次转弯差了 1 度，第二次再在这个错掉的参考上继续估，后面所有估计都会受影响。久而久之，走廊不直了，直角不直了，整张地图都变形了。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/7a7809d11724ab58d04c23eeca1e3b4e14e1c4d025e3f76bec0d9da61e81b330.jpg" alt="图 2-9 累计误差与回环校正">
+        <figcaption>图 2-9 累计误差与回环校正。它其实预告了后面第 10、11、12 讲要解决的三件事：优化、位姿图和回环。</figcaption>
+      </figure>
+      <p>所以这张框图里最不能被忽视的，是两根“救命线”：</p>
+      <ul>
+        <li><strong>回环检测</strong>：告诉系统“你其实回到了以前来过的地方”</li>
+        <li><strong>后端优化</strong>：利用这个长程约束把全局轨迹重新拉正</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="maps">
+      <h2>4. “地图”不是一个单一答案：度量地图和拓扑地图</h2>
+      <p>这讲最后一块非常重要，因为它其实在提前埋第十三讲的伏笔：书里说“地图”时，并不总是同一种东西。</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>度量地图</h4>
+          <p>关心精确位置关系。可以是稀疏路标地图，也可以是稠密地图，适合定位、测量和几何推理。</p>
+        </div>
+        <div class="mini-card">
+          <h4>拓扑地图</h4>
+          <p>关心连通关系和结构关系，比如“从 A 房间能到 B 房间”，不一定保存高精度几何。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/d493d7af84259b7f56971a448f14e6ee607ec421922cd431ee7585f6359024a4.jpg" alt="度量地图">
+        <figcaption>图 2-10 中的一类度量地图示例。后面第 13 讲会重新回到“地图到底该长什么样”这个问题。</figcaption>
+      </figure>
+      <p>这里先不用把所有地图类型背死。只要先抓住一句话：<strong>不同应用，对地图的要求不同</strong>。后面你会慢慢看到，视觉里程计偏爱稀疏表示，导航更爱占据图，重建更爱点云和表面模型。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>系统骨架</h4>
+          <p>传感器读取、前端、后端、回环、建图，这五块构成经典视觉 SLAM 框架。</p>
+        </div>
+        <div class="mini-card">
+          <h4>核心矛盾</h4>
+          <p>前端要快，后端要稳；局部估计会漂，全局一致性要靠回环和优化兜底。</p>
+        </div>
+        <div class="mini-card">
+          <h4>后文伏笔</h4>
+          <p>第 3 到第 6 讲在补数学工具，第 7 到第 14 讲则是在一块块填这张系统框图。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说“定位”和“建图”是耦合问题，而不是两个完全独立的问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为定位通常要借助地图作为参照，而地图的构建又依赖当前位置是否估得准。位置错了，地图也会跟着错；地图不准，位置估计也会更难收敛。</div>
+            </details>
+          </li>
+          <li>
+            为什么前端和后端通常要分开理解？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前端更强调实时响应和局部估计，后端更强调全局一致性和抗噪声优化。它们面对的时间尺度和目标重点并不一样。</div>
+            </details>
+          </li>
+          <li>
+            如果没有回环检测，一个长时间运行的视觉 SLAM 系统最容易出现什么结构性问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最容易出现累计漂移，导致原本直的结构变弯、原本闭合的轨迹无法闭合，最终全局地图和轨迹失去一致性。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0014-第一讲-前言.html">← 前言</a>
+        <a class="next" href="0016-第二讲-SLAM的数学表述.html">SLAM 的数学表述 →</a>
+      </div>
+      <p class="foot-note">这一讲先把骨架立起来。后面你学到的每个公式、每段代码，最后都要回到这张系统图上找位置 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

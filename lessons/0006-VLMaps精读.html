@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 6 课 · VLMaps — E2Map 的建图基础</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  body.reading { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .2rem; }
+  .lesson-header .subtitle { font-size: .9rem; color: var(--ink-60); font-family: var(--font-serif); font-style: italic; }
+  .lesson-header .meta { display: flex; gap: .6rem; font-size: .8rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.25rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-size: 1.05rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+  .story-box { background: #f9f6f0; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .story-box .label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+  .analogy { background: #eff6ef; border-left: 4px solid var(--success); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .analogy strong { color: var(--success); }
+  .highlight-box { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .highlight-box strong { color: var(--accent-deep); }
+  .e2map-link { background: #f0eaf8; border-left: 4px solid #8b5cf6; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .9rem; }
+  .e2map-link strong { color: #6d28d9; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .two-col .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+  .two-col .card .num { font-size: 1.2rem; font-weight: 700; color: var(--accent); display: block; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .85rem; }
+  th, td { border: 1px solid var(--border); padding: .4rem .6rem; text-align: left; }
+  th { background: var(--paper); font-weight: 700; color: var(--ink-80); }
+  tr:nth-child(even) { background: var(--paper-light); }
+  .code-block { background: #2d2d3f; color: #e4e4e4; padding: .7rem 1rem; border-radius: 6px; margin: .8rem 0; font-family: var(--font-mono); font-size: .82rem; line-height: 1.5; overflow-x: auto; }
+  .code-block .comment { color: #6a9955; }
+  .code-block .keyword { color: #569cd6; }
+  .code-block .string { color: #ce9178; }
+  .paper-ref { display: inline-block; font-size: .75rem; color: var(--ink-40); background: var(--paper); padding: .05rem .4rem; border-radius: 3px; border: 1px solid var(--border); }
+  .nav-links { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav-links a { color: var(--accent-deep); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+  .quiz-item { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+  .quiz-item h4 { color: var(--accent-deep); margin: 0 0 .4rem; font-size: .9rem; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="reading">
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>🗺️ 第 6 课：VLMaps —— E2Map 的建图基础</h1>
+  <div class="subtitle">Visual Language Maps for Robot Navigation · ICRA 2023 · Huang, Mees, Zeng, Burgard</div>
+  <div class="meta">
+    <span>⏱ 20 分钟</span>
+    <span>🔗 <a href="https://vlmaps.github.io" target="_blank">项目主页</a></span>
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<div class="story-box">
+  <div class="label">🎯 这节课的目标</div>
+  <p style="margin:0;font-size:.92rem;">
+    你不是要学 VLMaps 本身——你是要弄懂 <strong>E2Map 的建图部分到底是怎么工作的</strong>。
+    所以这节课不讲论文里的每张表每句话，只讲一件事：<strong>VLMaps 做了什么、为什么 E2Map 选择了它、它有什么不够的地方让 E2Map 来补</strong>。
+  </p>
+</div>
+
+<!-- ================================================================== -->
+<h2>1. 一句话说清 VLMaps 在干嘛</h2>
+
+<p>想象你让一个机器人去办公室"帮我拿沙发右边的那个包"。</p>
+
+<p>以前的机器人听到这句话，脑子里有两个问题是分开的：</p>
+<ul>
+  <li><strong>"沙发"是什么？</strong>—— 这得靠视觉模型去识别</li>
+  <li><strong>"沙发右边"在哪里？</strong>—— 这得靠地图去算位置</li>
+</ul>
+
+<p>问题是，<strong>视觉识别和建图是两套系统，各干各的</strong>。视觉模型说"那里有个沙发"，地图说"这里是坐标 (3,5)"，但两者对不上号——视觉不知道沙发在地图上的哪个格子，地图也不知道"沙发"长什么样。</p>
+
+<div class="highlight-box">
+  <strong>VLMaps 的核心创意：</strong>把视觉模型和地图<strong>揉到一起</strong>。
+  让地图的每个格子不仅存"这里有没有东西"，还存"<strong>这里的东西长什么样（用特征向量描述）</strong>"。
+  这样一来，你问"沙发"，地图自己就能告诉你沙发在哪儿。
+</div>
+
+<p>用大白话说：<strong>VLMaps = 给地图配了一本"看图识字词典"</strong>。地图上的每个位置都标注了"这个位置看起来像什么"，所以你可以用自然语言去查。</p>
+
+<!-- ================================================================== -->
+<h2>2. 它是怎么做到的？—— 三个步骤</h2>
+
+<div class="story-box">
+  <div class="label">💡 用你熟悉的 E2Map 来对标</div>
+  <p style="margin:0;font-size:.9rem;">
+    你在 E2Map 里学到的建图部分：<br>
+    \(\mathcal{M} \in \mathcal{R}^{\bar{H} \times \bar{W} \times (C_{lang} + C_{emo})}\)<br>
+    前面 \(C_{lang}\) 维存的就是 VLMaps 的特征，后面 \(C_{emo}\) 维是 E2Map 独创的"情绪参数"。<br>
+    <strong>所以 VLMaps 就是 E2Map 去掉情绪部分剩下的那半张图。</strong>
+  </p>
+</div>
+
+<h3>步骤 1：机器人先"逛一圈"</h3>
+<p>机器人带着 RGB-D 相机在环境里走一遍。每走一步，都拍一张照片，同时记录自己在哪里（里程计）。这一步跟任何 SLAM 建图没有本质区别。</p>
+
+<h3>步骤 2：给每张照片打上"语义标签"</h3>
+<p>关键来了：对每张照片，VLMaps 不用传统的语义分割（只能认出预先定好的几个类别），而是用一个叫 <strong>LSeg</strong> 的模型，给<strong>每个像素</strong>算一个"特征向量"。</p>
+
+<div class="analogy">
+  <strong>🎯 类比：</strong>LSeg 像是一个"万能翻译器"。你不需要教它"沙发就是棕色、软软的那个"——只要你告诉它"沙发"这个词，它就能把照片里像沙发的区域标出来。而且你换成任何词（"茶几"、"盆栽"、"垃圾桶"）它都认识。
+  这就是所谓的 <strong>"开放词汇"</strong>：不需要预定义类别列表。
+</div>
+
+<h3>步骤 3：把像素特征"贴"到地图上</h3>
+<p>每张照片每个像素都有：</p>
+<ul>
+  <li>一个 <strong>3D 位置</strong>（从深度图 + 相机位姿算出来的）</li>
+  <li>一个 <strong>特征向量</strong>（从 LSeg 算出来的，表示"这个像素像什么"）</li>
+</ul>
+<p>VLMaps 就把这两个信息合到一起：把每个像素的特征向量"贴"到对应的 3D 位置上。同一个位置被多张照片拍到，就<strong>把特征取个平均</strong>。</p>
+
+<p>最终得到：一张 2D 俯视图，每个格子存一个多维特征向量。<br>
+你问"沙发"，就把"沙发"这个词也转成向量，跟地图每个格子的向量比一比，<strong>最像的那个格子就是沙发的位置</strong>。</p>
+
+<div class="e2map-link">
+  <strong>🔗 跟 E2Map 的关系：</strong>E2Map 的建图步骤跟这个一模一样。区别是 E2Map 在每个格子上<strong>额外</strong>存了一组"情绪参数"（高斯分布的均值和协方差），用来记录"机器人在这里经历过什么不好的事"。
+</div>
+
+<!-- ================================================================== -->
+<h2>3. 论文核心图表（带讲解）</h2>
+
+<p>下面是论文最重要的几张图，配上注释，帮你一眼看懂。</p>
+
+<h3>图 1：VLMaps 整体概念</h3>
+<div style="text-align:center;margin:1rem 0;">
+  <a href="assets/vlmaps_cover.png" target="_blank">
+    <img src="assets/vlmaps_cover.png" alt="VLMaps 概念图" style="max-width:100%;border:1px solid var(--border);border-radius:6px;">
+  </a>
+</div>
+<ul style="font-size:.88rem;">
+  <li><strong>左上角</strong>：用户用自然语言下达指令——"先走到植物那里，再往南 3 米，然后去键盘和碗之间"</li>
+  <li><strong>绿线</strong>：把指令里的名词（plant, keyboard, bowl）连接到真实场景中的对应物体（语义锚定）</li>
+  <li><strong>红色路径</strong>：机器人规划出的完整轨迹</li>
+  <li><strong>核心信息</strong>：VLMaps 能把一句包含<strong>空间关系</strong>的自然语言指令，转换成机器人可执行的导航路径</li>
+</ul>
+
+<h3>图 2：系统架构（最重要的一张图）</h3>
+<div style="text-align:center;margin:1rem 0;">
+  <a href="assets/vlmaps_pipeline.png" target="_blank">
+    <img src="assets/vlmaps_pipeline.png" alt="VLMaps Pipeline" style="max-width:100%;border:1px solid var(--border);border-radius:6px;">
+  </a>
+</div>
+<p style="font-size:.88rem;">这张图展示了整个 VLMaps 的工作流程，分左右两半：</p>
+<table style="font-size:.85rem;">
+  <tr><th style="width:12%;">半区</th><th style="width:28%;">步骤</th><th>说明</th></tr>
+  <tr>
+    <td rowspan="4"><strong>左<br>建图</strong></td>
+    <td>① 输入 RGB + 深度</td>
+    <td>机器人边走边拍 RGB 图，同时记录深度和位姿</td>
+  </tr>
+  <tr>
+    <td>② LSeg 视觉编码器</td>
+    <td>把 RGB 图的<strong>每个像素</strong>转成一个特征向量 \(q_{ij}\)，输出 \(H \times W \times C\) 特征网格</td>
+  </tr>
+  <tr>
+    <td>③ 3D 点云重建</td>
+    <td>深度图 + 位姿 → 全局点云。每个 3D 点关联对应的像素特征</td>
+  </tr>
+  <tr>
+    <td>④ 俯视投影</td>
+    <td>把 3D 点云投影到 2D 栅格，每个格子的特征是多个视角的平均 → <strong>最终 VLMaps \(\mathcal{M}\)</strong></td>
+  </tr>
+  <tr>
+    <td rowspan="3"><strong>右<br>索引</strong></td>
+    <td>⑤ LSeg 文本编码器</td>
+    <td>把你要查的词（如"chair"）编码成同样维度的文本特征向量 \(e_k\)</td>
+  </tr>
+  <tr>
+    <td>⑥ 相似度计算</td>
+    <td>计算地图每个格子的视觉特征和文本特征的<strong>余弦相似度</strong></td>
+  </tr>
+  <tr>
+    <td>⑦ 取最大值 → 分割图</td>
+    <td>每个格子选相似度最高的类别，生成俯视语义分割图（沙发=红色、地板=蓝色……）</td>
+  </tr>
+</table>
+<div class="analogy" style="font-size:.85rem;">
+  <strong>💡 简单理解：</strong>左边的流程相当于"机器人走一圈、把看到的东西都记下来"。
+  右边的流程相当于"你问'沙发在哪'，地图查一查自己的笔记，告诉你'这里'"。
+</div>
+
+<h3>图 3：真实世界实验</h3>
+<div style="text-align:center;margin:1rem 0;">
+  <a href="assets/vlmaps_realworld.png" target="_blank">
+    <img src="assets/vlmaps_realworld.png" alt="VLMaps 真实世界实验" style="max-width:100%;border:1px solid var(--border);border-radius:6px;">
+  </a>
+</div>
+<p style="font-size:.88rem;">
+  左半：机器人（LoCoBot）在办公室环境中执行"走到盆栽那里"的指令，红色路径是 VLMaps 规划的轨迹。<br>
+  右半：三种不同的空间导航任务——"到椅子左边"、"在沙发和电视之间"、"到桌子南侧 3 米处"。<br>
+  <strong>关键点：</strong>这些任务在真实场景中都成功了，说明 VLMaps 能迁移到真实世界。
+</p>
+
+<h3>图 4：多形态障碍地图</h3>
+<div style="text-align:center;margin:1rem 0;">
+  <a href="assets/vlmaps_multiembodiment.png" target="_blank">
+    <img src="assets/vlmaps_multiembodiment.png" alt="多形态障碍地图" style="max-width:100%;border:1px solid var(--border);border-radius:6px;">
+  </a>
+</div>
+<ul style="font-size:.88rem;">
+  <li><strong>左</strong>：同一张 VLMaps 俯视图，彩色部分是不同物体的分割</li>
+  <li><strong>中</strong>：为<strong>地面机器人（LoCoBot）</strong>生成的障碍地图——桌子、椅子、墙都是障碍（灰色）</li>
+  <li><strong>右</strong>：为<strong>无人机</strong>生成的障碍地图——桌子可以飞越（变白了），天花板灯和柜子才是障碍</li>
+  <li><strong>核心信息</strong>：同一张 VLMaps，只改"障碍物列表"，就能为不同形态的机器人服务，<strong>不需要重新建图</strong></li>
+</ul>
+
+<!-- ================================================================== -->
+<h2>4. 机器人拿到这张地图后怎么用？</h2>
+
+<p>VLMaps 的导航方式和 E2Map 不一样，但思路值得了解：</p>
+
+<p>VLMaps 用 <strong>LLM（当时用的是 OpenAI Codex）</strong> 来当"大脑"。你把自然语言指令告诉 LLM，LLM 把它翻译成一段 Python 代码，调用一组<strong>导航原语</strong>来执行。</p>
+
+<div class="code-block">
+<span class="comment"># 你说："在沙发和书架之间来回走 3 次"</span><br>
+pos1 = robot.get_pos(<span class="string">'couch'</span>)<br>
+pos2 = robot.get_pos(<span class="string">'bookshelf'</span>)<br>
+<span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="string">3</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;robot.move_to(pos1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;robot.move_to(pos2)
+</div>
+
+<p>其中 <code>get_pos('couch')</code> 就是去查 VLMaps —— 把 'couch' 编码成向量，在地图上找到最匹配的位置。有了位置，其他都是简单的几何计算（左边、右边、中间、三米外）。</p>
+
+<div class="highlight-box">
+  <strong>⚠️ 注意：</strong>E2Map 的导航方式不一样。E2Map 用的是"LLM 选目标 → D* 规划（把情绪值当路费）→ MPPI 控制"，比 VLMaps 的方式更复杂。原因很简单：VLMaps 只在静态环境工作，不需要考虑"这个区域上次去出了事"，但 E2Map 需要。
+</div>
+
+<!-- ================================================================== -->
+<h2>5. 实验部分：只要知道三件事就够了</h2>
+
+<p>论文的实验细节很多，但对理解 E2Map 来说，你只需要知道三个对比结果：</p>
+
+<div class="two-col">
+  <div class="card">
+    <strong>🥇 VLMaps 比以前的方案强多少？</strong>
+    <p style="font-size:.85rem;margin-top:.3rem;">
+      多目标导航成功率：<strong>VLMaps 93%</strong> vs CoW 63% vs LM-Nav 70%<br>
+      空间关系指令：VLMaps <strong>80-100%</strong>，LM-Nav <strong>0-20%</strong>（几乎全挂）
+    </p>
+  </div>
+  <div class="card">
+    <strong>🔬 LSeg 和 CLIP 差多远？</strong>
+    <p style="font-size:.85rem;margin-top:.3rem;">
+      用 LSeg（逐像素特征）→ 空间目标成功率 <strong>92%</strong><br>
+      用 CLIP（整图特征）→ 空间目标成功率 <strong>36%</strong><br>
+      <strong>结论：稠密的逐像素特征对空间定位至关重要。</strong>
+    </p>
+  </div>
+</div>
+
+<div class="analogy">
+  <strong>🤔 第一条数据为什么重要（尤其是对你汇报 E2Map 来说）：</strong>
+  LM-Nav 在"到椅子左边"这类指令上几乎全失败——因为它只有拓扑图（点对点的连接关系），没有"椅子在哪里、椅子多宽、左边在哪个方向"这种稠密空间信息。
+  <strong>E2Map 继承了 VLMaps 的稠密特征，所以也能处理这类空间指令。</strong>
+  换句话说：如果 E2Map 用的是 LM-Nav 的建图方式，它连"沙发右边"都找不到，更别提叠加情绪了。
+</div>
+
+<!-- ================================================================== -->
+<h2>6. VLMaps 的短板 = E2Map 的起点</h2>
+
+<p>论文自己承认了三个局限。而你学过 E2Map，可以看看 E2Map 是怎么针对这些短板做改进的：</p>
+
+<table>
+  <tr><th style="width:25%;">VLMaps 的短板</th><th style="width:35%;">具体问题</th><th style="width:40%;">E2Map 怎么改进的</th></tr>
+  <tr>
+    <td><strong>🔴 它是静态的</strong></td>
+    <td>建好图就不能变了。环境变化（突然冒出个箱子）它不知道</td>
+    <td>E2Map 的事件触发更新机制——出事就改，地图会"成长"</td>
+  </tr>
+  <tr>
+    <td><strong>🔴 没有记忆</strong></td>
+    <td>同一条路走 10 次，每次都是从头规划。不会说"上次在这摔了一跤"</td>
+    <td>E2Map 的情绪参数就是"记忆"——高斯分布的协方差会记录"这里危险"</td>
+  </tr>
+  <tr>
+    <td><strong>🔴 物体多了会糊涂</strong></td>
+    <td>房间里放两个一样的沙发，VLMaps 分不清哪个是哪个</td>
+    <td>E2Map 也有这个问题，论文说了这是 future work</td>
+  </tr>
+</table>
+
+<div class="e2map-link">
+  <strong>💎 一句话总结：</strong>VLMaps 告诉机器人"<strong>环境里有什么、在哪儿</strong>"。<br>
+  E2Map 在此基础上加了"<strong>这里去过、出了什么事、下次小心</strong>"。
+</div>
+
+<!-- ================================================================== -->
+<h2>7. 复习</h2>
+
+<div class="quiz-item">
+  <h4>💬 如果你能用大白话回答这个问题，就算真懂了</h4>
+  <p style="font-size:.9rem;">
+    <strong>"VLMaps 和传统语义地图（比如给每个格子标上"沙发""桌子""地板"）有什么区别？"</strong>
+  </p>
+  <details style="font-size:.85rem;color:var(--ink-60);margin-top:.5rem;">
+    <summary style="cursor:pointer;color:var(--accent-deep);">看看你想的是不是这个</summary>
+    <p>
+      传统语义地图：每个格子只能标一个<strong>标签</strong>（比如"沙发"），而且这些标签是<strong>事先定死的</strong>——建图的时候只认得这 10 类物体。<br><br>
+      VLMaps：每个格子存一个<strong>特征向量</strong>（一个高维的数字串），这个向量编码了"这个位置看起来像什么"。你事后想查什么物体，就把那个物体的名字编码成向量，跟格子里的向量比一比。<br><br>
+      好处：<strong>不需要事先决定要识别哪些物体</strong>。今天查"沙发"，明天查"盆栽"，后天查"宜家买的那个蓝色懒人沙发"——都行。
+    </p>
+  </details>
+</div>
+
+<div class="quiz-item">
+  <h4>🎤 组会场景题</h4>
+  <p style="font-size:.9rem;">
+    组会上有人问："E2Map 的情绪场看起来挺有意思，但它依赖的 VLMaps 本身有没有什么问题？万一 VLMaps 建图就建错了呢？" 你怎么应对？
+  </p>
+  <details style="font-size:.85rem;color:var(--ink-60);margin-top:.5rem;">
+    <summary style="cursor:pointer;color:var(--accent-deep);;">参考回答思路</summary>
+    <p>
+      这是个好问题。可以从两个层面回答：<br><br>
+      ① <strong>承认局限：</strong>VLMaps 对 SLAM 漂移和重建噪声敏感，如果建图时相机轨迹不准，特征会对偏。这是所有基于重建的方法的通病。<br><br>
+      ② <strong>E2Map 的缓解：</strong>有趣的是，E2Map 的情绪更新机制某种程度上能<strong>弥补</strong>建图误差——即使建图有偏差，只要机器人实际走过去感觉到了"不对"，情绪场就会在正确的位置附近形成"危险区域"，引导后续绕行。所以 E2Map 对建图质量的敏感度比纯 VLMaps 要低。
+    </p>
+  </details>
+</div>
+
+<hr style="margin:1.5rem 0;">
+
+<div style="background:var(--accent-dim);border-radius:8px;padding:1rem;text-align:center;">
+  <p style="margin:0;font-size:.92rem;">
+    <strong>💬 有什么不清楚的随时问</strong><br>
+    <span style="font-size:.82rem;color:var(--ink-60);">特别是 VLMaps 和 E2Map 建图部分的对应关系，如果哪个环节还不清楚，我换个角度再讲一遍。</span>
+  </p>
+</div>
+
+<div class="nav-links">
+  <a href="0005-深入问答.html">← 第 5 课：E2Map 深入问答</a>
+  <a href="../index.html">返回主页 ↑</a>
+</div>
+
+</body>
+</html>

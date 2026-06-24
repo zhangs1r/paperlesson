@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · PnP 理论基础 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 5</div>
+      <h1>PnP 理论基础</h1>
+      <p class="subtitle">当上一课已经用三角化或深度图给出 3D 点之后，位姿估计就不必继续困在 2D-2D 里了。PnP 这条路线更稳定、没有单目尺度歧义，也是第九讲 VO 主循环里最常见的位姿求解器。📍</p>
+      <div class="hero-meta">
+        <span>📷 直接复用第五讲投影模型</span>
+        <span>🧮 与第六讲非线性优化天然衔接</span>
+        <span>🏗️ 第九讲 <code>poseEstimationPnP()</code> 的理论底座</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么 PnP 会成为主力</a>
+        <a href="#dlt">DLT 的线性思路</a>
+        <a href="#p3p">P3P 的几何直觉</a>
+        <a href="#epnp">EPnP 与工程实践</a>
+        <a href="#compare">和 2D-2D、3D-3D 的关系</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>搞清楚 PnP 到底在解什么、为什么它会在单目初始化后成为主力位姿估计方法，以及书里提到的 DLT / P3P / EPnP 之间是什么关系。</p>
+        </div>
+        <div class="callout">
+          <h4>这节课如何接前文</h4>
+          <p>第五讲给了相机投影模型，上一课给了初始 3D 点。现在我们只差一步：已知这些 3D 点在当前图像里的投影，如何反推出当前相机位姿？</p>
+        </div>
+      </div>
+      <p><span class="term">PnP</span> 是 <em>Perspective-n-Point</em> 的缩写，指的是：给你 $n$ 个三维点，以及它们在一张图像中的二维投影，求出相机位姿 $(R,t)$。</p>
+      <p>和上一课的 2D-2D 相比，它的优势非常实际：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>没有尺度歧义</h4>
+          <p>因为 3D 点已经自带尺度，位姿平移不再只是方向。</p>
+        </div>
+        <div class="mini-card">
+          <h4>不怕纯旋转初始化死局</h4>
+          <p>只要 3D-2D 对应关系存在，就算相机此刻主要在转，也还能解位姿。</p>
+        </div>
+        <div class="mini-card">
+          <h4>更像真实前端循环</h4>
+          <p>系统一旦有了局部地图，后续帧就大多走 3D-2D，而不是每次都重新做 2D-2D 初始化。</p>
+        </div>
+      </div>
+      <p>这就是为什么书里会强调：<strong>PnP 是视觉 SLAM 中最重要的姿态估计方法之一</strong>。第九讲前端代码里，你会真正看到它扛起主流程。</p>
+    </main>
+
+    <section class="section-card" id="dlt">
+      <h2>1. DLT：先把 PnP 线性化</h2>
+      <p>书里先从最朴素的线性思路讲起。设空间点的齐次坐标为 $P=(X,Y,Z,1)^T$，它在归一化平面上的投影为 $x=(u,v,1)^T$。把位姿增广成一个 $3\times4$ 矩阵：</p>
+      <div class="formula-box">$$
+      s
+      \begin{pmatrix}
+      u\\v\\1
+      \end{pmatrix}
+      =
+      \begin{pmatrix}
+      t_1&t_2&t_3&t_4\\
+      t_5&t_6&t_7&t_8\\
+      t_9&t_{10}&t_{11}&t_{12}
+      \end{pmatrix}
+      \begin{pmatrix}
+      X\\Y\\Z\\1
+      \end{pmatrix}.
+      \tag{7.26}
+      $$</div>
+      <p>消去尺度 $s$ 后，每个 3D-2D 对应会给出两个线性约束。所以至少需要 6 对匹配点，才能线性求解出这 12 个未知量。这就是 DLT 的出发点。</p>
+      <p>但这里有个关键坑点：<strong>DLT 把左上角的 3×3 块当一般矩阵解了出来，它未必天然满足旋转矩阵的正交约束</strong>。所以解完以后，你还得把它重新投影回合法的 $SO(3)$ 上。</p>
+      <p>这就是为什么 DLT 常被当成“好用的初值生成器”，而不是终局答案。它快、简单，但还不够精细。</p>
+    </section>
+
+    <section class="section-card" id="p3p">
+      <h2>2. P3P：只用三对点的几何法</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b281483aafd225a52e74beaa85e7273a45a90d5ea6ceab722dce03dbdf0828ba.jpg" alt="原书图7-11 P3P问题示意图">
+        <figcaption>原书图 7-11。它真正想说明的是：P3P 的核心不是“神奇地只用三点”，而是先把三角形之间的距离与角度关系解出来，再把问题转成 3D-3D 对齐。</figcaption>
+      </figure>
+      <p>P3P 的想法非常巧：既然 2D 投影只给我们方向，那就先借助三个已知 3D 点之间的几何关系，求出它们到相机光心的距离，再把这些点还原到相机坐标系里。这样一来，问题就从 3D-2D 变成了 3D-3D。</p>
+      <p>书里的关键式子来自三组余弦定理，例如：</p>
+      <div class="formula-box">$$
+      OA^2 + OB^2 - 2\cdot OA\cdot OB\cdot \cos\langle a,b\rangle = AB^2.
+      \tag{7.29}
+      $$</div>
+      <p>再通过变量代换，把它化成关于两个未知比值的二元二次方程组。这里最重要的结论不是推导细节，而是：</p>
+      <ul>
+        <li>P3P 理论上只需要 3 对点，再加 1 对验证点选解。</li>
+        <li>它往往会得到多个候选解，需要再验证。</li>
+        <li>它对噪声和误匹配比较敏感，不太擅长吃掉多余信息。</li>
+      </ul>
+      <p>所以 P3P 很像一把灵巧的小刀：点数少时很好用，但一旦场景更复杂，工程系统通常会希望换成更稳健的方法。</p>
+    </section>
+
+    <section class="section-card" id="epnp">
+      <h2>3. EPnP：为什么实践里更常见</h2>
+      <p>书里没有把 EPnP 的细节全部铺开，但已经给了你最重要的工程判断：<strong>实际 SLAM 往往先用 P3P / EPnP 给初值，再用 BA 继续拧紧</strong>。</p>
+      <p>和 P3P 相比，EPnP 的优势在于：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>能用更多点</h4>
+          <p>不再只依赖 3 对或 4 对点，而是能吃下更多 3D-2D 约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>速度仍然快</h4>
+          <p>它是为高效位姿估计设计的，适合前端频繁调用。</p>
+        </div>
+        <div class="mini-card">
+          <h4>适合作初值</h4>
+          <p>给后面的 g2o / Ceres 优化提供一个足够靠谱的起点。</p>
+        </div>
+      </div>
+      <p>从系统设计上看，这特别符合第六讲的逻辑：非线性优化很强，但它吃初值；PnP 这类方法的价值，正是在于先把相机位姿拉到正确盆地附近。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么单目系统在初始化后，会更愿意转向 PnP，而不是每一帧都重做 2D-2D？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为一旦有了地图点或深度信息，3D-2D 约束更直接、更稳定，也不再受单目尺度歧义影响。" onclick="lessonKit.answer(this, 'quiz-0050-a')">因为 3D-2D 约束更直接，也没有单目尺度歧义</button>
+          <button data-correct="no" data-explanation="PnP 恰恰需要 3D 信息，不是忽略深度。" onclick="lessonKit.answer(this, 'quiz-0050-a')">因为 PnP 不需要任何 3D 点</button>
+          <button data-correct="no" data-explanation="纯旋转时 PnP 也能用，它并不是只能处理平移。" onclick="lessonKit.answer(this, 'quiz-0050-a')">因为 PnP 只适用于纯平移，不适用于旋转</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0050-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>4. 把 PnP 放回第七讲的大地图里</h2>
+      <p>到这里你可以把三条路线整理成很清楚的分工：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>输入</th>
+            <th>典型用途</th>
+            <th>核心问题</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>对极几何</td>
+            <td>2D-2D</td>
+            <td>单目初始化</td>
+            <td>有尺度歧义，怕纯旋转</td>
+          </tr>
+          <tr>
+            <td>PnP</td>
+            <td>3D-2D</td>
+            <td>后续帧主力位姿估计</td>
+            <td>需要已有地图点或深度</td>
+          </tr>
+          <tr>
+            <td>ICP</td>
+            <td>3D-3D</td>
+            <td>RGB-D / 双目点云对齐</td>
+            <td>依赖两侧深度质量</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>这一课和第九讲的联系尤其直接：第九讲的 VO 前端一旦建立了局部地图，就会反复做“参考帧里的 3D 点 + 当前帧里的 2D 观测 → PnP → 优化”。所以第七讲的 PnP，不是旁枝，而是后面主线的一根大梁。🏗️</p>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 PnP 比 2D-2D 更适合初始化之后的常规跟踪？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它利用了已有 3D 点信息，位姿估计更直接、更稳定，也不再受单目尺度不确定性约束，适合持续帧间跟踪。</div>
+            </details>
+          </li>
+          <li>
+            DLT 的最大优点和最大局限分别是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>优点是线性、实现简单、可快速给出初值；局限是解出的矩阵未必天然满足旋转矩阵约束，需要再投影回合法位姿空间。</div>
+            </details>
+          </li>
+          <li>
+            P3P 为什么常被看作“把 PnP 转成 3D-3D”的方法？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它先通过三角形几何关系恢复 3D 点在相机坐标系中的位置，再把这些位置与世界坐标系里的 3D 点做刚体对齐，本质上就转成了 3D-3D 问题。</div>
+            </details>
+          </li>
+          <li>
+            第六讲优化在 PnP 这条路线上具体扮演什么角色？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>线性或闭式 PnP 给出初值，后续 BA 再最小化重投影误差，把位姿和点的位置一起往更准确的方向调整。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0049-第七讲-对极几何实践与三角测量.html">← 上一课：对极几何实践与三角测量</a>
+        <a class="next" href="0051-第七讲-BundleAdjustment与PnP实践.html">下一课：Bundle Adjustment 与 PnP 实践 →</a>
+      </div>
+      <p class="foot-note">这一课最该留下的理解是：一旦系统拥有了 3D 点，PnP 就会从“选修路线”变成前端的常规主路。📘</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

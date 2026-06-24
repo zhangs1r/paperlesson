@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第三讲 · 其他变换与总结 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第三讲 · 三维空间刚体运动 / Lesson 7</div>
+      <h1>第三讲 · 其他变换与总结</h1>
+      <p class="subtitle">这一节像是第三讲的收束页。前面我们主要围着欧氏变换和旋转表示打转，这里要把视野再抬高一点：看看相似、仿射、射影变换分别比欧氏变换“多放开了什么”，并把整章知识连到第四讲去。📚</p>
+      <div class="hero-meta">
+        <span>🔗 收束 0018-0023</span>
+        <span>🧱 预告 0025 群与李代数的引出</span>
+        <span>📸 引用原书图 3-4 与表 3-1</span>
+      </div>
+      <div class="toc">
+        <a href="#beyond-euclidean">为什么还要看别的变换</a>
+        <a href="#three-more">相似、仿射、射影</a>
+        <a href="#chapter-map">第三讲知识总图</a>
+        <a href="#toward-ch4">通向第四讲的桥</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="beyond-euclidean">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>先把欧氏变换放回更大的“空间变换家族”里看清楚，再把第三讲已经学过的刚体运动表示方式串成一张完整知识图。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>0018 到 0023 基本都在讨论“刚体怎么动而不变形”，也就是欧氏变换世界。这一节先扩一点边界，再把视角收回来，最后把你送到第四讲的李群李代数入口。</p>
+        </div>
+      </div>
+      <p>原书在这里专门补上相似、仿射、射影变换，不是想把第三讲变成一本几何学大全，而是想让你知道：<strong>欧氏变换只是各种空间变换里约束最强、也最适合描述刚体运动的一类</strong>。</p>
+      <p>这很关键。因为 SLAM 的核心任务是估计相机或机器人位姿，它们在理想模型里是刚体，所以我们主要待在 $SE(3)$ 里；但当你看相机成像、单目尺度漂移、图像局部形变时，就会逐渐碰到更宽松的变换类型。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{欧氏变换} \subset \text{相似变换} \subset \text{仿射变换} \subset \text{射影变换} $$</div>
+      </div>
+      <p>这条包含链，就是这一节最值得先放进脑子的结构图。</p>
+    </main>
+
+    <section class="section-card" id="three-more">
+      <h2>1. 三种比欧氏变换更“宽松”的变换</h2>
+      <h3>相似变换：允许整体缩放</h3>
+      <p>原书给出的相似变换形式是：</p>
+      <div class="formula-box">$$
+      \boldsymbol{T}_S =
+      \begin{bmatrix}
+      s\boldsymbol{R} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}. \tag{3.37}
+      $$</div>
+      <p>它和欧氏变换相比，只多了一个统一缩放因子 $s$。这意味着旋转和平移之外，物体还能整体变大或变小。原书举的例子很形象：边长为 1 的立方体可以被变成边长为 10 的立方体，但它仍然是立方体。</p>
+      <p>这一点在后面单目 SLAM 里非常重要，因为单目存在尺度不确定性。也就是说，第四讲后面你再遇到 <code>Sim(3)</code>，它不是突然蹦出来的，而是这一节已经在埋线。</p>
+
+      <h3>仿射变换：允许平行关系保留，但角度长度不再保留</h3>
+      <p>仿射变换写成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{T}_A =
+      \begin{bmatrix}
+      \boldsymbol{A} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}, \qquad \boldsymbol{A}\ \text{只要求可逆}. \tag{3.38}
+      $$</div>
+      <p>注意这里左上角不再要求是正交矩阵，所以它可以拉伸、剪切。原始 OCR 文本里把“仿射变换也叫正交投影”混在一起了，这里我替你校正一下：<strong>仿射变换本身并不等同于正交投影</strong>，更准确地说，它是一类保持直线和平行关系的更一般线性-平移变换。</p>
+      <p>如果你把正方体拿去做仿射变换，它可能不再方了，但面通常还是平行四边形，平行关系还在。</p>
+
+      <h3>射影变换：最一般，也最像真正相机成像</h3>
+      <p>原书把射影变换写成：</p>
+      <div class="formula-box">$$
+      \boldsymbol{T}_P =
+      \begin{bmatrix}
+      \boldsymbol{A} & \boldsymbol{t}\\
+      \boldsymbol{a}^T & v
+      \end{bmatrix}. \tag{3.39}
+      $$</div>
+      <p>这是目前第三讲看到的最一般形式。它不再保持长度、角度、平行关系，只剩下更基础的投影结构关系。原书特别强调：从真实三维世界到相机照片，本质上可以看成射影变换。</p>
+      <p>所以地砖在照片里为什么会“近大远小”、为什么看起来可能不是平行四边形，答案就在这里。</p>
+      <table>
+        <thead>
+          <tr><th>变换</th><th>形式</th><th>自由度</th><th>你现在最该抓住的不变性</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>欧氏变换</td><td>$\begin{bmatrix}\boldsymbol{R}&\boldsymbol{t}\\0^T&1\end{bmatrix}$</td><td>6</td><td>长度、夹角、体积</td></tr>
+          <tr><td>相似变换</td><td>$\begin{bmatrix}s\boldsymbol{R}&\boldsymbol{t}\\0^T&1\end{bmatrix}$</td><td>7</td><td>形状相似、体积比</td></tr>
+          <tr><td>仿射变换</td><td>$\begin{bmatrix}\boldsymbol{A}&\boldsymbol{t}\\0^T&1\end{bmatrix}$</td><td>12</td><td>直线和平行关系</td></tr>
+          <tr><td>射影变换</td><td>$\begin{bmatrix}\boldsymbol{A}&\boldsymbol{t}\\\boldsymbol{a}^T&v\end{bmatrix}$</td><td>15</td><td>投影结构关系</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <h4>为什么这一节不展开太深</h4>
+        <p>因为第三讲的主线仍然是刚体位姿，而不是成像几何。这里知道“相机照片对应射影变换”“单目尺度会把相似变换带进来”就够了，细节会在后面逐渐展开。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="chapter-map">
+      <h2>2. 现在回头看，第三讲其实走了一条很清楚的主线</h2>
+      <p>如果把这一讲之前的内容重新排列，你会发现第三讲并不是“表示法大杂烩”，而是在一步步逼近一个目标：<strong>怎样又严谨、又可算、又方便编程地表达三维刚体运动</strong>。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>0018</h4>
+          <p>从点、向量、坐标系出发，进入旋转矩阵和 $SO(3)$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0019</h4>
+          <p>用齐次坐标把旋转和平移统一成变换矩阵，进入 $SE(3)$ 语境。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0020</h4>
+          <p>把这些矩阵对象搬进 Eigen，建立类型、维度和求解习惯。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0021</h4>
+          <p>用旋转向量和欧拉角，分别解决“紧凑”和“直观”的需求。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0022</h4>
+          <p>引入四元数，寻找更稳健的旋转存储方式。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0023</h4>
+          <p>把各种表示方式在 Eigen 几何模块里彻底打通。</p>
+        </div>
+      </div>
+      <p>原书图 3-4 在这里依然很值得回看，因为它正好像第三讲的“仪表盘”：同一个姿态，用旋转矩阵、欧拉角、四元数三种方式同步显示。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/181cad41778d1044524999354fd5f488b4994211822a9cf7034e154490d6fbef.jpg" alt="第三讲可视化收束图">
+        <figcaption>图 3-4 回看。它最关键的作用是让你意识到：表示法虽然不同，但它们描述的是同一个相机姿态事实。</figcaption>
+      </figure>
+      <p>如果你现在对第三讲做一句话总结，我建议记成：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{同一个三维位姿对象} \quad \Longrightarrow \quad \text{可以有多种表示，而每种表示都有自己的使用场景} $$</div>
+      </div>
+    </section>
+
+    <section class="section-card" id="toward-ch4">
+      <h2>3. 第三讲是怎样把你送到第四讲门口的</h2>
+      <p>第四讲要讲李群和李代数。你如果只记住“那是更难的数学”，其实会有点可惜。因为第三讲已经把所有必要的动机都铺好了：</p>
+      <ul>
+        <li>旋转矩阵和变换矩阵有约束，不方便直接优化</li>
+        <li>旋转向量已经在尝试用局部 3 维量来表示旋转</li>
+        <li>欧拉角过于直观，但会奇异</li>
+        <li>四元数虽然更稳，却仍然不是“无约束优化变量”的最终语言</li>
+      </ul>
+      <p>所以第四讲真正要回答的问题是：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{能不能在不破坏几何意义的前提下，找到更适合局部更新与求导的姿态语言？} $$</div>
+      </div>
+      <p>这就是 0025《群与李代数的引出》要接住的东西。你现在再去看 0021 里的旋转向量，就会发现它已经不是“另一个表示法”，而是在提前训练你接受 so(3) / se(3) 的局部坐标视角。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>第三讲学到这里，第四讲最自然要接着解决什么问题？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。第三讲已经把各种姿态表示的优缺点摆出来了，第四讲正是要回答：怎样在这些受约束几何对象上做局部更新、求导和优化。" onclick="lessonKit.answer(this, 'quiz-0024-a')">怎样在这些位姿对象上做局部增量、求导和优化</button>
+          <button data-correct="no" data-explanation="成像模型会在后面单独展开，不是第四讲的主任务。" onclick="lessonKit.answer(this, 'quiz-0024-a')">怎样把所有图像都变成灰度图</button>
+          <button data-correct="no" data-explanation="第三讲并没有失败，它是在为第四讲递进。" onclick="lessonKit.answer(this, 'quiz-0024-a')">怎样证明第三讲的所有姿态表示都不该用</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0024-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>欧氏之外</h4>
+          <p>相似、仿射、射影变换分别在逐步放松几何约束，其中射影变换和相机成像联系最紧。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三讲主线</h4>
+          <p>整章都在围绕一个问题：怎样表示三维刚体位姿，既有几何意义，又方便计算和编程。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向第四讲</h4>
+          <p>当我们发现现有表示都各有代价时，李群李代数就成为下一步最自然的升级方向。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么作者会在第三讲收尾时补充相似、仿射、射影变换，而不是只讲欧氏变换？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 SLAM 虽然主要处理刚体位姿，但后面会逐渐接触单目尺度、图像成像和局部形变问题，知道欧氏变换在更大变换家族中的位置，有助于后续理解相机模型和 Sim(3) 等概念。</div>
+            </details>
+          </li>
+          <li>
+            第三讲从 0018 到 0023 的主线可以怎样概括？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它在逐步寻找三维刚体运动的合适表示：先有旋转矩阵和齐次变换，再补上 Eigen 实践，然后比较旋转向量、欧拉角、四元数，最后用几何模块把它们在代码里统一起来。</div>
+            </details>
+          </li>
+          <li>
+            第四讲为什么不是突然加难度，而是第三讲的自然延续？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为第三讲已经暴露出核心矛盾：姿态对象有约束、紧凑表示可能奇异、工程上需要局部更新与求导。第四讲的李群李代数正是为了解决这些问题而自然出现的。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0023-第三讲-Eigen几何模块.html">← 第三讲：Eigen 几何模块</a>
+        <a class="next" href="0025-第四讲-群与李代数的引出.html">第四讲：群与李代数的引出 →</a>
+      </div>
+      <p class="foot-note">第三讲到这里真正完成了“把三维位姿说清楚”的任务，第四讲就要开始回答“怎么在它上面动手优化”了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

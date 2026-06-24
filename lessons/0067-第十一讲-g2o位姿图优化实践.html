@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十一讲 · g2o 位姿图优化实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十一讲 · 后端 2 / Lesson 2</div>
+      <h1>第十一讲 · g2o 位姿图优化实践</h1>
+      <p class="subtitle">把书里的“球形位姿图”案例真正看懂：数据格式、原生 SE3 顶点、李代数自定义边，各自都在说明什么。🧪</p>
+      <div class="hero-meta">
+        <span>⚙️ 对应 sphere.g2o 实验</span>
+        <span>🔁 连接第六讲 g2o 与第四讲 Sophus</span>
+        <span>📉 重点读误差下降，不只看球变圆</span>
+      </div>
+      <div class="toc">
+        <a href="#experiment">实验场景</a>
+        <a href="#native-g2o">原生 g2o</a>
+        <a href="#lie-g2o">李代数版本</a>
+        <a href="#read-results">如何读结果</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="experiment">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把书里的 sphere.g2o 例子拆成“数据文件长什么样”“程序怎么读图”“优化器怎么配”“结果怎么看”四步，不再只把它当成一段会跑的代码。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第六讲你已经认识了 g2o，第十讲又用它做了 BA；这一课的难点不在 g2o API 本身，而在于“位姿-位姿约束图”和“李代数节点边”的结合。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/5414e33821222fb88cea1d8461438181e7b3700e39156bd3cfb1643676c25e3a.jpg" alt="图 11-2 球形仿真位姿图">
+        <figcaption>图 11-2 球形仿真位姿图。它之所以经典，是因为你一眼就能看出“优化后有没有回到球形”。</figcaption>
+      </figure>
+      <p>书里故意用一个“看起来不真实”的球形轨迹做演示，不是为了炫技，而是为了让你肉眼可判别优化结果。真实轨迹往往很难判断有没有彻底拉直、拉稳；球一旦变形，视觉上特别明显。</p>
+      <p>这个数据集本质上包含两类边：</p>
+      <ul>
+        <li><strong>odometry 边</strong>：相邻位姿之间的局部运动约束</li>
+        <li><strong>loop closure 边</strong>：跨时间的回环约束</li>
+      </ul>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{带噪初值} + \text{里程计边} + \text{回环边} \xrightarrow{\text{g2o}} \text{全局一致轨迹} $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="native-g2o">
+      <h2>1. 先看原生 g2o 版本：它胜在少做事</h2>
+      <p>原生版本直接使用 g2o 自带的 <code>VertexSE3</code> 和 <code>EdgeSE3</code>。这说明一个重要事实：<strong>如果数据格式和内部表示高度对齐，工程实现就会非常省力</strong>。</p>
+      <pre><code>typedef g2o::BlockSolver&lt;g2o::BlockSolverTraits&lt;6,6&gt;&gt; Block;
+Block::LinearSolverType* linearSolver =
+    new g2o::LinearSolverCholmod&lt;Block::PoseMatrixType&gt;();
+Block* solver_ptr = new Block(linearSolver);
+auto* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+g2o::SparseOptimizer optimizer;
+optimizer.setAlgorithm(solver);</code></pre>
+      <p>这里你其实已经能看出第六讲的影子：还是块求解器、还是 LM、还是稀疏优化器。第十一讲真正新增的是“每条边都代表两个位姿之间的相对观测”。</p>
+      <pre><code>VERTEX_SE3:QUAT 0 tx ty tz qx qy qz qw
+EDGE_SE3:QUAT   i j dtx dty dtz dqx dqy dqz dqw info...</code></pre>
+      <p>这段文件格式非常值得记住。它告诉你：<strong>位姿图不是抽象概念，而是一种很朴素的文本图结构</strong>。节点存位姿，边存观测和信息矩阵，优化器读进去就能工作。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/889472a6a919e94ff8b5e7306eba45645b40a8d0e33afc7868a0d2908114c4f2.jpg" alt="图 11-3 使用 g2o 自带顶点边优化的结果">
+        <figcaption>图 11-3 使用 g2o 自带 SE3 顶点与边优化后的结果。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="lie-g2o">
+      <h2>2. 再看李代数版本：它胜在“你终于能控制误差长什么样”</h2>
+      <p>书里第二个程序更重要，因为它不是为了“再跑一遍球”，而是为了把前一节的误差推导真正落地。这里我们自己定义：</p>
+      <ul>
+        <li>顶点：<code>BaseVertex&lt;6, SE3&gt;</code></li>
+        <li>边：<code>BaseBinaryEdge&lt;6, SE3, VertexSE3LieAlgebra, VertexSE3LieAlgebra&gt;</code></li>
+        <li>更新方式：左乘更新 <code>_estimate = up * _estimate</code></li>
+      </ul>
+      <pre><code>virtual void oplusImpl(const double* update) {
+  Sophus::SE3 up(
+    Sophus::SO3(update[3], update[4], update[5]),
+    Eigen::Vector3d(update[0], update[1], update[2])
+  );
+  _estimate = up * _estimate;
+}</code></pre>
+      <p>这里的好处在于，你不再被库的默认误差定义牵着走，而是可以显式写出：</p>
+      <div class="formula-box">$$ e = \log\!\left(T_{ij}^{-1} T_i^{-1} T_j\right)^\vee $$</div>
+      <pre><code>virtual void computeError() {
+  Sophus::SE3 v1 = vertex_i-&gt;estimate();
+  Sophus::SE3 v2 = vertex_j-&gt;estimate();
+  _error = (_measurement.inverse() * v1.inverse() * v2).log();
+}</code></pre>
+      <p>这一步其实就在告诉我们：<strong>位姿图优化并不是什么神秘黑箱，它就是你自己定义误差、自己定义更新，再交给通用最小二乘框架求解</strong>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/32899e41d18e72589c7e2e6705c677320416a74e588cfb1a6a7a9dbff58e8d81.jpg" alt="图 11-4 李代数自定义顶点边优化结果">
+        <figcaption>图 11-4 使用自定义李代数顶点与边优化后的结果。外观上和原生版本相近，但实现层面的可控性更强。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="read-results">
+      <h2>3. 结果要怎么看：不要只盯着“球变圆了”</h2>
+      <p>“球变圆”当然是最直观的成功信号，但更值得读的是误差下降曲线。书里原生 g2o 版本的 <code>chi2</code> 从十亿量级一路下降到四万量级，说明优化器确实在不断把不一致的位姿约束拉回去。</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>原生 SE3 版本</h4>
+          <p>优点是实现短、易复现；缺点是你默认接受了库对位姿表示和误差的内部处理方式。</p>
+        </div>
+        <div class="mini-card">
+          <h4>李代数版本</h4>
+          <p>优点是推导和实现一一对应，适合研究和扩展；代价是代码更长，数值细节更容易写错。</p>
+        </div>
+      </div>
+      <p>书里还提了一个很妙的比较：用李代数自定义实现后，再让 g2o 自带的 SE3 顶点继续优化，最终的度量误差还能再略降一些。这说明“看起来一样圆”不代表“数值已经最优到同一尺度”。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你准备写论文、想清楚说明自己定义的误差和扰动模型，哪种版本更适合作为起点？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，因为你可以明确控制误差定义、雅可比近似和更新规则。" onclick="lessonKit.answer(this, 'quiz-0067')">李代数自定义版本</button>
+          <button data-correct="no" data-explanation="它更适合快速复现，但不利于展示你对模型的精细控制。" onclick="lessonKit.answer(this, 'quiz-0067')">原生 g2o 版本</button>
+          <button data-correct="no" data-explanation="求解目标可能接近，但实现层面的可解释性和扩展性不等价。" onclick="lessonKit.answer(this, 'quiz-0067')">两者完全等价</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0067"></div>
+      </div>
+      <div class="callout">
+        <h4>OCR 校正提醒</h4>
+        <p>原始 markdown 中有几处明显识别噪声，例如 <code>result lle.g2o</code>、<code>S03</code> 等写法。这里都应分别理解为 <code>result_lie.g2o</code>、<code>SO3</code>。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>把这节课学完，你至少该能做到两件事：第一，看到一个 <code>.g2o</code> 文件时，不再只把它当黑盒数据；第二，知道“Pose Graph 优化代码”的本质仍是第六讲那套最小二乘框架，只是变量和误差换了皮囊。</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么第一个顶点通常要固定住？如果不固定会怎样？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为整个位姿图只有相对约束，没有绝对参考时会存在整体平移和整体旋转的自由度。固定一个顶点，相当于给整张图选定世界坐标系原点。</div>
+            </details>
+          </li>
+          <li>
+            书里同时展示“原生 SE3 顶点”和“李代数顶点”的意义是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>前者告诉你快速复现的路径，后者告诉你理论推导如何真正进入代码。两者一起看，才能把“会跑”和“会解释”都补齐。</div>
+            </details>
+          </li>
+          <li>
+            如果把 $J_r^{-1}$ 直接近似成单位阵，可能带来什么影响？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>在误差较小时往往还能工作，但当残差较大或几何关系更复杂时，收敛速度和精度可能变差，因为你忽略了李群几何对局部线性化的修正。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0066-第十一讲-位姿图的动机与误差模型.html">← 位姿图的动机与误差模型</a>
+        <a class="next" href="0068-第十一讲-因子图与增量优化.html">因子图与增量优化 →</a>
+      </div>
+      <p class="foot-note">看到这里，你应该已经能把“位姿图”从抽象概念翻译成真实代码了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

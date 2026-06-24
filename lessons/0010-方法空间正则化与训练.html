@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 课 · 方法：空间正则化与训练 — LSeg 精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  body.reading { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .2rem; font-family: 'Noto Serif SC', serif; }
+  .lesson-header .subtitle { font-size: .9rem; color: var(--ink-60); font-family: var(--font-serif); font-style: italic; }
+  .lesson-header .meta { display: flex; gap: .6rem; font-size: .8rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.25rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; font-family: 'Noto Serif SC', serif; }
+  h3 { font-size: 1.05rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; font-family: 'Noto Serif SC', serif; }
+  h4 { font-size: .95rem; color: var(--ink-80); margin: .8rem 0 .4rem; font-family: 'Noto Serif SC', serif; }
+  .story-box { background: #f9f6f0; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .story-box .label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+  .highlight-box { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .highlight-box strong { color: var(--accent-deep); }
+  .paper-quote { background: #f5f3ef; border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; font-size: .9rem; }
+  .paper-quote .en { color: var(--ink-60); font-style: italic; margin-bottom: .3rem; }
+  .paper-quote .cn { color: var(--ink); }
+  .paper-quote .cite { font-size: .75rem; color: var(--ink-40); text-align: right; display: block; margin-top: .3rem; }
+  .img-figure { margin: 1.2rem 0; text-align: center; }
+  .img-figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .img-figure .caption { font-size: .82rem; color: var(--ink-60); margin-top: .4rem; font-style: italic; }
+  .nav-links { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav-links a { color: var(--accent-deep); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+  details.quiz { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+  details.quiz summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); padding: .2rem 0; }
+  details.quiz .answer { margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--border); font-size: .92rem; }
+  .formula-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; text-align: center; }
+  .formula-card .eq-label { font-size: .75rem; color: var(--ink-40); margin-top: .3rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .two-col .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; border: 1px solid var(--border); }
+  .two-col .card h4 { font-size: .9rem; margin-bottom: .3rem; color: var(--accent-deep); font-family: 'Noto Serif SC', serif; }
+  .two-col .card p { font-size: .85rem; margin: 0; }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+  .tag-red { background: rgba(204, 120, 92, 0.15); color: var(--accent-deep); }
+  .tag-blue { background: rgba(66, 133, 244, 0.12); color: #1a5fb4; }
+  .tag-green { background: rgba(90, 158, 111, 0.15); color: var(--success); }
+  .tag-orange { background: rgba(234, 160, 50, 0.15); color: #b8860b; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="reading">
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>⚙️ 第 4 课：方法详解（下）—— 空间正则化与训练细节</h1>
+  <div class="subtitle">LSeg · Method — 空间正则化模块 · DPT 图像编码器 · 训练配置 · 多数据集混合</div>
+  <div class="meta">
+    <span>⏱ 25 分钟</span>
+    <span>📄 Section 3: Method（后半部分）</span>
+  </div>
+</div>
+
+<div class="story-box">
+  <div class="label">🎯 这节课的目标</div>
+  <p style="margin:0;font-size:.92rem;">
+    继续深入 LSeg 的方法：理解 <strong>空间正则化模块</strong>（BottleneckBlock / DepthwiseBlock）的设计动机和结构，
+    掌握 <strong>标签等变性</strong> 这一关键约束，以及 LSeg 的<strong>训练配置</strong>（初始化、优化器、学习率调度、多数据集混合）。
+  </p>
+</div>
+
+<!-- ================ 1. 为什么需要空间正则化？ ================ -->
+<h2>1. 为什么需要空间正则化？</h2>
+
+<p>回顾一下 LSeg 当前的困境：</p>
+
+<div class="highlight-box">
+  <strong>问题</strong>：图像编码器输出的嵌入张量 $I$ 的空间分辨率是 $\tilde{H} \times \tilde{W}$，比原始输入图像 $H \times W$ <strong>低了 s 倍</strong>（$s=2$）。
+  而且由于每个像素的预测是<strong>独立</strong>的，没有考虑空间连续性，结果可能有噪声。
+</div>
+
+<p>因此需要两个后处理操作：</p>
+<ol>
+  <li><strong>空间正则化</strong>：滤除噪声，使预测结果在空间上更平滑</li>
+  <li><strong>上采样</strong>：将低分辨率预测恢复到原始输入分辨率</li>
+</ol>
+
+<p>但这里有一个<strong>关键约束</strong>——操作必须对标签顺序保持等变（equivariant）。</p>
+
+<!-- ================ 2. 标签等变性约束 ================ -->
+<h2>2. 标签等变性（Label Equivariance）</h2>
+
+<div class="paper-quote">
+  <div class="en">"During this process, we have to ensure that all operations stay equivariant with respect to the labels. In other words, there should be no interactions between the input channels, whose order is defined by the order of the words and can thus be arbitrary."</div>
+  <div class="cn">📝 所有操作必须对标签保持<strong>等变</strong>：输入通道的顺序由标签顺序定义，是<strong>任意的</strong>，因此通道之间不应有相互作用。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<h3>2.1 为什么标准卷积不行？</h3>
+
+<p>标准的 2D 卷积 (conv2d) 会在输入通道之间做<strong>跨通道混合</strong>。对于形状为 $\tilde{H}\times\tilde{W}\times N$ 的相关张量（$N$ 是标签数）：</p>
+
+<ul>
+  <li>标准卷积的每个输出通道是<strong>所有输入通道</strong>的加权和</li>
+  <li>如果标签顺序从 $[\text{"dog"}, \text{"cat"}]$ 变成 $[\text{"cat"}, \text{"dog"}]$，卷积结果会不同</li>
+  <li>这就破坏了对标签顺序的<strong>等变性</strong></li>
+</ul>
+
+<div class="interactive-demo" style="background:#f5f0ea;border:1px solid var(--border);border-radius:8px;padding:.8rem;margin:.8rem 0;">
+  <p style="font-size:.85rem;margin:0;">
+    <strong>🎯 类比理解</strong>：想象你把标签顺序重新排列（就像打乱了一副扑克牌），然后问"哪个标签最匹配这个区域"。
+    答案应该只取决于标签的<strong>内容</strong>，而非它们被输入的<strong>顺序</strong>。<br><br>
+    标准卷积就像用手在扑克牌之间来回传递信息——如果你先把牌码好顺序再传递，再打乱顺序，结果会不同。<br>
+    LSeg 需要的操作是：<strong>只在每张牌上独立处理</strong>（Depthwise conv），这样无论你以什么顺序发牌，结果都一样。
+  </p>
+</div>
+
+<!-- ================ 3. 空间正则化模块 ================ -->
+<h2>3. 空间正则化模块</h2>
+
+<p>论文设计了两种满足标签等变性的模块：</p>
+
+<div class="img-figure">
+  <img src="../资料/Language-driven Semantic Segmentation/imgs_png/main_blocks.png" alt="Figure 3: BottleneckBlock and DepthwiseBlock" style="max-width:60%;">
+  <div class="caption">
+    <strong>图 3（论文 Figure 3）</strong>：两种空间正则化模块。左：DepthwiseBlock，只有深度可分离卷积 + 非线性激活；
+    右：BottleneckBlock，额外增加了跨标签的 max-pooling 操作。
+  </div>
+</div>
+
+<h3>3.1 DepthwiseBlock（深度可分离卷积块）</h3>
+
+<div class="paper-quote">
+  <div class="en">"a simple cascade of depthwise convolutions followed by non-linear activations (DepthwiseBlock)"</div>
+  <div class="cn">📝 DepthwiseBlock 由多个<strong>深度可分离卷积</strong>级联组成，每个卷积后跟非线性激活（ReLU）。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p><strong>深度可分离卷积</strong>（Depthwise Convolution）与标准卷积的关键区别：</p>
+<ul>
+  <li>标准 conv2d：每个输出通道 = 所有输入通道的加权组合 → <strong>跨通道交互</strong></li>
+  <li>Depthwise conv2d：每个输出通道 = 仅对应输入通道的<strong>空间滤波</strong> → <strong>通道独立</strong></li>
+</ul>
+
+<div class="two-col">
+  <div class="card">
+    <h4>🔴 标准卷积</h4>
+    <p style="font-size:.82rem;">
+      输入: $C_{in}$ 通道<br>
+      卷积核: $K_h \times K_w \times C_{in} \times C_{out}$<br>
+      每个输出通道融合<strong>所有</strong>输入通道<br>
+      ❌ 对标签顺序<strong>不</strong>等变
+    </p>
+  </div>
+  <div class="card">
+    <h4>🟢 Depthwise 卷积</h4>
+    <p style="font-size:.82rem;">
+      输入: $C_{in}$ 通道<br>
+      卷积核: $K_h \times K_w \times C_{in}$（无 $C_{out}$ 维度）<br>
+      每个通道<strong>独立</strong>做空间滤波<br>
+      ✅ 对标签顺序<strong>等变</strong> ✅
+    </p>
+  </div>
+</div>
+
+<h3>3.2 BottleneckBlock（瓶颈块）</h3>
+
+<div class="paper-quote">
+  <div class="en">"another block that additionally augments the depthwise convolutions with the result of a max-pooling operation over the set of labels (BottleneckBlock)"</div>
+  <div class="cn">📝 BottleneckBlock 在深度可分离卷积的基础上，额外增加了<strong>跨标签的 max-pooling</strong> 操作。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p>BottleneckBlock 的设计包含两个分支：</p>
+<ol>
+  <li><strong>主分支</strong>：Depthwise 卷积 + ReLU（保持等变性）</li>
+  <li><strong>辅助分支</strong>：跨标签维度的 max-pooling（在 $N$ 个标签上取最大值）</li>
+  <li>两个分支的结果合并（加和或拼接）</li>
+</ol>
+
+<h3>3.3 为什么需要 BottleneckBlock？</h3>
+
+<div class="highlight-box">
+  <strong>💡 设计动机</strong>：DepthwiseBlock 虽然满足等变性，但<strong>每个通道完全独立</strong>，无法利用<strong>跨标签的上下文信息</strong>。
+  BottleneckBlock 通过 max-pooling 引入了一个受控的跨标签交互——只传递"哪个标签在当前区域最匹配"这种信息，
+  而不涉及特定标签对之间的交叉。这样既保留了等变性，又获得了更多信息。
+</div>
+
+<h3>3.4 上采样</h3>
+
+<div class="paper-quote">
+  <div class="en">"In a final step we use bilinear interpolation to recover predictions at the original resolution."</div>
+  <div class="cn">📝 最后一步使用<strong>双线性插值</strong>将预测恢复到原始分辨率。双线性插值是逐通道操作的，因此同样满足等变性要求。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<!-- ================ 4. 空间正则化消融 ================ -->
+<h2>4. 模块深度消融（预览）</h2>
+
+<p>论文在 Discussion 部分对空间正则化模块做了消融实验，这里先预览结果。完整细节在第 6 课：</p>
+
+<table>
+  <tr><th>模块类型</th><th>深度=0</th><th>深度=1</th><th>深度=2</th><th>深度=4</th></tr>
+  <tr><td>DepthwiseBlock (mIoU)</td><td>37.83</td><td>39.19</td><td><strong>39.45</strong></td><td>0.18 ❌</td></tr>
+  <tr><td>BottleneckBlock (mIoU)</td><td>37.83</td><td>39.16</td><td><strong>39.79</strong></td><td>38.78</td></tr>
+</table>
+
+<p>有意思的发现：</p>
+<ul>
+  <li>不加正则化（深度=0）：mIoU 37.83</li>
+  <li>加入 2 个模块就能显著提升（约 +1.6 ~ +2.0 mIoU）</li>
+  <li>BottleneckBlock 略优于 DepthwiseBlock</li>
+  <li>深度=4 时 DepthwiseBlock 崩溃（mIoU 0.18）——说明过深会出问题</li>
+</ul>
+
+<!-- ================ 5. 训练细节 ================ -->
+<h2>5. 训练细节</h2>
+
+<h3>5.1 初始化</h3>
+
+<div class="paper-quote">
+  <div class="en">"We initialize the backbone of the image encoder with the official ImageNet pretrained weights from ViT or ResNet and initialize the decoder of DPT randomly."</div>
+  <div class="cn">📝 图像编码器的<strong>骨干网络</strong>使用 ImageNet 预训练权重（ViT 或 ResNet），DPT 的<strong>解码器</strong>随机初始化。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<div class="highlight-box">
+  <strong>🔍 关于 CLIP 图像编码器的说明</strong>：论文在脚注中提到，他们也尝试过用 CLIP 图像编码器初始化，但<strong>效果不如 ViT 初始化</strong>。
+  这可能是因为 CLIP 图像编码器是为图像级任务优化的，其特征空间不太适合密集预测任务。
+</div>
+
+<h3>5.2 训练策略</h3>
+
+<table>
+  <tr><th>超参数</th><th>设置</th></tr>
+  <tr><td>优化器</td><td>SGD with momentum 0.9</td></tr>
+  <tr><td>学习率调度</td><td>Polynomial decay, decay rate 0.9</td></tr>
+  <tr><td>批大小</td><td>6</td></tr>
+  <tr><td>GPU</td><td>6 × Quadro RTX 6000</td></tr>
+  <tr><td>训练数据</td><td>全标签集（所有训练集标签作为输入）</td></tr>
+  <tr><td>文本编码器</td><td>冻结（不参与训练）</td></tr>
+  <tr><td>图像编码器</td><td>更新全部权重</td></tr>
+</table>
+
+<h3>5.3 多数据集混合训练</h3>
+
+<div class="paper-quote">
+  <div class="en">"Our model can be trained on any semantic segmentation dataset and supports flexible mixing of multiple datasets through the text encoder."</div>
+  <div class="cn">📝 LSeg 的一个独特优势：可以同时在<strong>多个分割数据集</strong>上训练，通过文本编码器来区分不同数据集的标签。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p>论文在定性实验部分将模型在 <strong>7 个数据集</strong>联合训练：</p>
+<div class="two-col">
+  <div class="card">
+    <h4>🌍 联合训练的数据集</h4>
+    <p style="font-size:.82rem;">
+      • ADE20K (150 类)<br>
+      • BDD100K (19 类)<br>
+      • Cityscapes (19 类)<br>
+      • COCO-Panoptic (133 类)<br>
+      • IDD (26 类)<br>
+      • Mapillary Vistas (66 类)<br>
+      • SUN RGB-D (37 类)
+    </p>
+  </div>
+  <div class="card">
+    <h4>💡 为什么可以联合训练？</h4>
+    <p style="font-size:.82rem;">
+      传统分割模型无法直接混合多个数据集，因为不同数据集的<strong>标签空间不同</strong>（例如 ADE20K 的 "building" 和 Cityscapes 的 "building" 在输出通道中位于不同位置）。<br><br>
+      LSeg 通过<strong>文本嵌入统一了标签表示</strong>——"building" 在 CLIP 空间中总是同一个向量，无论来自哪个数据集！
+    </p>
+  </div>
+</div>
+
+<!-- ================ 6. 整体流程回顾 ================ -->
+<h2>6. 完整流程回顾</h2>
+
+<p>现在我们可以把 LSeg 的完整流程串起来了：</p>
+
+<table>
+  <tr><th>步骤</th><th>操作</th><th>输入 → 输出</th></tr>
+  <tr><td>1</td><td>标签编码</td><td>"dog", "cat", ... → $N$ 个 $C$ 维向量 $T_k$</td></tr>
+  <tr><td>2</td><td>图像编码</td><td>$H\times W\times 3$ → $\tilde{H}\times\tilde{W}\times C$ 逐像素嵌入 $I$</td></tr>
+  <tr><td>3</td><td>相关计算</td><td>$f_{ijk} = I_{ij} \cdot T_k$ → $\tilde{H}\times\tilde{W}\times N$ 张量</td></tr>
+  <tr><td>4</td><td>空间正则化</td><td>DepthwiseBlock / BottleneckBlock 处理</td></tr>
+  <tr><td>5</td><td>上采样</td><td>双线性插值恢复到 $H\times W\times N$</td></tr>
+  <tr><td>6</td><td>预测</td><td>$\arg\max$ 每个像素的 $N$ 维向量</td></tr>
+</table>
+
+<!-- ================ 7. 课后练习 ================ -->
+<h2>📝 课后练习</h2>
+
+<details class="quiz">
+  <summary>📌 练习 1：为什么标准卷积不能用在 LSeg 的空间正则化中？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>标准卷积会<strong>混合不同的输入通道</strong>。</p>
+    <p>在 LSeg 中，相关张量 $\tilde{H}\times\tilde{W}\times N$ 的 $N$ 个通道对应 $N$ 个标签，<strong>通道的顺序由标签输入顺序决定</strong>。
+    标准卷积的每个输出通道是所有输入通道的加权组合——如果标签顺序改变，卷积结果也会改变，这<strong>破坏了标签等变性</strong>。</p>
+    <p>Depthwise 卷积只在<strong>空间维度</strong>上滤波，每个通道独立处理，因此对通道顺序保持不变。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 2：BottleneckBlock 相比 DepthwiseBlock 多了什么？为什么这能提升性能？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>BottleneckBlock 在 DepthwiseBlock 的基础上增加了<strong>跨标签的 max-pooling</strong> 操作。</p>
+    <p>这带来一个好处：Max-pooling 可以告诉每个 Depthwise 卷积的通道："<strong>在当前空间位置，所有标签中最强的响应是多少</strong>"。</p>
+    <p>这种信息有助于：</p>
+    <ul>
+      <li><strong>抑制模糊区域</strong>：如果某个位置对所有标签的响应都很弱，模型可以知道这里可能是未知物体</li>
+      <li><strong>增强空间一致性</strong>：相邻像素的最强标签通常应该一致</li>
+      <li><strong>保持等变性</strong>：max-pooling 对标签顺序不变（无论你以什么顺序排列标签，最大值是一样的）</li>
+    </ul>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 3：LSeg 如何实现多个数据集的联合训练，而传统方法做不到？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>关键在于<strong>标签表示的差异</strong>。</p>
+    <p><strong>传统方法</strong>：每个数据集的标签空间是独立定义的。例如，Cityscapes 的类别 #{14} = "building"，ADE20K 的类别 #{5} = "building, house"。这两个 "building" 在传统模型的输出层位于<strong>不同的通道索引</strong>上，无法直接共享。</p>
+    <p><strong>LSeg</strong>：标签是用<strong>文本嵌入</strong>表示的。无论是来自 Cityscapes 还是 ADE20K，"building" 这个文本经过 CLIP 编码后得到<strong>同一个向量</strong>。因此模型不需要关心标签来自哪个数据集，只需要学习将图像特征映射到这个<strong>统一的文本嵌入空间</strong>。</p>
+    <p>这使得 LSeg 可以轻松地在多个数据集上联合训练，等价于"见过"更多种类的物体，零样本能力更强。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 4：论文为什么选择用 ViT/ResNet 的 ImageNet 预训练权重初始化图像编码器，而不是用 CLIP 图像编码器？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>论文在脚注中说明：</p>
+    <blockquote style="font-size:.85rem;border-left:2px solid var(--accent);padding-left:.6rem;margin:.3rem 0;">
+      "We also evaluated on a model initialized with the CLIP image encoder with the same setup and hyperparameters, but observed worse performance than using the ViT initialization."
+    </blockquote>
+    <p>可能的原因：</p>
+    <ul>
+      <li>CLIP 图像编码器是通过<strong>对比学习</strong>训练的，其最终特征是<strong>全局</strong>的（对应图像级分类），可能缺乏<strong>局部细节</strong>信息</li>
+      <li>ViT 的 ImageNet 预训练权重通过<strong>分类任务</strong>获得，在密集预测任务上通常表现更好</li>
+      <li>DPT 解码器本身就是为了 ViT 特征设计的</li>
+    </ul>
+    <p>这提醒我们：<strong>预训练策略的选择需要与下游任务匹配</strong>，CLIP 的图像编码器虽然零样本分类能力强，但不一定适合密集预测。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 5（思考题）：LSeg 的空间正则化模块的设计理念是什么？还有哪些其他可能的满足等变性的操作？</summary>
+  <div class="answer">
+    <p><strong>参考答案：</strong></p>
+    <p>设计理念是：在不引入标签顺序依赖的前提下，提升预测的<strong>空间连续性</strong>。</p>
+    <p>其他可能的等变操作包括：</p>
+    <ul>
+      <li><strong>逐点的 1×1 Depthwise 卷积</strong>：最简单的等变操作，只做通道独立的逐点变换</li>
+      <li><strong>逐通道的空间池化</strong>：如 mean-pooling、max-pooling</li>
+      <li><strong>逐通道的 CRF（条件随机场）</strong>：但需要额外的推理步骤</li>
+      <li><strong>跨标签的 softmax + 逐空间点的独立操作</strong>：softmax 是标签数 $N$ 维的，但它对标签排列是等变的（softmax 输出不会随输入通道顺序改变而改变——如果对称地重排输入和输出通道）</li>
+    </ul>
+    <p>论文选择 Depthwise conv 是平衡了<strong>表达能力</strong>、<strong>等变性</strong>和<strong>计算效率</strong>的结果。</p>
+  </div>
+</details>
+
+<!-- ================ 导航 ================ -->
+<div class="nav-links">
+  <a href="0009-方法文本与图像编码器.html">← 上一课：方法（上）</a>
+  <a href="0011-实验设置与结果.html">下一课：实验设置与结果分析 →</a>
+</div>
+
+<p style="margin-top:2rem;font-size:.8rem;color:var(--ink-40);text-align:center;border-top:1px solid var(--border);padding-top:.8rem;">
+  如有任何疑问，随时向你的 AI 助教提问 🤖
+</p>
+
+</body>
+</html>

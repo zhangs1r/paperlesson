@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 课 · 方法：文本与图像编码器 — LSeg 精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  body.reading { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .2rem; font-family: 'Noto Serif SC', serif; }
+  .lesson-header .subtitle { font-size: .9rem; color: var(--ink-60); font-family: var(--font-serif); font-style: italic; }
+  .lesson-header .meta { display: flex; gap: .6rem; font-size: .8rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.25rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; font-family: 'Noto Serif SC', serif; }
+  h3 { font-size: 1.05rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; font-family: 'Noto Serif SC', serif; }
+  h4 { font-size: .95rem; color: var(--ink-80); margin: .8rem 0 .4rem; font-family: 'Noto Serif SC', serif; }
+  .story-box { background: #f9f6f0; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .story-box .label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+  .highlight-box { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .highlight-box strong { color: var(--accent-deep); }
+  .paper-quote { background: #f5f3ef; border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; font-size: .9rem; }
+  .paper-quote .en { color: var(--ink-60); font-style: italic; margin-bottom: .3rem; }
+  .paper-quote .cn { color: var(--ink); }
+  .paper-quote .cite { font-size: .75rem; color: var(--ink-40); text-align: right; display: block; margin-top: .3rem; }
+  .img-figure { margin: 1.2rem 0; text-align: center; }
+  .img-figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .img-figure .caption { font-size: .82rem; color: var(--ink-60); margin-top: .4rem; font-style: italic; }
+  .nav-links { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav-links a { color: var(--accent-deep); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+  details.quiz { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+  details.quiz summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); padding: .2rem 0; }
+  details.quiz .answer { margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--border); font-size: .92rem; }
+  .formula-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; text-align: center; }
+  .formula-card .eq-label { font-size: .75rem; color: var(--ink-40); margin-top: .3rem; }
+  .arch-steps { counter-reset: step; margin: 1rem 0; padding: 0; list-style: none; }
+  .arch-steps li { counter-increment: step; position: relative; padding: .6rem 0 .6rem 2.5rem; margin-bottom: .5rem; font-size: .9rem; border-bottom: 1px dashed var(--border-light); }
+  .arch-steps li::before { content: counter(step); position: absolute; left: 0; top: .5rem; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: var(--accent-dim); color: var(--accent-deep); font-weight: 700; font-size: .8rem; display: flex; align-items: center; justify-content: center; }
+  .interactive-demo { background: #f5f0ea; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .interactive-demo .demo-label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+  .tag-red { background: rgba(204, 120, 92, 0.15); color: var(--accent-deep); }
+  .tag-blue { background: rgba(66, 133, 244, 0.12); color: #1a5fb4; }
+  .tag-green { background: rgba(90, 158, 111, 0.15); color: var(--success); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .two-col .card { background: var(--paper-light); padding: .8rem; border-radius: 8px; border: 1px solid var(--border); }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="reading">
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>⚙️ 第 3 课：方法详解（上）—— 文本与图像编码器</h1>
+  <div class="subtitle">LSeg · Method — 文本编码器 · 图像编码器 · 词-像素相关张量 · 训练损失</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 Section 3: Language-driven Semantic Segmentation</span>
+  </div>
+</div>
+
+<div class="story-box">
+  <div class="label">🎯 这节课的目标</div>
+  <p style="margin:0;font-size:.92rem;">
+    深入理解 LSeg 方法的前半部分：<strong>文本编码器</strong>如何嵌入标签、<strong>图像编码器</strong>如何生成逐像素嵌入、
+    <strong>词-像素相关张量</strong>如何计算相似度、以及<strong>对比损失</strong>如何训练模型。
+    这节课将包含你第一次看到的完整数学公式！
+  </p>
+</div>
+
+<!-- ================ 1. 架构总览 ================ -->
+<h2>1. 整体架构一览</h2>
+
+<p>先看论文 Figure 2——LSeg 的完整架构图。这是理解整篇论文最重要的图示。</p>
+
+<div class="img-figure">
+  <img src="../资料/Language-driven Semantic Segmentation/imgs_png/main_arch.png" alt="Figure 2: LSeg architecture overview" style="max-width:100%;">
+  <div class="caption">
+    <strong>图 2（论文 Figure 2）</strong>：LSeg 整体架构。文本编码器将标签嵌入向量空间（蓝色向量）；
+    图像编码器提取逐像素嵌入（绿色张量）；通过内积计算词-像素相关张量（橙色张量）；
+    最后空间正则化模块清理和上采样预测结果。
+  </div>
+</div>
+
+<p>整个流程可以拆解为以下关键步骤：</p>
+
+<ol class="arch-steps">
+  <li><strong>文本编码</strong>：$N$ 个标签 $\rightarrow$ $N$ 个文本嵌入向量 $T_1, T_2, \dots, T_N \in \mathbb{R}^C$</li>
+  <li><strong>图像编码</strong>：输入图像 $H\times W$ $\rightarrow$ 下采样后的逐像素嵌入 $I \in \mathbb{R}^{\tilde{H}\times\tilde{W}\times C}$</li>
+  <li><strong>相关计算</strong>：像素嵌入与文本嵌入做内积 $\rightarrow$ 相关张量 $\tilde{H}\times\tilde{W}\times N$</li>
+  <li><strong>损失计算</strong>：对每个像素的 $N$ 维向量做 softmax，与 ground truth 计算交叉熵</li>
+  <li><strong>空间正则化</strong>（下节课）：后处理模块，清理预测结果并上采样到原始分辨率</li>
+</ol>
+
+<!-- ================ 2. 文本编码器 ================ -->
+<h2>2. 文本编码器（Text Encoder）</h2>
+
+<div class="paper-quote">
+  <div class="en">"The text encoder embeds the set of $N$ potential labels into a continuous vector space $\mathbb{R}^C$, producing $N$ vectors $T_1, \dots, T_n \in \mathbb{R}^C$ as outputs."</div>
+  <div class="cn">📝 文本编码器将 $N$ 个候选标签嵌入到连续的 $C$ 维向量空间中，输出 $N$ 个向量。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<h3>2.1 核心设计</h3>
+
+<ul>
+  <li><strong>使用 CLIP 文本编码器</strong>（冻结，不参与训练）</li>
+  <li><strong>为什么冻结</strong>？因为 CLIP 已经在大规模图文对上训练好了，它的嵌入空间已经具备了丰富的语义结构</li>
+  <li>输出的向量集合<strong>对输入标签的顺序不变</strong>（permutation-invariant）</li>
+  <li>允许标签数量 $N$ <strong>自由变化</strong>——这是灵活性的关键</li>
+</ul>
+
+<div class="highlight-box">
+  <strong>💡 为什么顺序不变性重要？</strong><br>
+  传统分割模型输出的第 $i$ 通道固定对应第 $i$ 个类别。LSeg 中，标签的顺序可以任意打乱，输出的分割结果仍然正确。这为<strong>动态标签集</strong>提供了基础——你可以在推理时新增、删除、重排标签，而模型不需要调整任何参数。
+</div>
+
+<h3>2.2 输入处理</h3>
+
+<p>CLIP 文本编码器接受的输入不是原始标签字符串，而是需要特定的 prompt 模板。</p>
+
+<div class="paper-quote">
+  <div class="en">"Multiple network architectures are possible, and we use the pretrained Contrastive Language–Image Pre-training (CLIP) throughout."</div>
+  <div class="cn">📝 论文尝试了多种 CLIP 文本编码器变体（ViT-B/32, ViT-B/16, RN$50\times4$, RN$50\times16$），最终选择 CLIP 系列作为标准配置。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p>论文虽然没有明确说明 prompt 格式，但参考 CLIP 的做法，通常采用 <code>"a photo of {label}"</code> 的模板。例如：</p>
+
+<div class="interactive-demo" style="background:#f0ede6;padding:.8rem;border-radius:6px;">
+  <p style="font-size:.85rem;margin:0;">
+    <strong>输入标签</strong>：<code>"dog"</code>, <code>"cat"</code>, <code>"car"</code>, <code>"building"</code><br>
+    <strong>实际输入</strong>：<code>"a photo of dog"</code>, <code>"a photo of cat"</code>, <code>"a photo of car"</code>, <code>"a photo of building"</code><br>
+    <strong>输出</strong>：4 个 $C$ 维向量（$C$ 取决于 CLIP 变体，如 ViT-B/32 的 $C=512$）
+  </p>
+</div>
+
+<!-- ================ 3. 图像编码器 ================ -->
+<h2>3. 图像编码器（Image Encoder）</h2>
+
+<div class="paper-quote">
+  <div class="en">"Similar to the text encoder, the image encoder produces an embedding vector for every input pixel (after downsampling). We leverage dense prediction transformers (DPT) as the underlying architecture."</div>
+  <div class="cn">📝 图像编码器和文本编码器一样，为每个输入像素（下采样后）生成嵌入向量。论文使用 <strong>DPT（Dense Prediction Transformer）</strong> 作为基础架构。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<h3>3.1 为什么用 DPT？</h3>
+
+<p>DPT 是一个基于 Vision Transformer 的密集预测架构，它的特殊之处在于：</p>
+<ul>
+  <li>使用 <strong>ViT</strong>（Vision Transformer）作为骨干网络</li>
+  <li>将 ViT 输出的<strong>类 token 与 patch token</strong> 结合，生成密集预测</li>
+  <li>通过<strong>重组（Reassemble）</strong>操作将序列化的 patch 特征恢复为 2D 特征图</li>
+</ul>
+
+<p>LSeg 用 DPT 替代了传统分割模型中的 FCN/DeepLab 风格的解码器。</p>
+
+<h3>3.2 输出张量维度</h3>
+
+<p>设输入图像大小为 $H \times W$，$s$ 是用户定义的下采样因子（论文中 $s=2$）：</p>
+
+<div class="formula-card">
+  $$\tilde{H} = \frac{H}{s}, \quad \tilde{W} = \frac{W}{s}$$
+  <div class="eq-label">下采样后的空间尺寸</div>
+</div>
+
+<div class="formula-card">
+  $$I \in \mathbb{R}^{\tilde{H} \times \tilde{W} \times C}$$
+  <div class="eq-label">图像嵌入张量：每个空间位置对应一个 $C$ 维向量</div>
+</div>
+
+<p>$I_{ij} \in \mathbb{R}^C$ 表示像素 $(i, j)$ 的嵌入向量。</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>📐 数值示例</h4>
+    <p style="font-size:.85rem;margin:0;">
+      输入图像：$384 \times 384$<br>
+      下采样因子 $s=2$<br>
+      $\tilde{H}=192, \tilde{W}=192$<br>
+      嵌入维度 $C=512$（ViT-B/32 CLIP）<br>
+      输出张量：$192 \times 192 \times 512$
+    </p>
+  </div>
+  <div class="card">
+    <h4>🔍 直观理解</h4>
+    <p style="font-size:.85rem;margin:0;">
+      每个 $2\times2$ 的像素块（因为 $s=2$）<br>被映射成一个 $512$ 维的向量。<br>
+      这个向量应该编码该区域<br>的视觉语义信息。
+    </p>
+  </div>
+</div>
+
+<!-- ================ 4. 词-像素相关张量 ================ -->
+<h2>4. 词-像素相关张量（Word-Pixel Correlation Tensor）</h2>
+
+<p>这是 LSeg 最具创造性的设计：<strong>用内积代替传统的线性分类头</strong>。</p>
+
+<h3>4.1 核心公式</h3>
+
+<p>将图像嵌入 $I_{ij}$ 与每个标签嵌入 $T_k$ 做内积：</p>
+
+<div class="formula-card">
+  $$f_{ijk} = I_{ij} \cdot T_k$$
+  <div class="eq-label">公式 (1)：像素 $(i,j)$ 与标签 $k$ 的相关性</div>
+</div>
+
+<p>将所有 $N$ 个标签的相关性组合成一个向量：</p>
+
+<div class="formula-card">
+  $$F_{ij} = (f_{ij1}, f_{ij2}, \dots, f_{ijN})^{\mathsf{T}} \in \mathbb{R}^N$$
+  <div class="eq-label">像素 $(i,j)$ 对所有 $N$ 个标签的相似度向量</div>
+</div>
+
+<p>所有像素的所有标签构成一个三维张量：$\tilde{H} \times \tilde{W} \times N$（图中的橙色张量）。</p>
+
+<div class="highlight-box">
+  <strong>🔬 这就是"灵活标签"的数学基础</strong>：<br>
+  传统分割模型中，最后一层线性层的权重矩阵形状是 $C \times K$，其中 $K$ 是<strong>固定</strong>的类别数，<strong>训练完就不能改</strong>。<br><br>
+  LSeg 中，文本嵌入 $T_k$ 是由 CLIP 动态生成的，$N$ 可以是<strong>任意数量</strong>、<strong>任意顺序</strong>。训练时 $N$ 等于训练集的类别数，推理时 $N$ 由用户指定——模型不需要做任何调整！
+</div>
+
+<h3>4.2 与传统方法的对比</h3>
+
+<div class="two-col">
+  <div class="card">
+    <h4>🔴 传统分割</h4>
+    <p style="font-size:.82rem;margin:0;">
+      $P = \text{softmax}(W \cdot I_{ij} + b)$<br>
+      其中 $W \in \mathbb{R}^{C \times K}$ 是固定权重<br>
+      $K$ 是训练时的类别数，<strong>无法改变</strong><br><br>
+      输出通道固定编号，每个通道<br>代表一个特定类别
+    </p>
+  </div>
+  <div class="card">
+    <h4>🟢 LSeg</h4>
+    <p style="font-size:.82rem;margin:0;">
+      $f_{ijk} = I_{ij} \cdot T_k$<br>
+      $T_k$ 由 CLIP 文本编码器动态生成<br>
+      $N$ <strong>可以在推理时任意改变</strong><br><br>
+      没有固定权重，标签的语义<br>由文本嵌入的语义决定
+    </p>
+  </div>
+</div>
+
+<!-- ================ 5. 训练损失 ================ -->
+<h2>5. 训练损失函数</h2>
+
+<p>LSeg 使用 <strong>逐像素 softmax + 交叉熵损失</strong>，与传统分割一致——但作用的对象是 $F_{ij}$（与文本嵌入的相似度向量），而不是传统分割中的分类 logits。</p>
+
+<h3>5.1 逐像素 softmax 目标</h3>
+
+<p>给定温度参数 $t$，LSeg 在每个像素位置计算 softmax：</p>
+
+<div class="formula-card">
+  $$\sum_{i,j=1}^{H,W} \text{softmax}_{y_{ij}}\left(\frac{F_{ij}}{t}\right)$$
+  <div class="eq-label">公式 (2)：逐像素 softmax 目标</div>
+</div>
+
+<p>其中 $y_{ij}$ 是像素 $(i,j)$ 的真实标签（ground-truth label index），$t$ 是温度参数。这个公式的意思是：对所有像素，最大化其真实类别的 softmax 概率。</p>
+
+<h3>5.2 温度参数 $t$</h3>
+
+<div class="paper-quote">
+  <div class="en">"where $t$ is a user-defined temperature parameter that we set to $t=0.07$."</div>
+  <div class="cn">📝 温度参数设置为 $t=0.07$，这个数值来源于 CLIP 论文和无监督对比学习的常见设置。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p>温度参数 $t$ 的作用：</p>
+<ul>
+  <li>$t$ 越小，softmax 分布越"尖锐"（更倾向于最高分）</li>
+  <li>$t$ 越大，softmax 分布越"平滑"（各标签概率接近）</li>
+  <li>$t=0.07$ 是比较小的值，鼓励模型<strong>更置信地预测</strong></li>
+</ul>
+
+<h3>5.3 实际实现</h3>
+
+<div class="paper-quote">
+  <div class="en">"During training, we minimize a per-pixel softmax with cross-entropy loss (with temperature scaling) as is standard in semantic segmentation. In practice we implement this using the standard nn.CrossEntropyLoss from PyTorch."</div>
+  <div class="cn">📝 论文强调：尽管概念上用了对比学习，但在 <strong>PyTorch 实现中直接用标准的 nn.CrossEntropyLoss</strong>，因为 CE loss 内部已经包含了 softmax 操作。</div>
+  <span class="cite">— Section 3, Method</span>
+</div>
+
+<p>PyTorch 的 <code>nn.CrossEntropyLoss</code> 接受形状为 $(N, C, H, W)$ 的 logits（这里是 $F_{ij}$）和形状为 $(N, H, W)$ 的目标标签，内部自动做 softmax 和交叉熵计算。</p>
+
+<!-- ================ 6. 互动理解 ================ -->
+<h2>6. 互动思考：标签灵活性演示</h2>
+
+<div class="interactive-demo">
+  <div class="demo-label">🖱️ 观察标签集变化如何影响 LSeg 的输出维度</div>
+  <p style="font-size:.85rem;">想象你训练好了一个 LSeg 模型。拖动下方滑块改变标签数量，观察输出如何变化：</p>
+  
+  <div style="display:flex;align-items:center;gap:.5rem;margin:.5rem 0;">
+    <span style="font-size:.85rem;">标签数量 $N$：</span>
+    <input type="range" min="2" max="20" value="4" id="labelSlider" oninput="updateLabelDemo()" style="flex:1;">
+    <span id="labelCount" style="font-size:.85rem;font-weight:700;color:var(--accent-deep);">4</span>
+  </div>
+  
+  <div id="labelDemo" style="font-size:.85rem;">
+    <p>📥 文本编码器输入：4 个标签</p>
+    <p style="font-size:.8rem;color:var(--ink-60);padding-left:1rem;">输入文本 → CLIP 文本编码器 → 4 个 $C$ 维向量</p>
+    <p>📤 输出张量维度：$\tilde{H} \times \tilde{W} \times 4$</p>
+    <p style="font-size:.8rem;color:var(--ink-60);padding-left:1rem;">每个像素与 4 个标签做内积，得到 4 个相似度分数</p>
+    <p>🧮 每个像素的预测：$\arg\max$ 在这 4 个分数中选最大的</p>
+  </div>
+  
+  <div style="background:var(--accent-dim);border-radius:4px;padding:.5rem .8rem;font-size:.82rem;margin-top:.5rem;">
+    <strong>💡 关键认识</strong>：训练时 $N$ 可能固定为 150（如 ADE20K），但推理时你可以设 $N=3$ 只分割"天、地、人"，或者设 $N=50$ 做细粒度分割——<strong>模型参数不变</strong>，只需要改输入标签列表！
+  </div>
+</div>
+
+<script>
+function updateLabelDemo() {
+  var slider = document.getElementById('labelSlider');
+  var n = parseInt(slider.value);
+  document.getElementById('labelCount').textContent = n;
+  document.getElementById('labelDemo').innerHTML = 
+    '<p>📥 文本编码器输入：' + n + ' 个标签</p>' +
+    '<p style="font-size:.8rem;color:var(--ink-60);padding-left:1rem;">输入文本 → CLIP 文本编码器 → ' + n + ' 个 $C$ 维向量</p>' +
+    '<p>📤 输出张量维度：$\\tilde{H} \\times \\tilde{W} \\times ' + n + '$</p>' +
+    '<p style="font-size:.8rem;color:var(--ink-60);padding-left:1rem;">每个像素与 ' + n + ' 个标签做内积，得到 ' + n + ' 个相似度分数</p>' +
+    '<p>🧮 每个像素的预测：$\\arg\\max$ 在这 ' + n + ' 个分数中选最大的</p>';
+}
+</script>
+
+<!-- ================ 7. 课后练习 ================ -->
+<h2>📝 课后练习</h2>
+
+<details class="quiz">
+  <summary>📌 练习 1：LSeg 的词-像素相关张量的计算公式是什么？它的形状是多大？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <p>计算公式：$f_{ijk} = I_{ij} \cdot T_k$，即像素嵌入与文本嵌入的<strong>内积</strong>。</p>
+    <p>相关张量的形状是 $\tilde{H} \times \tilde{W} \times N$，其中：</p>
+    <ul>
+      <li>$\tilde{H} = H / s$，下采样后的图像高度</li>
+      <li>$\tilde{W} = W / s$，下采样后的图像宽度</li>
+      <li>$N$ = 标签数量（可以自由变化！）</li>
+    </ul>
+    <p>每个像素位置 $(i,j)$ 有一个 $N$ 维向量 $F_{ij}$，表示该像素与所有标签的匹配程度。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 2：LSeg 的损失函数与传统语义分割的损失函数有什么异同？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <p><strong>相同点</strong>：两者本质都是<strong>逐像素 softmax + 交叉熵损失</strong>，在 PyTorch 中都是用 <code>nn.CrossEntropyLoss</code> 实现。</p>
+    <p><strong>不同点</strong>：</p>
+    <ul>
+      <li><strong>传统分割</strong>：softmax 的输入是线性分类层的 logits，形状固定为 $C \times K$（$K$ 固定）</li>
+      <li><strong>LSeg</strong>：softmax 的输入是 $F_{ij}$（像素与所有标签的内积向量），长度 $N$ 可以变化</li>
+    </ul>
+    <p>此外 LSeg 还有<strong>温度缩放</strong>（$t=0.07$），这是从对比学习中继承的设计。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 3：为什么论文选择<strong>冻结</strong>文本编码器而不是和图像编码器一起训练？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>论文在训练细节中说明：</p>
+    <ul>
+      <li>CLIP 文本编码器已经在大规模图文对上预训练过，其嵌入空间<strong>已经具备良好的语义结构</strong></li>
+      <li>冻结文本编码器可以<strong>保持这种语义结构的稳定性</strong></li>
+      <li>如果一起训练，可能会破坏 CLIP 嵌入空间中的语义关系（如"dog"靠近"pet"），降低零样本能力</li>
+      <li>训练时<strong>只更新图像编码器</strong>的权重，使其适应 CLIP 的嵌入空间</li>
+    </ul>
+    <p>此外，文本编码器通常参数量较小，冻结它还能<strong>节省计算资源</strong>。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 4（计算题）：假设输入图像为 $512 \times 512$，下采样因子 $s=2$，CLIP ViT-B/32 的嵌入维度 $C=512$，标签数量 $N=20$。请计算：</summary>
+  <div class="answer">
+    <p><strong>计算过程：</strong></p>
+    <ol>
+      <li>下采样后的尺寸：$\tilde{H} = 512/2 = 256$，$\tilde{W} = 512/2 = 256$</li>
+      <li>图像嵌入张量 $I$ 的形状：$256 \times 256 \times 512$</li>
+      <li>文本嵌入矩阵 $T$ 的形状：$20 \times 512$</li>
+      <li>相关张量的形状：$256 \times 256 \times 20$</li>
+      <li>内积计算的总操作数：每个像素与所有标签的内积 = $256 \times 256 \times 20 \times 512 \approx 671$ 百万次乘法</li>
+    </ol>
+    <p>相比传统分割（最后一层只有 $512 \times 20 = 10,240$ 个参数），LSeg 的相关计算量更大（每次推理都要动态计算），但获得了灵活性的巨大提升。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 5（思考题）：为什么论文说使用 nn.CrossEntropyLoss 就能实现对比学习的目标？</summary>
+  <div class="answer">
+    <p><strong>参考答案：</strong></p>
+    <p>仔细看公式 (1) 和公式 (2)：</p>
+    <p>$f_{ijk} = I_{ij} \cdot T_k$ 是像素嵌入与文本嵌入的<strong>相似度</strong>（点积越大越相似）。</p>
+    <p>对 $F_{ij} = (f_{ij1}, ..., f_{ijN})$ 做 softmax + CE loss，本质就是：</p>
+    <ul>
+      <li><strong>拉近</strong>：让 $I_{ij}$ 与正确标签 $T_{y_{ij}}$ 的相似度尽可能大</li>
+      <li><strong>推远</strong>：让 $I_{ij}$ 与其他标签 $T_{k \neq y_{ij}}$ 的相似度相对较小</li>
+    </ul>
+    <p>这正是<strong>对比学习</strong>的核心思想——只不过对比学习的实现通常需要负样本采样和专门的对比损失函数（如 InfoNCE），而这里 CE loss 自然地充当了对比角色，因为每个像素的"负样本"就是所有其他标签的嵌入。</p>
+  </div>
+</details>
+
+<!-- ================ 导航 ================ -->
+<div class="nav-links">
+  <a href="0008-相关工作.html">← 上一课：相关工作</a>
+  <a href="0010-方法空间正则化与训练.html">下一课：方法：空间正则化与训练 →</a>
+</div>
+
+<p style="margin-top:2rem;font-size:.8rem;color:var(--ink-40);text-align:center;border-top:1px solid var(--border);padding-top:.8rem;">
+  如有任何疑问，随时向你的 AI 助教提问 🤖
+</p>
+
+</body>
+</html>

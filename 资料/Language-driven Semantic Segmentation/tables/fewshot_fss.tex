@@ -1,0 +1,21 @@
+\scalebox{0.8}{
+\begin{tabular}{c|c|c|c}
+\toprule 
+Model&Backbone& Method&mIoU \\  
+\midrule\midrule
+OSLSM & \multirow{4}{*}{VGG16} &1-shot&70.3\\
+GNet&&1-shot&71.9\\
+FSS&&1-shot&73.5\\
+DoG-LSTM&&1-shot&80.8\\
+\midrule
+DAN&\multirow{2}{*}{ResNet101}&1-shot&85.2\\
+HSNet&&1-shot&86.5 \\
+\midrule
+\methodname{} &ResNet101&zero-shot&84.7 \\
+\methodname{} &ViT-L/16&zero-shot&\textbf{87.8} \\
+\bottomrule
+\end{tabular}
+}
+\caption{Comparison of mIoU on FSS-1000.}
+
+

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · g2o实践曲线拟合 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 6</div>
+      <h1>第六讲 · g2o 实践曲线拟合</h1>
+      <p class="subtitle">这一节和上一节做的是同一个曲线拟合问题，但思维方式不一样：Ceres 更像“我来定义残差”；g2o 更像“我先把问题搭成一张图，再让图去优化”。🛠️</p>
+      <div class="hero-meta">
+        <span>🔗 承接图优化理论课</span>
+        <span>📎 顶点 / 边第一次真正进代码</span>
+        <span>🌉 为第十一讲位姿图优化预热</span>
+      </div>
+      <div class="toc">
+        <a href="#graph-model">曲线拟合怎么画成图</a>
+        <a href="#vertex-edge">顶点类和边类在做什么</a>
+        <a href="#solver">求解器配置和优化流程</a>
+        <a href="#compare">它和 Ceres 的差异</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="graph-model">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>学会从“图建模”的角度组织一个优化问题：顶点是什么、边是什么、误差在哪里算、增量怎么更新。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节我们刚从理论上引入图优化，这一节马上用同一个曲线拟合例子把那套语言变成 g2o 代码。这样你才能看出“图优化”到底落在了哪些类和函数上。</p>
+        </div>
+      </div>
+      <p>书里先把这个曲线拟合问题重新解释成图：</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/78facd1896620302545d3a0d777944514009679cd9fff04ea8375d99fc7b0aa7.jpg" alt="曲线拟合图优化模型">
+        <figcaption>图 6-3 曲线拟合对应的图优化模型。整个问题只有一个参数顶点，而每个观测数据点都贡献一条一元边。</figcaption>
+      </figure>
+      <p>这张图特别适合作为“图优化入门样板”来看：</p>
+      <ul>
+        <li>顶点只有一个，就是参数 $[a,b,c]$；</li>
+        <li>每个观测残差都是一条边；</li>
+        <li>由于每条边只依赖这一组参数，所以它是一元边。</li>
+      </ul>
+      <p>书里还顺手提到“超边 / 超图”的说法。你现在可以记住：g2o 的框架本来就是为“误差可能同时依赖多个变量”的情形准备的，这在 SLAM 里尤其常见。</p>
+    </main>
+
+    <section class="section-card" id="vertex-edge">
+      <h2>1. 顶点类和边类：g2o 为什么要你手写这些</h2>
+
+      <h3>1.1 顶点类：参数长什么样，怎么更新</h3>
+      <pre><code class="language-cpp">class CurveFittingVertex
+  : public g2o::BaseVertex&lt;3, Eigen::Vector3d&gt; {
+public:
+  virtual void setToOriginImpl() {
+    _estimate &lt;&lt; 0, 0, 0;
+  }
+
+  virtual void oplusImpl(const double* update) {
+    _estimate += Eigen::Vector3d(update);
+  }
+};</code></pre>
+      <p>这一段最值钱的地方不是模板参数，而是 <code>oplusImpl</code>。书里专门停下来解释了：曲线拟合这里之所以只是简单加法，是因为参数生活在普通向量空间里。</p>
+      <div class="callout">
+        <h4>这句解释非常重要</h4>
+        <p>如果优化变量不是普通向量，而是相机位姿，那么更新就不能再是普通加法了。根据第四讲，你可能要做左乘更新或右乘更新，背后其实就是李代数扰动加到李群位姿上。</p>
+      </div>
+      <p>这就是为什么这节看似在讲曲线拟合，实际上已经悄悄把你带向第十一讲位姿图优化了：<strong>g2o 把“如何更新变量”这件事的控制权交给你</strong>。</p>
+
+      <h3>1.2 边类：误差在哪儿算</h3>
+      <pre><code class="language-cpp">class CurveFittingEdge
+  : public g2o::BaseUnaryEdge&lt;1, double, CurveFittingVertex&gt; {
+public:
+  CurveFittingEdge(double x) : _x(x) {}
+
+  void computeError() {
+    const CurveFittingVertex* v =
+      static_cast&lt;const CurveFittingVertex*&gt;(_vertices[0]);
+    const Eigen::Vector3d abc = v-&gt;estimate();
+    _error(0,0) = _measurement -
+      std::exp(abc(0,0)*_x*_x + abc(1,0)*_x + abc(2,0));
+  }
+};</code></pre>
+      <p>这段代码的核心只有一句：给定当前顶点估计值，算出当前观测残差。</p>
+      <p>你可以把它和上一节 Ceres 的 Functor 对照来看：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Ceres 风格</h4>
+          <p>直接定义一个残差函数对象，然后把残差块交给 Problem。</p>
+        </div>
+        <div class="mini-card">
+          <h4>g2o 风格</h4>
+          <p>先显式定义“顶点类型”和“边类型”，再把整个问题作为图搭出来。</p>
+        </div>
+        <div class="mini-card">
+          <h4>本质</h4>
+          <p>两者都在表达同一件事，只是 g2o 更强调结构和图建模。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="solver">
+      <h2>2. 图怎么搭起来，求解器又怎么配</h2>
+      <p>书里的主程序核心结构很典型：</p>
+      <pre><code class="language-cpp">typedef g2o::BlockSolver&lt;g2o::BlockSolverTraits&lt;3,1&gt;&gt; Block;
+Block::LinearSolverType* linearSolver =
+  new g2o::LinearSolverDense&lt;Block::PoseMatrixType&gt;();
+Block* solver_ptr = new Block(linearSolver);
+g2o::OptimizationAlgorithmLevenberg* solver =
+  new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+
+g2o::SparseOptimizer optimizer;
+optimizer.setAlgorithm(solver);
+optimizer.setVerbose(true);</code></pre>
+      <p>这里你不必现在就把所有模板参数都背下来，但要看出这几层分工：</p>
+      <ul>
+        <li><strong>BlockSolverTraits&lt;3,1&gt;</strong> 说的是：顶点维度 3，边残差维度 1。</li>
+        <li><strong>LinearSolverDense</strong> 负责线性方程那一层怎么解。</li>
+        <li><strong>OptimizationAlgorithmLevenberg</strong> 决定非线性迭代层用的是 L-M。</li>
+        <li><strong>SparseOptimizer</strong> 则是整张图的容器。</li>
+      </ul>
+      <p>然后是建图过程：</p>
+      <pre><code class="language-cpp">CurveFittingVertex* v = new CurveFittingVertex();
+v-&gt;setEstimate(Eigen::Vector3d(0,0,0));
+v-&gt;setId(0);
+optimizer.addVertex(v);
+
+for (int i = 0; i &lt; N; i++) {
+  CurveFittingEdge* edge = new CurveFittingEdge(x_data[i]);
+  edge-&gt;setId(i);
+  edge-&gt;setVertex(0, v);
+  edge-&gt;setMeasurement(y_data[i]);
+  edge-&gt;setInformation(Eigen::Matrix&lt;double,1,1&gt;::Identity() * 1/(w_sigma*w_sigma));
+  optimizer.addEdge(edge);
+}</code></pre>
+      <p>这一段特别适合和第六讲开头的概率视角连起来看：<code>setInformation(...)</code> 本质上就是在把协方差的逆，也就是<strong>信息矩阵</strong>，交给误差边，告诉求解器“这个观测约束有多可信”。</p>
+
+      <h3>2.1 最后优化时到底发生了什么</h3>
+      <pre><code class="language-cpp">optimizer.initializeOptimization();
+optimizer.optimize(100);</code></pre>
+      <p>看起来只有两行，但背后其实是前面整节理论在起作用：</p>
+      <div class="formula-box flow-formula">当前图结构 → 当前边残差与雅可比 → 线性增量方程 → L-M 更新 → 重复迭代直到收敛</div>
+      <p>也就是说，g2o 只是把你前面学过的东西模块化、工程化了。</p>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. g2o 和 Ceres：这节练习最想让你体会的差别</h2>
+      <p>书里给出的结果大约是：</p>
+      <div class="formula-box">$$
+      \text{estimated model: } 0.890911\;\; 2.1719\;\; 0.943629
+      $$</div>
+      <p>和上一节 Ceres 的结果非常接近。这一点本身不意外，因为本质上还是同一个最小二乘问题。真正值得你抓住的是它们的“气质差别”：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Ceres 更像</h4>
+          <p>“我把残差函数写给你，求导和迭代细节大多由库负责”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>g2o 更像</h4>
+          <p>“我先把问题搭成图，再显式告诉你每类顶点、边和求解器是什么”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>所以在 SLAM 里</h4>
+          <p>当问题天然就是图结构时，g2o 往往会显得非常顺手，尤其到了位姿图和 BA 场景。</p>
+        </div>
+      </div>
+      <p>书里还特别提到一点：在这两个小程序中，都没有手推雅可比，而是借助数值求导或自动方式把事情先跑起来。这对教学很友好，但它也在暗示你：越往后走，越复杂的位姿和投影问题，越值得你自己理解并掌握解析雅可比。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>这一节 g2o 曲线拟合最想训练你的，不是哪个类名，而是什么能力？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。真正重要的是学会把问题拆成顶点与边，并理解更新和误差各自落在哪个类里。" onclick="lessonKit.answer(this, 'quiz-0044-a')">把优化问题建模成顶点 + 边 + 求解器的图结构</button>
+          <button data-correct="no" data-explanation="速度结果只是现象，不是这节的核心学习目标。" onclick="lessonKit.answer(this, 'quiz-0044-a')">记住 g2o 比 Ceres 慢多少毫秒</button>
+          <button data-correct="no" data-explanation="这节课重点恰恰不是把图优化理解成只能做曲线拟合。" onclick="lessonKit.answer(this, 'quiz-0044-a')">把图优化理解成只适用于单顶点问题</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0044-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>图建模真正落地了</h4>
+          <p>你第一次在代码里明确看到：顶点保存变量、边计算误差、求解器组织优化。</p>
+        </div>
+        <div class="mini-card">
+          <h4><code>oplusImpl</code> 很关键</h4>
+          <p>它告诉你变量如何被增量更新，这在位姿优化里会直接连接第四讲的李代数更新。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为后文埋的线</h4>
+          <p>第十一讲位姿图优化基本就是这一节思路的“大型正式版”。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么 g2o 里必须显式定义顶点类和边类，而 Ceres 可以只定义残差函数？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 g2o 的核心心智模型是“图”，它要显式知道变量节点类型、误差边类型以及更新方式；而 Ceres 更偏向通用最小二乘接口，重点是残差块与参数块的组合。</div>
+            </details>
+          </li>
+          <li>
+            <code>oplusImpl</code> 为什么在曲线拟合里看起来平平无奇，但在 SLAM 里却很关键？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为曲线参数生活在普通向量空间里，加法就够了；但位姿生活在李群上，更新必须遵守流形结构，所以需要自己定义增量如何作用到当前估计上。</div>
+            </details>
+          </li>
+          <li>
+            这一节和第十一讲位姿图优化的最近联系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>第十一讲的位姿图优化仍然是“顶点 + 边 + 求解器”的框架，只不过顶点变成位姿，边变成相对位姿约束，<code>oplusImpl</code> 也不再是普通加法，而是李代数更新。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0043-第六讲-图优化理论入门.html">← 图优化理论入门</a>
+        <a class="next" href="0045-第六讲-章节总结与习题.html">章节总结与习题 →</a>
+      </div>
+      <p class="foot-note">第六讲到这里，其实已经把你带到“后端优化程序该怎么搭”的门口了。下一页我们把整讲收束起来。📚</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

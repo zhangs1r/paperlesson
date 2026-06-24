@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 双目与RGB-D相机 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 3</div>
+      <h1>第五讲 · 双目与 RGB-D 相机</h1>
+      <p class="subtitle">单目把三维世界压成二维之后，深度就丢了。双目靠视差补回来，RGB-D 靠主动测量拿回来。这节课就是在比较“深度从哪儿来”。</p>
+      <div class="hero-meta">
+        <span>🔗 承接针孔模型与畸变</span>
+        <span>📏 主题是深度获取</span>
+        <span>🗺️ 直接影响第十三讲稠密建图</span>
+      </div>
+      <div class="toc">
+        <a href="#mono">单目为什么缺深度</a>
+        <a href="#stereo">双目与视差</a>
+        <a href="#rgbd">RGB-D 原理</a>
+        <a href="#compare">三类相机对比</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="mono">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>先把问题重新说一遍</h4>
+          <p>上一节我们知道，像素位置主要由 $X/Z$ 和 $Y/Z$ 决定。这立刻带来一个后果：只看单帧图像，空间点沿着同一条视线前后移动，可能落在同一个像素方向上。</p>
+        </div>
+        <div class="callout">
+          <h4>这节课在后面哪里会再出现</h4>
+          <p>第八讲会用 RGB-D 做直接法；第十三讲会直接把 RGB-D 图像转成点云做稠密建图。而双目思想则会在深度估计、视差和重建里持续出现。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/bcfdf95f19e5b225b5e33e17da27c9abe72bf1dc9ed0c2de86e2904b8ef1f61e.jpg" alt="图 5-5 单目深度歧义">
+        <figcaption>图 5-5 的重点不在于画面精细，而在于那条从光心穿过像素方向的射线。只要点还在这条射线上，它就可能投到同一个像素上。所以单帧单目只给“方向”，不给“绝对深度”。</figcaption>
+      </figure>
+      <p>这就是单目的根本限制：<strong>一个像素不能独自告诉你空间点到底离相机多远</strong>。因此单目 SLAM 想恢复深度，必须借助时间维度上的运动，也就是相机自己动起来以后，利用多帧视差做三角化。</p>
+      <div class="callout">
+        <h4>和第二讲的联系</h4>
+        <p>第二讲说观测方程把路标映成像素。现在你要意识到，单独的观测方程并不够，它还缺深度信息。要么靠多帧几何，要么靠多目传感器，要么靠主动深度传感器补齐。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="stereo">
+      <h2>1. 双目相机：用已知基线把深度算回来</h2>
+      <p>双目的直觉其实和人眼一样：左右两个相机在空间中隔开一段已知距离，看同一个点时会产生横向位置差，这个差就是视差 <code>disparity</code>。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/d85f5186f72d2451cec3be632e75be70f09b04fa9549116b970e752ea1f40cd6.jpg" alt="图 5-6 双目相机模型">
+        <figcaption>图 5-6 里最要紧的是三个量：焦距 $f$、基线 $b$、左右像素位置 $u_L,u_R$。书里特别提醒了坐标符号方向，所以公式里出现的正负号要按图定义理解。</figcaption>
+      </figure>
+      <p>在理想校正后的双目里，左右图的对应点主要在水平方向偏移，因此视差定义为：</p>
+      <div class="formula-box">$$ d = u_L - u_R. $$</div>
+      <p>由相似三角形可推出深度公式：</p>
+      <div class="formula-box">$$ z = \frac{fb}{d}. \tag{5.16} $$</div>
+      <p>这条式子值得慢慢咀嚼，因为它直接告诉我们：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>视差越大</h4>
+          <p>说明点越近，因为近处点在左右眼里偏移更明显。</p>
+        </div>
+        <div class="mini-card">
+          <h4>基线越大</h4>
+          <p>测远处时更有优势，因为同样深度会产生更大的可分辨视差。</p>
+        </div>
+        <div class="mini-card">
+          <h4>视差误差很致命</h4>
+          <p>当点很远时，$d$ 很小，1 个像素的误差都会明显放大到深度上。</p>
+        </div>
+      </div>
+      <p>这也解释了为什么无人车常用宽基线双目，而小型机器人和手机上受尺寸限制，双目深度会更容易不稳定。</p>
+      <div class="callout">
+        <h4>双目的难点不在公式，而在匹配</h4>
+        <p>公式非常短，但真正难的是：左图里的这个点，到右图里哪一个点才是它的对应点？这就是立体匹配问题。纹理少、重复纹理多、光照差异大时，它都可能很痛苦。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="rgbd">
+      <h2>2. RGB-D 相机：不再“猜深度”，而是主动去量</h2>
+      <p>和双目通过图像差异间接推深度不同，RGB-D 相机走的是更主动的路线：直接向环境发射光，再根据返回结果测距离。因此它把“深度估计”这个计算问题，部分转移成了“传感器硬件测量”问题。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/069dbd954974566b36675aa4d3cc2d12feefc3ed505940c62f6c6a555cad055a.jpg" alt="图 5-7 RGB-D 相机原理示意图">
+        <figcaption>图 5-7 想表达的是 RGB-D 相机里不止有一个普通彩色摄像头，还常常有红外发射器和接收器。也就是说，它不是纯“被动看世界”，而是在主动向世界打光。</figcaption>
+      </figure>
+      <table>
+        <thead>
+          <tr><th>类型</th><th>基本原理</th><th>你可以怎么记</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>结构光</td><td>投射已知红外图案，根据回来的图案变形恢复深度</td><td>像给场景盖了一层可识别纹理</td></tr>
+          <tr><td>ToF</td><td>发射脉冲光，测飞行往返时间</td><td>像用光做“超短距离测距”</td></tr>
+        </tbody>
+      </table>
+      <p>书中把这两类都归到 RGB-D 下，这个归类非常实用。因为对 SLAM 使用者来说，重点不是把硬件论文读到最细，而是知道它们都能输出<strong>彩色图 + 深度图</strong>，从而让每个像素直接带上深度值。</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>RGB-D 的好处</h4>
+          <p>不必像双目那样做大规模视差匹配；对纹理稀少区域也往往更友好；特别适合室内稠密建图。</p>
+        </div>
+        <div class="mini-card">
+          <h4>RGB-D 的限制</h4>
+          <p>室外强日光下容易受干扰；玻璃、透明材质和某些反射材质不好测；多台同时工作还可能互相干扰。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>和第十三讲的联系尤其强</h4>
+        <p>第十三讲的 RGB-D 稠密建图之所以比单目和双目更直接，就是因为这里的每个像素已经带深度，点云和八叉树地图都可以从这个基础上继续做。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. 单目、双目、RGB-D 三者到底怎么选</h2>
+      <table>
+        <thead>
+          <tr><th>维度</th><th>单目</th><th>双目</th><th>RGB-D</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>深度来源</td><td>多帧运动三角化</td><td>左右视差</td><td>主动测量</td></tr>
+          <tr><td>尺度是否天然确定</td><td>否</td><td>是</td><td>是</td></tr>
+          <tr><td>室外适应性</td><td>较好</td><td>较好</td><td>较弱</td></tr>
+          <tr><td>计算代价</td><td>中等</td><td>偏大</td><td>传感器承担更多</td></tr>
+          <tr><td>典型优势</td><td>便宜、轻量、泛用</td><td>有绝对尺度、室内外都能用</td><td>室内稠密几何最直接</td></tr>
+          <tr><td>典型弱点</td><td>尺度不确定</td><td>匹配重、标定要求高</td><td>量程和光照受限</td></tr>
+        </tbody>
+      </table>
+      <div class="interactive-card">
+        <h3>带着后文想一想</h3>
+        <p>为什么书在第十三讲讲稠密建图时，会明显更偏向 RGB-D？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为 RGB-D 每个像素都直接附带深度，点云和稠密地图构建更自然，少掉了大量不稳定的深度估计步骤。" onclick="lessonKit.answer(this, 'quiz-0034-a')">因为每个像素直接有深度，稠密建图链条最短</button>
+          <button data-correct="no" data-explanation="RGB-D 一般不以宽基线著称，这是双目的思路。" onclick="lessonKit.answer(this, 'quiz-0034-a')">因为 RGB-D 的基线比双目更宽</button>
+          <button data-correct="no" data-explanation="内参标定对所有相机都重要，不是 RGB-D 独有优势。" onclick="lessonKit.answer(this, 'quiz-0034-a')">因为 RGB-D 不需要相机内参</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0034-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>单目</h4>
+          <p>便宜灵活，但单帧没有绝对深度，需要靠运动恢复结构。</p>
+        </div>
+        <div class="mini-card">
+          <h4>双目</h4>
+          <p>通过已知基线和视差恢复深度，公式简单，匹配不简单。</p>
+        </div>
+        <div class="mini-card">
+          <h4>RGB-D</h4>
+          <p>主动量测深度，特别适合室内稠密重建与点云建图。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说单目只靠单帧图像无法确定绝对尺度？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为单帧只给投影关系，不给绝对深度。把场景和运动整体按同一比例缩放，图像可能仍几乎一样，所以会存在尺度不确定性。</div>
+            </details>
+          </li>
+          <li>
+            双目公式 $z=fb/d$ 里，为什么远处深度更难测准？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为远处点的视差 $d$ 很小，而深度和 $1/d$ 成正比。这样哪怕匹配只差 1 个像素，也会在深度上放大成明显误差。</div>
+            </details>
+          </li>
+          <li>
+            为什么 RGB-D 在第十三讲做稠密建图时更省力，但又不总能替代双目？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 RGB-D 直接给深度，室内稠密建图链条最短；但它量程有限、室外受日光影响、对透明或特殊材质不稳定，所以在大场景和室外环境里不一定像双目那样通用。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0033-第五讲-畸变模型.html">← 畸变模型</a>
+        <a class="next" href="0035-第五讲-图像在计算机中的表示.html">图像在计算机中的表示 →</a>
+      </div>
+      <p class="foot-note">到这里，第五讲前半段的主线就很清楚了：先会投影，再理解畸变，最后补上深度来源 🌿</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · Ceres实践曲线拟合 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 4</div>
+      <h1>第六讲 · Ceres 实践曲线拟合</h1>
+      <p class="subtitle">前面三节讲的是“为什么能优化、怎么优化”；这一节开始把手伸进代码里。Ceres 这段练习看似只是拟合一条曲线，其实是在让你先学会最小二乘库最基本的使用姿势。💻</p>
+      <div class="hero-meta">
+        <span>🔗 把 G-N / L-M 理论落成 API</span>
+        <span>🧪 先用简单曲线问题练手</span>
+        <span>🚀 为第十讲 Ceres 求 BA 预热</span>
+      </div>
+      <div class="toc">
+        <a href="#problem">曲线拟合问题怎么写成最小二乘</a>
+        <a href="#ceres-idea">Ceres 在帮我们做什么</a>
+        <a href="#code">代码结构逐段讲</a>
+        <a href="#figure">原书结果图怎么看</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="problem">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>你不是只要知道“Ceres 可以跑通”，而是要明白：残差在哪里写、参数块在哪里交给求解器、自动求导替你省掉了什么。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节的 L-M 方程还停留在推导层面，这一节我们把它交给一个成熟优化库。你会第一次感受到“最小二乘目标函数”在代码中是什么样子。</p>
+        </div>
+      </div>
+      <p>原书选的练手问题是：</p>
+      <div class="formula-box">$$
+      y = \exp(ax^2 + bx + c) + w,
+      $$</div>
+      <p>其中 $a,b,c$ 是待估参数，$w$ 是高斯噪声。于是问题就变成：</p>
+      <div class="formula-box">$$
+      \min_{a,b,c}
+      \frac{1}{2}\sum_{i=1}^{N}
+      \left\|
+      y_i - \exp(ax_i^2 + bx_i + c)
+      \right\|^2.
+      \tag{6.28}
+      $$</div>
+      <p>这和上一节的通用形式 $\min \frac{1}{2}\|f(\boldsymbol{x})\|^2$ 已经完全对上了。只是现在：</p>
+      <ul>
+        <li>优化变量是三个参数 $a,b,c$；</li>
+        <li>每个数据点给出一个一维残差；</li>
+        <li>总目标函数就是所有残差的平方和。</li>
+      </ul>
+      <p>注意书里特别提醒了一句：待估的是 $a,b,c$，不是 $x$。这句话看起来简单，但其实是在训练你区分“观测自变量”和“真正的优化变量”。</p>
+    </main>
+
+    <section class="section-card" id="ceres-idea">
+      <h2>1. Ceres 的工作方式：你给残差，它替你做迭代</h2>
+      <p>书里把 Ceres 定位成一个“面向通用最小二乘问题的求解库”。它最一般的形式是：</p>
+      <div class="formula-box">$$
+      \min_x \frac{1}{2}\sum_i \rho_i\left(\|f_i(x_{i_1},\dots,x_{i_n})\|^2\right),
+      \qquad
+      l_j \le x_j \le u_j.
+      \tag{6.27}
+      $$</div>
+      <p>对于这一节的曲线拟合，我们其实用的是最朴素版本：</p>
+      <ul>
+        <li>没有上下界约束；</li>
+        <li>没有鲁棒核函数 $\rho$；</li>
+        <li>就是普通的误差平方和。</li>
+      </ul>
+      <p>所以你可以先把 Ceres 看成三层分工：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>你负责</h4>
+          <p>写清楚“一个观测对应的残差长什么样”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Ceres 负责</h4>
+          <p>把所有残差块拼成目标函数，并根据选项选择 L-M 或其他策略迭代优化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>自动求导负责</h4>
+          <p>在你不手写雅可比的前提下，帮你拿到求解器需要的一阶信息。</p>
+        </div>
+      </div>
+      <p>这一节最值得体会的，不是 Ceres 某个类名，而是这种分工方式：<strong>目标函数定义和求解器控制被很好地拆开了</strong>。这也是它和 g2o 在风格上的第一层差异。</p>
+    </section>
+
+    <section class="section-card" id="code">
+      <h2>2. 代码结构逐段讲：这不是“抄代码”，而是在学最小二乘接口</h2>
+
+      <h3>2.1 第一步：定义一个残差 Functor</h3>
+      <p>书里的核心代码是这个仿函数：</p>
+      <pre><code class="language-cpp">struct CURVE_FITTING_COST {
+  CURVE_FITTING_COST(double x, double y) : _x(x), _y(y) {}
+
+  template &lt;typename T&gt;
+  bool operator()(const T* const abc, T* residual) const {
+    residual[0] = T(_y) - ceres::exp(
+      abc[0] * T(_x) * T(_x) + abc[1] * T(_x) + abc[2]
+    );
+    return true;
+  }
+
+  const double _x, _y;
+};</code></pre>
+      <p>如果把这段代码翻成人话，就是：</p>
+      <div class="callout">
+        <h4>它在做什么</h4>
+        <p>给定一组当前参数估计 $abc=[a,b,c]$，以及某个样本点 $(x_i,y_i)$，计算这个样本点的残差：真实观测减去模型预测。</p>
+      </div>
+      <p>这里最值得注意的是模板参数 <code>T</code>。书里说 Ceres 会像调用函数一样去用这个对象，而模板化的写法使它既能用来正常求值，也能服务于自动求导。</p>
+
+      <h3>2.2 第二步：把每个观测加成一个残差块</h3>
+      <pre><code class="language-cpp">ceres::Problem problem;
+for (int i = 0; i &lt; N; i++) {
+  problem.AddResidualBlock(
+    new ceres::AutoDiffCostFunction&lt;CURVE_FITTING_COST, 1, 3&gt;(
+      new CURVE_FITTING_COST(x_data[i], y_data[i])
+    ),
+    nullptr,
+    abc
+  );
+}</code></pre>
+      <p>这里可以把它理解成：<strong>每个样本点都向总目标函数贡献一个一维误差块</strong>。模板参数 <code>&lt;1,3&gt;</code> 的意思正是：</p>
+      <ul>
+        <li>残差维度是 1；</li>
+        <li>参数块维度是 3。</li>
+      </ul>
+      <p>这和书里前面讲的“参数块”概念也正好衔接上了。虽然这一节只有一个参数块，但到了第十讲 BA，这种“把局部误差项挂到参数块上”的组织方式会变得非常关键。</p>
+
+      <h3>2.3 第三步：配置求解器</h3>
+      <pre><code class="language-cpp">ceres::Solver::Options options;
+options.linear_solver_type = ceres::DENSE_QR;
+options.minimizer_progress_to_stdout = true;
+
+ceres::Solver::Summary summary;
+ceres::Solve(options, &amp;problem, &amp;summary);</code></pre>
+      <p>书里这里没有深挖每一个选项，而是更想让你建立一个正确直觉：<strong>Ceres 的大量行为都是通过 Options 配置出来的</strong>。也就是说，你不需要自己写 G-N 或 L-M 的迭代循环，而是把目标函数和优化选项交给它。</p>
+      <p>这也是它比很多手写优化代码更适合快速实验的原因。</p>
+
+      <h3>2.4 自动求导为什么值钱</h3>
+      <p>书里很坦诚地说了一个细节：它把 Ceres 自动求导称作“自动求导”，但又提醒你本书仍会大量介绍雅可比推导，因为那更利于理解问题，也更少出错。</p>
+      <p>对你现在来说，可以先抓住这两个层面：</p>
+      <div class="lead-grid">
+        <div class="mini-card">
+          <h4>工程上</h4>
+          <p>自动求导让你更快把问题跑起来，尤其适合原型验证和复杂残差实验。</p>
+        </div>
+        <div class="mini-card">
+          <h4>理论上</h4>
+          <p>如果你不知道雅可比大致长什么样，出了问题时就很难判断是模型写错、尺度错了，还是求解器设置不合适。</p>
+        </div>
+      </div>
+      <p>所以这一节最好的学习姿势不是“以后都不推导了”，而是：“先让库帮我跑起来，同时不放弃理解导数结构”。</p>
+    </section>
+
+    <section class="section-card" id="figure">
+      <h2>3. 原书结果图怎么读：不是只看‘拟合上了没’</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/37c67d23861f2c00f119b6285f81b2e9db4aaa2d47430bf3902ec4dc3e5b157a.jpg" alt="Ceres 曲线拟合结果图">
+        <figcaption>图 6-1 使用 Ceres 进行曲线拟合。红线是真实模型，绿线是估计模型，蓝色散点是含噪观测数据。</figcaption>
+      </figure>
+      <p>这张图最值得看的不是“绿线和红线差不多”，而是三层关系：</p>
+      <ul>
+        <li>蓝色散点说明观测本身有噪声，不会乖乖落在真模型上；</li>
+        <li>红线代表生成数据时的真实曲线；</li>
+        <li>绿线代表通过最小二乘优化恢复出来的模型。</li>
+      </ul>
+      <p>书里给的数值结果大致是：</p>
+      <div class="formula-box">$$
+      a \approx 0.891943,\qquad
+      b \approx 2.17039,\qquad
+      c \approx 0.944142.
+      $$</div>
+      <p>和真值 $(1,2,1)$ 已经很接近，而且初始代价从大约 $1.824887\times 10^4$ 降到了大约 $5.096854\times 10^1$。这不是说明“Ceres 很神奇”，而是说明上一节讲的非线性最小二乘框架真的开始工作了。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>这一节的曲线拟合练习，最核心的学习价值是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。真正的价值是把抽象残差最小化问题，第一次映射成你能看懂的代码组织方式。" onclick="lessonKit.answer(this, 'quiz-0042-a')">把“定义残差块并交给求解器”这套工作流跑通</button>
+          <button data-correct="no" data-explanation="图画得好只是结果展示，不是这一节的核心训练目标。" onclick="lessonKit.answer(this, 'quiz-0042-a')">学会在 OpenCV 里画曲线</button>
+          <button data-correct="no" data-explanation="这一节的重点恰恰不是手写雅可比，而是先理解库接口和自动求导的角色。" onclick="lessonKit.answer(this, 'quiz-0042-a')">完全摆脱对雅可比的理解</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0042-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>练习本身很小</h4>
+          <p>只是三个参数的曲线拟合，但它把“最小二乘问题如何交给库”讲得很清楚。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Ceres 的气质</h4>
+          <p>你主要定义残差和参数块，求导和迭代控制大部分交给库配置完成。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和后文的联系</h4>
+          <p>第十讲再用 Ceres 做 BA 时，问题会大很多，但工作流仍然是“定义残差块 + 配置求解器”。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么这一节里每个观测点都对应一个残差块，而不是把所有点一次性写进一个大函数？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为最小二乘天然就是由许多局部误差项组成的。按观测逐块组织更符合求解器的目标函数结构，也更容易扩展到后面的大规模稀疏问题。</div>
+            </details>
+          </li>
+          <li>
+            模板参数 <code>&lt;1,3&gt;</code> 在这一节里具体在表达什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>表示每个残差块输出一维残差，而对应的优化变量块维度是 3，也就是参数 $a,b,c$ 三个量。</div>
+            </details>
+          </li>
+          <li>
+            这一节和第十讲 Ceres 求 BA 之间最值得提前建立的联系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>都是“定义局部残差项并交给 Ceres 统一求解”的工作流。区别只是 BA 的残差块会同时连接位姿、路标甚至相机内参，规模和稀疏性都更复杂。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0041-第六讲-列文伯格马夸尔特法.html">← 列文伯格马夸尔特法</a>
+        <a class="next" href="0043-第六讲-图优化理论入门.html">图优化理论入门 →</a>
+      </div>
+      <p class="foot-note">这节课先让你熟悉“通用最小二乘库”的用法，下一节我们换个视角，看 g2o 为什么偏爱“图”。📎</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

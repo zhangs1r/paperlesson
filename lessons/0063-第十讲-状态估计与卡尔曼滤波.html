@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十讲 · 状态估计与卡尔曼滤波 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十讲 · 后端 1 / Lesson 1</div>
+      <h1>第十讲 · 状态估计与卡尔曼滤波</h1>
+      <p class="subtitle">这一讲不是要你改行做滤波派，而是要你真正看懂：后端到底在估计什么，为什么今天主流又会转向 BA 和图优化。📊</p>
+      <div class="hero-meta">
+        <span>🔗 承接第六讲最小二乘</span>
+        <span>🧭 回应第九讲前端漂移</span>
+        <span>🚪 为 BA 与位姿图开场</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#why-backend">为什么需要后端</a>
+        <a href="#bayes">贝叶斯状态估计</a>
+        <a href="#kf">卡尔曼滤波</a>
+        <a href="#ekf">EKF 与局限</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>理解“后端优化”并不是一个神秘黑箱，而是一类状态估计问题。我们会从 Bayes 滤波一路走到 KF、EKF，再说明为什么现代视觉 SLAM 更偏向非线性优化。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>第九讲的 VO 已经让你感受到漂移会不断积累；第十讲先用滤波视角解释“如何融合运动与观测”，再在下一节把焦点彻底转向 BA、稀疏性和 Schur 消元。</p>
+        </div>
+      </div>
+      <p>这节课最容易被误解成“历史补课”。其实不是。作者专门讲卡尔曼滤波，是为了让你理解一个根本问题：<strong>SLAM 从头到尾都在做状态估计，只是不同年代偏好的工具不同</strong>。把这件事看清了，后面 BA 和位姿图才不会像从天而降的新术语。</p>
+    </main>
+
+    <section class="section-card" id="why-backend">
+      <h2>1. 为什么前端之后还必须有后端</h2>
+      <p>第九讲已经告诉我们，前端哪怕能稳定输出相邻帧位姿，也会有一个根本问题：误差会沿时间不断累积。于是后端的任务就变成：<strong>把不同时间、不同来源的约束重新放在一起，求一个更全局一致的答案</strong>。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>前端更在乎什么</h4>
+          <p>实时、快速、当前时刻别掉跟。</p>
+        </div>
+        <div class="mini-card">
+          <h4>后端更在乎什么</h4>
+          <p>整体一致性、抗噪声、长期误差别越积越歪。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和第十一讲的关系</h4>
+          <p>第十一讲会把后端进一步压缩成位姿图；而这一节先从更普适的状态估计角度把概念地基打好。</p>
+        </div>
+      </div>
+      <p>所以第十讲的第一个关键词是 <strong>state estimation</strong>。当我们说“我要估计相机位姿和地图”，本质上就是在说：我有带噪声的运动信息和带噪声的观测信息，想倒推出最可信的隐藏状态。</p>
+    </section>
+
+    <section class="section-card" id="bayes">
+      <h2>2. 用 Bayes 眼光看 SLAM：运动让不确定度变大，观测让不确定度收缩</h2>
+      <p>把书里的运动方程和观测方程重新写一遍，你会更清楚这件事：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ x_k = f(x_{k-1},u_k) + w_k, \qquad z_{k,j} = h(x_k,y_j) + v_{k,j}. $$</div>
+      </div>
+      <p>这两条式子不是在炫公式，它们只是在说：</p>
+      <ul>
+        <li>机器人会根据控制输入运动，但运动有噪声；</li>
+        <li>相机会观测到一些地图信息，但观测也有噪声。</li>
+      </ul>
+      <p>因此，位姿和地图都不是“一个确定数”，而是带有不确定性的随机变量。书里用均值和协方差去描述这种不确定性，这正是卡尔曼滤波一系方法的语言基础。</p>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/c882ad1303a6011f8f614358da9d36119aa38466f5aaadda4fa283537b2a19bc.jpg" alt="图 10-1 左图 不确定度增长">
+          <figcaption>图 10-1 左图：如果你只靠运动方程往前推，不确定度会不断变大。很像蒙着眼往前走，越走越心虚。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/faa79be2cd3c1ea65b8bc34eef8962fe8989a2ef9f078198e2715dc7706d5721.jpg" alt="图 10-1 右图 观测抑制不确定度">
+          <figcaption>图 10-1 右图：一旦引入路标观测，不确定度会被拉回来。你可以把观测理解成“世界在帮你纠偏”。</figcaption>
+        </figure>
+      </div>
+      <p>于是整个状态估计任务可以写成后验概率：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ P(x_k \mid x_0, u_{1:k}, z_{1:k}). $$</div>
+      </div>
+      <p>这是本课的真正中心句。后面不管是滤波器还是 BA，本质上都在试图逼近这个后验分布，只是表示方式和求解方式不同。</p>
+    </section>
+
+    <section class="section-card" id="kf">
+      <h2>3. 卡尔曼滤波：在线性高斯世界里，预测与更新可以写得非常漂亮</h2>
+      <p>如果系统满足两件事：</p>
+      <ol>
+        <li>运动和观测都是线性的；</li>
+        <li>噪声服从高斯分布；</li>
+      </ol>
+      <p>那么问题就落在最经典的线性高斯系统上。此时 KF 的语言特别干净：先预测，再更新。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \bar{x}_k = A_k \hat{x}_{k-1} + u_k, \qquad \bar{P}_k = A_k \hat{P}_{k-1}A_k^T + R. $$</div>
+      </div>
+      <div class="formula-box">
+        <div class="flow-formula">$$ K_k = \bar{P}_k C_k^T(C_k\bar{P}_k C_k^T + Q)^{-1}. $$</div>
+      </div>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \hat{x}_k = \bar{x}_k + K_k(z_k - C_k\bar{x}_k), \qquad \hat{P}_k = (I-K_kC_k)\bar{P}_k. $$</div>
+      </div>
+      <p>这里最值得你抓牢的是卡尔曼增益 $K_k$ 的直觉：它决定了我们是更相信预测，还是更相信观测。观测越可靠，增益就越愿意把新观测拉进来；观测越吵，系统就越保守。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果观测噪声协方差 $Q$ 变大，卡尔曼滤波通常会更倾向于什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。观测越吵，更新项就会更保守，系统更依赖预测。" onclick="lessonKit.answer(this, 'quiz-0063')">更相信预测</button>
+          <button data-correct="no" data-explanation="恰好相反，观测越不可靠，滤波器越不会盲信它。" onclick="lessonKit.answer(this, 'quiz-0063')">更相信观测</button>
+          <button data-correct="no" data-explanation="维度没有被这里直接改变。" onclick="lessonKit.answer(this, 'quiz-0063')">直接减少状态维度</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0063"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="ekf">
+      <h2>4. EKF：把非线性问题在线性化点附近“局部拉直”</h2>
+      <p>SLAM 当然很少真的是线性的，所以 KF 还不够。EKF 的核心思路是：在当前估计点附近，对非线性运动函数和观测函数做一阶泰勒展开，把问题近似成一个局部线性高斯系统。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ x_k \approx f(\hat{x}_{k-1},u_k) + F_k(x_{k-1}-\hat{x}_{k-1}) + w_k, $$</div>
+      </div>
+      <div class="formula-box">
+        <div class="flow-formula">$$ z_k \approx h(\bar{x}_k) + H_k(x_k-\bar{x}_k) + v_k. $$</div>
+      </div>
+      <p>于是预测和更新的形式仍然像 KF，但里面的固定矩阵 $A,C$ 被局部雅可比 $F,H$ 取代了。这一点和第六讲的 Gauss-Newton、以及第十讲下一节 BA 的线性化，其实是一家人。</p>
+
+      <h3>4.1 为什么今天视觉 SLAM 主流不再以 EKF 为中心</h3>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>局部线性化误差</h4>
+          <p>EKF 只在当前点做一次线性化，非线性较强时误差容易积累。</p>
+        </div>
+        <div class="mini-card">
+          <h4>强马尔可夫假设</h4>
+          <p>它更偏“当前时刻增量更新”，不擅长像回环那样显式处理长程历史关系。</p>
+        </div>
+        <div class="mini-card">
+          <h4>协方差规模代价</h4>
+          <p>当状态里包含大量路标点时，协方差矩阵会很大，计算和存储都越来越吃力。</p>
+        </div>
+      </div>
+      <p>这就是本课最重要的结论：<strong>滤波器没有错，但对大规模视觉 SLAM 来说，图优化和 BA 通常更合适</strong>。第十一讲的位姿图、第十二讲的回环校正，几乎都在受益于这种转向。</p>
+      <div class="callout">
+        <h4>和第九、第十一、第十三讲的连线</h4>
+        <p>第九讲前端不断在产生新的局部估计；第十一讲位姿图会把关键帧间约束显式拎出来；第十三讲建图又会问“地图究竟该如何保存下来”。它们都站在第十讲的状态估计地基上。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>今天真正学到的</h4>
+          <p>SLAM 一直是状态估计问题。滤波器和优化器不是两门毫无关系的课，而是两套不同表达方式。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么还要讲 KF / EKF</h4>
+          <p>因为它能帮你真正理解“预测 + 更新”“先验 + 观测”“均值 + 协方差”这些后端底层概念。</p>
+        </div>
+        <div class="mini-card">
+          <h4>下一节会发生什么</h4>
+          <p>我们会把视角彻底转到 BA、稀疏性、Schur 消元上，也就是现代视觉 SLAM 最主流的后端语言。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            用自己的话解释：为什么“运动”会让不确定度膨胀，而“观测”会让不确定度收缩？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为运动是在已有估计上继续向前推，而控制和模型总带噪声，所以越推越不确定；观测则提供了新的外部锚点，相当于世界在告诉你“你大概应该在这里”，因此会把分布重新收紧。</div>
+            </details>
+          </li>
+          <li>
+            KF 和 EKF 最本质的差别是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>KF 处理线性高斯系统，系统矩阵固定；EKF 面对非线性系统，需要在当前估计点做一阶线性化，用局部雅可比代替固定线性矩阵。</div>
+            </details>
+          </li>
+          <li>
+            为什么现代视觉 SLAM 更常把 BA / 图优化放在后端主位置，而不是 EKF？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 BA / 图优化更适合处理大规模、强非线性、带长程约束的视觉问题；它可以反复线性化、利用稀疏结构，还更适合回环和关键帧级全局一致性优化。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0062-第九讲-局部地图改进与章节总结.html">← 第九讲 · 局部地图改进与章节总结</a>
+        <a class="next" href="0064-第十讲-BA求解与稀疏性边缘化.html">BA 求解与稀疏性边缘化 →</a>
+      </div>
+      <p class="foot-note">这一课把“后端在干什么”说成了人话，下一课我们就把它真正写成 BA 的语言。🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

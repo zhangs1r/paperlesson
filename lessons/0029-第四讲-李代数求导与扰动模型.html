@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · 李代数求导与扰动模型 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 5</div>
+      <h1>第四讲 · 李代数求导与扰动模型</h1>
+      <p class="subtitle">前面一直在铺垫“为什么位姿不能当普通向量处理”，这一节终于来到真正的工程现场：当误差和位姿有关时，我们到底怎样对姿态求导？这节课是第六讲非线性优化、 第十讲 BA、 第十一讲位姿图推导的底层模板。🧭</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0028 的 BCH 线性近似</span>
+        <span>📐 解决 SO(3) / SE(3) 上怎么求导</span>
+        <span>📌 直接通向第十、第十一讲的雅可比推导</span>
+      </div>
+      <div class="toc">
+        <a href="#background">为什么位姿求导是刚需</a>
+        <a href="#direct">直接对李代数求导</a>
+        <a href="#perturb">左扰动模型为什么更常用</a>
+        <a href="#se3">SE(3) 的结果如何理解</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="background">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>学会把“位姿是群元素”这件事真正带进误差函数里，理解两种求导思路：直接对李代数求导，以及对李群施加微小扰动后求导。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>0028 已经解释了为什么群乘法和代数加法要靠 BCH 近似翻译；这一节就是把那套翻译规则真正用于求导。下一节 Sophus 实践里的左乘更新代码，也正是这里公式的程序版。</p>
+        </div>
+      </div>
+
+      <p>原书给这个问题安排了一个非常典型的背景：假设相机观察到世界点 $\boldsymbol{p}_i$，观测值是 $\boldsymbol{z}_i$，那么误差可以写成</p>
+      <div class="formula-box">$$
+      \boldsymbol{e}_i=\boldsymbol{z}_i-\boldsymbol{T}\boldsymbol{p}_i.
+      \tag{4.38}
+      $$</div>
+      <p>于是整体目标函数变成：</p>
+      <div class="formula-box">$$
+      \min_{\boldsymbol{T}} J(\boldsymbol{T})
+      =
+      \sum_{i=1}^{N}\|\boldsymbol{z}_i-\boldsymbol{T}\boldsymbol{p}_i\|_2^2.
+      \tag{4.39}
+      $$</div>
+      <p>你现在应该马上意识到核心困难：<strong>优化变量是位姿 $\boldsymbol{T}$，但 $\boldsymbol{T}$ 属于 $SE(3)$，不是普通无约束向量</strong>。这就是为什么第四讲不是可有可无的理论插曲，而是后端优化的入口。</p>
+      <p>原书把求导思路分成两类：</p>
+      <ul>
+        <li>先把位姿写成李代数坐标，再对李代数变量求导</li>
+        <li>给李群元素左乘或右乘一个微小扰动，再对这个扰动求导</li>
+      </ul>
+      <p>下面我们会看到，第二种也就是<strong>扰动模型</strong>，通常更适合做实际推导。</p>
+    </main>
+
+    <section class="section-card" id="direct">
+      <h2>1. 直接对李代数求导：思路是正统的，但结果不够轻</h2>
+      <p>先看 $SO(3)$ 的情形。我们希望求的是旋转后点坐标相对于旋转的变化率。由于不能直接写成“对矩阵 $R$ 求导”，原书改为对它对应的李代数 $\boldsymbol{\phi}$ 求导：</p>
+      <div class="formula-box">$$
+      \frac{\partial\big(\exp(\boldsymbol{\phi}^\wedge)\boldsymbol{p}\big)}{\partial \boldsymbol{\phi}}.
+      $$</div>
+      <p>这一步的推导主干其实很好记：</p>
+      <ol>
+        <li>先把 $\boldsymbol{\phi}$ 加上一个小量 $\delta\boldsymbol{\phi}$</li>
+        <li>用 0028 讲过的 BCH 线性近似把它翻译回群上的乘法</li>
+        <li>再做一阶泰勒展开，丢掉更高阶项</li>
+        <li>最后把反对称矩阵重新解释成叉积矩阵</li>
+      </ol>
+      <p>整理后得到原书结论：</p>
+      <div class="formula-box">$$
+      \frac{\partial(\boldsymbol{R}\boldsymbol{p})}{\partial \boldsymbol{\phi}}
+      =
+      -(\boldsymbol{R}\boldsymbol{p})^\wedge J_l.
+      \tag{4.40}
+      $$</div>
+      <p>这里也顺手修一个 OCR 细节：识别文本里最后一行有时会写成 $(-\boldsymbol{R}\boldsymbol{p})^\wedge J_l$。它和上式是等价的，但更规范、也更容易读的是把负号直接提到前面。</p>
+      <div class="callout">
+        <h4>这条结果的问题不在“错”，而在“重”</h4>
+        <p>它完全正确，但里面还带着左雅可比 $J_l$。而一旦后面的误差链条更长，比如投影模型、重投影误差、位姿图误差，整个雅可比表达会迅速变繁琐。</p>
+      </div>
+      <p>所以从教学上看，这一部分的意义是双重的：</p>
+      <ul>
+        <li>它告诉你“直接对李代数求导”是可以成立的</li>
+        <li>它同时也在为下一步铺垫：既然有更省事的求导方式，我们当然更愿意选那个</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="perturb">
+      <h2>2. 左扰动模型：为什么它成了后面最常用的套路</h2>
+      <p>原书接着换了一个角度：与其直接对“当前李代数坐标”求导，不如直接问，<strong>如果我在当前姿态左边乘上一个非常小的扰动，会对结果造成什么一阶变化</strong>？</p>
+      <p>设左扰动为 $\exp(\boldsymbol{\varphi}^\wedge)$，那么要求的就是：</p>
+      <div class="formula-box">$$
+      \frac{\partial(\boldsymbol{R}\boldsymbol{p})}{\partial \boldsymbol{\varphi}}
+      =
+      \lim_{\boldsymbol{\varphi}\to 0}
+      \frac{\exp(\boldsymbol{\varphi}^\wedge)\exp(\boldsymbol{\phi}^\wedge)\boldsymbol{p}-\exp(\boldsymbol{\phi}^\wedge)\boldsymbol{p}}{\boldsymbol{\varphi}}.
+      \tag{4.41}
+      $$</div>
+      <p>因为扰动本身很小，我们可以直接用</p>
+      <div class="formula-box">$$
+      \exp(\boldsymbol{\varphi}^\wedge)\approx \boldsymbol{I}+\boldsymbol{\varphi}^\wedge
+      $$</div>
+      <p>做一阶近似，于是推导会突然轻很多，最后得到：</p>
+      <div class="formula-box">$$
+      \frac{\partial(\boldsymbol{R}\boldsymbol{p})}{\partial \boldsymbol{\varphi}}
+      =
+      -(\boldsymbol{R}\boldsymbol{p})^\wedge.
+      $$</div>
+      <p>你应该一眼就能看出它比式 (4.40) 简洁得多，因为那个讨厌的 $J_l$ 不见了。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么原书在工程推导里更偏爱扰动模型，而不是始终坚持“直接对李代数求导”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。扰动模型保留了正确的一阶几何意义，同时往往能省去显式写出复杂的 $J_l$，所以在后续雅可比推导里更顺手。" onclick="lessonKit.answer(this, 'quiz-0029-a')">因为它通常能得到更简洁的一阶雅可比表达</button>
+          <button data-correct="no" data-explanation="并不是放弃李代数，恰恰还是建立在李群/李代数框架里，只是换了更方便的求导入口。" onclick="lessonKit.answer(this, 'quiz-0029-a')">因为它完全绕开了李群李代数理论</button>
+          <button data-correct="no" data-explanation="精度高低不在这里决定，一阶线性化本来就是局部近似；关键区别在表达是否简洁、是否适合后续链式求导。" onclick="lessonKit.answer(this, 'quiz-0029-a')">因为它一定比直接求导更高阶、更精确</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0029-a"></div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>直接求导</h4>
+          <p>从“姿态的李代数参数”出发，对参数本身求导，表达更正统，但保留了 $J_l$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>扰动模型</h4>
+          <p>从“当前姿态旁边加一个很小的动作”出发，对这个动作求导，最后雅可比常常更干净。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="se3">
+      <h2>3. 推到 SE(3)：我们终于得到后面最常用的一块雅可比</h2>
+      <p>对 $SE(3)$ 来说，原书不再展开“直接对 se(3) 求导”的版本，而是直接给左扰动模型，因为这才是后面最常用的。设当前位姿为 $\boldsymbol{T}=\exp(\boldsymbol{\xi}^\wedge)$，左扰动是 $\exp(\delta\boldsymbol{\xi}^\wedge)$，其中</p>
+      <div class="formula-box">$$
+      \delta\boldsymbol{\xi}
+      =
+      \begin{bmatrix}
+      \delta\boldsymbol{\rho}\\
+      \delta\boldsymbol{\phi}
+      \end{bmatrix}.
+      $$</div>
+      <p>原书最后得到：</p>
+      <div class="formula-box">$$
+      \frac{\partial(\boldsymbol{T}\boldsymbol{p})}{\partial \delta\boldsymbol{\xi}}
+      =
+      \begin{bmatrix}
+      \boldsymbol{I} & -(\boldsymbol{R}\boldsymbol{p}+\boldsymbol{t})^\wedge\\
+      \boldsymbol{0}^T & \boldsymbol{0}^T
+      \end{bmatrix}
+      \triangleq
+      (\boldsymbol{T}\boldsymbol{p})^\odot.
+      $$</div>
+      <p>这条公式几乎可以看成视觉 SLAM 后端课程的“常驻嘉宾”。因为后面只要你看到下面这些场景，它就很可能在幕后工作：</p>
+      <table>
+        <thead>
+          <tr><th>后续场景</th><th>它怎么出现</th><th>你现在该怎么理解</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>第七讲 PnP / ICP</td><td>三维点经过位姿变换后，对位姿求导</td><td>就是这里的 $(\boldsymbol{T}\boldsymbol{p})^\odot$ 再接投影链条</td></tr>
+          <tr><td>第十讲 BA</td><td>重投影误差对相机位姿的雅可比</td><td>这里是中间那一层“几何雅可比”</td></tr>
+          <tr><td>第十一讲位姿图</td><td>边误差关于节点位姿的线性化</td><td>思想完全一致，只是误差对象换成了位姿之间的相对关系</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>助教提醒</h4>
+        <p>你不用急着背住每一个矩阵块，但一定要先记住“位姿求导时，平移增量给出一个单位块，旋转增量通过叉积矩阵作用在变换后的点上”。后面看 BA 和位姿图时，这个结构会反复出现。</p>
+      </div>
+
+      <div class="interactive-card tab-group">
+        <h3>对照理解：这节课和第十、第十一讲的联系</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="differential-links" data-tab-id="ba" onclick="lessonKit.openTab('differential-links','ba')">连到第十讲 BA</button>
+          <button data-tab-button="differential-links" data-tab-id="posegraph" onclick="lessonKit.openTab('differential-links','posegraph')">连到第十一讲位姿图</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="differential-links" data-tab-id="ba">
+          <p>BA 里你会先把三维点用位姿变到相机坐标系，再通过相机模型投影到像素平面。整条链的雅可比要靠链式法则拆开，而这里给出的 $(\boldsymbol{T}\boldsymbol{p})^\odot$ 正是其中“点关于位姿”的那一段。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="differential-links" data-tab-id="posegraph">
+          <p>位姿图里误差不再是“点的投影误差”，而是“位姿之间的相对约束误差”。但一旦把误差拉回李代数上做局部线性化，本质上仍然是在问：当位姿施加一个很小扰动时，误差一阶会怎样变化。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>两条路线</h4>
+          <p>第四讲不是只教一种求导方式，而是给了你“直接对李代数求导”和“对李群施加微扰再求导”两条路线。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么扰动模型更实用</h4>
+          <p>它保住了局部几何意义，同时往往把雅可比写得更短、更适合后面的大型误差链条。</p>
+        </div>
+        <div class="mini-card">
+          <h4>你现在要带走的核心</h4>
+          <p>后面几乎所有位姿优化里的雅可比，都会复用这一节的思维方式，而不只是复用某个单一公式。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说式 (4.40) 虽然正确，但在工程推导里往往不如左扰动模型受欢迎？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为式 (4.40) 里还带着左雅可比 $J_l$，表达更重。真正做 BA、PnP、位姿图等推导时，误差链条已经很长了，如果最底层这一段还能再简化，就会大大减轻后续雅可比整理的负担。左扰动模型正是在保持一阶正确性的同时，把这部分写得更干净。</div>
+            </details>
+          </li>
+          <li>
+            左扰动模型中，为什么可以把 $\exp(\boldsymbol{\varphi}^\wedge)$ 近似成 $\boldsymbol{I}+\boldsymbol{\varphi}^\wedge$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这里研究的是局部一阶变化，$\boldsymbol{\varphi}$ 被假定为无穷小量。指数映射的泰勒展开从 $\boldsymbol{I}+\boldsymbol{\varphi}^\wedge$ 开始，二阶及以上项在一阶线性化里会被忽略，所以这是局部微分分析中常规且合理的近似。</div>
+            </details>
+          </li>
+          <li>
+            为什么说 $(\boldsymbol{T}\boldsymbol{p})^\odot$ 会在第十讲和第十一讲“反复复活”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它给出的正是“一个经过位姿变换后的三维量，对位姿小扰动的导数结构”。无论是 BA 的重投影误差，还是位姿图中的相对位姿误差，最终都要把误差对位姿的局部变化关系写出来，而这节课正是那套局部结构的标准模板。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0028-第四讲-BCH公式与近似.html">← BCH公式与近似</a>
+        <a class="next" href="0030-第四讲-Sophus实践.html">Sophus实践 →</a>
+      </div>
+      <p class="foot-note">这一节一旦吃透，后面再看到“误差关于位姿的雅可比”时，你就不会只是在抄公式了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

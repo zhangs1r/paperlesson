@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第二讲 · SLAM的数学表述 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第二讲 · 初识SLAM / Lesson 2</div>
+      <h1>第二讲 · SLAM 的数学表述</h1>
+      <p class="subtitle">把上一节的系统框架，从“图上五个模块”提升到“带噪声的状态估计问题”。从这里开始，SLAM 才真正进入可推导、可编程的层面。📐</p>
+      <div class="hero-meta">
+        <span>🔗 承接系统框架课</span>
+        <span>🧠 为第3到第6讲打数学地基</span>
+        <span>📌 这节课的关键词是“状态估计”</span>
+      </div>
+      <div class="toc">
+        <a href="#variables">基本变量</a>
+        <a href="#motion">运动方程</a>
+        <a href="#observation">观测方程</a>
+        <a href="#slam-formulation">SLAM 数学形式</a>
+        <a href="#solver-view">求解视角</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="variables">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把上一课里“前端、后端、回环、建图”这些系统模块，重新统一到两类方程里：运动方程和观测方程。学完这节，你会知道后面所有优化到底在估计什么。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节我们把 SLAM 看成一套系统；这一节开始把它看成一类数学问题。后面第三讲的位姿表示、第五讲的相机模型、第六讲的非线性优化，都会直接填进这节课的公式框架里。</p>
+        </div>
+      </div>
+      <p>如果只停留在“有前端、有后端、有地图”这种直觉层面，我们还写不出能跑的程序。真正能进入算法设计的起点，是把 SLAM 视作一个<strong>带噪声的状态估计问题</strong>。</p>
+      <p>先把参与者介绍清楚。假设机器人在离散时刻 $k=1,\dots,K$ 上运动：</p>
+      <table>
+        <thead>
+          <tr><th>符号</th><th>含义</th><th>直观解释</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>$\boldsymbol{x}_k$</td><td>第 $k$ 时刻机器人的状态 / 位姿</td><td>“我那一刻在哪里、朝向哪里”</td></tr>
+          <tr><td>$\boldsymbol{u}_k$</td><td>第 $k$ 时刻的运动输入</td><td>编码器、IMU、轮速计等提供的运动读数</td></tr>
+          <tr><td>$\boldsymbol{y}_j$</td><td>第 $j$ 个路标点</td><td>地图中被观测到的环境实体</td></tr>
+          <tr><td>$\boldsymbol{z}_{k,j}$</td><td>第 $k$ 时刻对路标 $j$ 的观测</td><td>“我在这个位置看到它长这样”</td></tr>
+          <tr><td>$\boldsymbol{w}_k,\boldsymbol{v}_{k,j}$</td><td>噪声项</td><td>真实世界里测量永远不完美</td></tr>
+        </tbody>
+      </table>
+      <p>有了这些符号之后，整件事的重点就变成：<strong>我们拿到的是 $\boldsymbol{u}$ 和 $\boldsymbol{z}$，但真正想知道的是 $\boldsymbol{x}$ 和 $\boldsymbol{y}$</strong>。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{已知：测量数据 } (\boldsymbol{u},\boldsymbol{z}) \qquad \Longrightarrow \qquad \text{待估计：状态与地图 } (\boldsymbol{x},\boldsymbol{y}) $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="motion">
+      <h2>1. 运动方程：机器人是怎样从上一时刻走到这一时刻的</h2>
+      <p>书里先把运动抽象成一个非常通用的方程：</p>
+      <div class="formula-box">$$ \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k, \boldsymbol{w}_k). \tag{2.1} $$</div>
+      <p>这里最值得你记住的不是符号，而是写法背后的思想：<strong>作者故意不把 $f$ 写死</strong>。因为不同机器人、不同传感器、不同运动模型，$f$ 的具体样子都可能不一样。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>$\boldsymbol{x}_{k-1}$</h4>
+          <p>上一时刻我在哪里。这是当前时刻状态的出发点。</p>
+        </div>
+        <div class="mini-card">
+          <h4>$\boldsymbol{u}_k$</h4>
+          <p>运动传感器读数。它不一定直接等于位移，也可能是速度、角速度、加速度等。</p>
+        </div>
+        <div class="mini-card">
+          <h4>$\boldsymbol{w}_k$</h4>
+          <p>运动噪声。现实里的运动读数不会完美，所以每一步都会带误差。</p>
+        </div>
+      </div>
+      <p>书里随后给了一个最简单的平面运动例子。若小萝卜只在二维平面中动，位姿写成</p>
+      <div class="formula-box">$$ \boldsymbol{x}_k = [x, y, \theta]_k^T, \qquad \boldsymbol{u}_k = [\Delta x, \Delta y, \Delta \theta]_k^T $$</div>
+      <p>那么运动方程就可以被具体化为：</p>
+      <div class="formula-box">$$ \begin{bmatrix}x\\y\\\theta\end{bmatrix}_k = \begin{bmatrix}x\\y\\\theta\end{bmatrix}_{k-1} + \begin{bmatrix}\Delta x\\\Delta y\\\Delta \theta\end{bmatrix}_k + \boldsymbol{w}_k. \tag{2.3} $$</div>
+      <p>这个例子故意写得很简单，不是因为真实机器人都这么简单，而是为了让你先看到“运动模型”的骨架。更复杂的系统只是把这个骨架换成更复杂的函数而已。</p>
+    </section>
+
+    <section class="section-card" id="observation">
+      <h2>2. 观测方程：机器人在某个位置看到路标，会形成什么数据</h2>
+      <p>与运动方程对应，书里给出观测方程：</p>
+      <div class="formula-box">$$ \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k, \boldsymbol{v}_{k,j}). \tag{2.2} $$</div>
+      <p>这句话可以翻译成人话：<strong>当机器人位于 $\boldsymbol{x}_k$，去看地图中的路标 $\boldsymbol{y}_j$ 时，最终传感器上会看到什么</strong>。</p>
+      <p>注意这里也故意没有把 $h$ 写死，因为观测完全取决于传感器是什么。书里举了二维激光的例子：如果你测到的是距离 $r$ 和方位角 $\phi$，那么观测方程可以具体写成：</p>
+      <div class="formula-box">$$ \begin{bmatrix}r\\\phi\end{bmatrix} = \begin{bmatrix}\sqrt{(p_x-x)^2+(p_y-y)^2}\\[4pt]\arctan\!\left(\frac{p_y-y}{p_x-x}\right)\end{bmatrix} + \boldsymbol{v}. \tag{2.4} $$</div>
+      <p>而一旦传感器换成相机，$h$ 的含义就变成“一个三维路标点如何投影到图像像素上”。这正是第五讲要详细展开的内容。</p>
+      <div class="callout">
+        <h4>和后面哪一讲关系最大？</h4>
+        <p>第五讲会把 $h$ 里的“视觉观测”彻底展开成相机模型；第七讲和第八讲则会进一步围绕这个观测模型，去做特征法和直接法的视觉里程计。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="slam-formulation">
+      <h2>3. 两个方程合起来，才是完整的 SLAM 数学问题</h2>
+      <p>到这里，书里终于把 SLAM 压缩成一个最核心的方程组：</p>
+      <div class="formula-box">$$
+      \left\{
+      \begin{array}{l}
+      \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k, \boldsymbol{w}_k) \\
+      \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k, \boldsymbol{v}_{k,j})
+      \end{array}
+      \right.
+      \tag{2.5}
+      $$</div>
+      <p>这组式子值得你反复看，因为整本书几乎都可以视为在回答这三个问题：</p>
+      <ol>
+        <li>$\boldsymbol{x}$ 到底应该怎么表示？</li>
+        <li>$h$ 在视觉传感器下到底长什么样？</li>
+        <li>给定这些方程，怎样求解最合理的 $\boldsymbol{x}$ 和 $\boldsymbol{y}$？</li>
+      </ol>
+      <p>把这三问分别映射到后面的章节，就是：</p>
+      <div class="grid-3">
+        <div class="mini-card">
+          <h4>第 3、4 讲</h4>
+          <p>解决位姿表示问题：旋转矩阵、四元数、李群李代数。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第 5 讲</h4>
+          <p>解决视觉观测模型问题：相机与图像是怎样联系起来的。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第 6 讲</h4>
+          <p>解决求解问题：怎样把这些带噪方程变成可计算的最小二乘或滤波问题。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="solver-view">
+      <h2>4. 从这里开始，SLAM 被正式看作“状态估计问题”</h2>
+      <p>书里这段特别重要：<strong>SLAM 不是单纯的几何作图问题，而是状态估计问题</strong>。因为你无法直接拿到真值位置和真值地图，只能拿到带噪声的测量，再从这些测量反推隐藏状态。</p>
+      <p>这时求解方式通常按两件事分类：</p>
+      <ul>
+        <li>运动方程 / 观测方程是线性的还是非线性的</li>
+        <li>噪声是高斯的还是非高斯的</li>
+      </ul>
+      <p>在最理想的线性高斯情形下，可以用卡尔曼滤波；而现实中的视觉 SLAM 绝大多数落在<strong>非线性、带噪、且往往只能近似高斯</strong>的区域，因此后续会走向 EKF、粒子滤波以及最终更主流的图优化 / 非线性优化路线。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>在这节课的框架里，哪些量通常是“已知测量”，哪些量是“待估计状态”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。$\boldsymbol{u}$ 和 $\boldsymbol{z}$ 是传感器给出的测量；$\boldsymbol{x}$ 和 $\boldsymbol{y}$ 是我们真正想求的隐藏状态。" onclick="lessonKit.answer(this, 'quiz-0016-a')">$\boldsymbol{u},\boldsymbol{z}$ 已知；$\boldsymbol{x},\boldsymbol{y}$ 待估计</button>
+          <button data-correct="no" data-explanation="正好反了。位置和地图恰恰是最难直接拿到的。" onclick="lessonKit.answer(this, 'quiz-0016-a')">$\boldsymbol{x},\boldsymbol{y}$ 已知；$\boldsymbol{u},\boldsymbol{z}$ 待估计</button>
+          <button data-correct="no" data-explanation="如果全都已知，就不再叫状态估计问题了。" onclick="lessonKit.answer(this, 'quiz-0016-a')">这四类量都是已知的</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0016-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>运动方程</h4>
+          <p>描述状态如何随输入变化：$\boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k, \boldsymbol{w}_k)$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>观测方程</h4>
+          <p>描述在某个状态下会看到什么：$\boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k, \boldsymbol{v}_{k,j})$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>SLAM 的本质</h4>
+          <p>用带噪声的运动和观测测量，反推出隐藏的位姿和地图。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么作者在运动方程和观测方程里故意只写 $f$ 和 $h$，而不马上写死具体形式？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这样可以保留传感器与平台无关的通用性。不同机器人、不同传感器只是在具体化 $f$ 和 $h$，而不是推翻这套整体框架。</div>
+            </details>
+          </li>
+          <li>
+            如果把相机换成二维激光雷达，SLAM 还是同一个问题吗？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>本质上还是同一个状态估计问题。变化的是观测方程 $h$ 的具体形式：从视觉投影关系，变成距离和方位角等激光观测关系。</div>
+            </details>
+          </li>
+          <li>
+            这节课最重要的“关系图”是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最重要的是“测量数据 $(\boldsymbol{u},\boldsymbol{z})$ 已知，而状态和地图 $(\boldsymbol{x},\boldsymbol{y})$ 待估计”这张关系图。它决定了后面所有 SLAM 算法的求解方向。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0015-第二讲-SLAM系统框架与核心模块.html">← SLAM 系统框架与核心模块</a>
+        <a class="next" href="0017-第二讲-实践HelloSLAM.html">实践：Hello SLAM →</a>
+      </div>
+      <p class="foot-note">这一讲是整本书最重要的数学入口之一。后面所有公式，几乎都能回到这里重新理解 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 针孔相机模型 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 1</div>
+      <h1>第五讲 · 针孔相机模型</h1>
+      <p class="subtitle">从“空间点怎样落到像素上”开始，把第二讲的观测方程、第三讲的位姿变换、第四讲的局部优化语言，真正接到相机成像上。📷</p>
+      <div class="hero-meta">
+        <span>🔗 承接第二讲观测方程</span>
+        <span>📐 用到第三讲的 SE(3) 位姿</span>
+        <span>🧭 第十三讲点云建图的入口</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么先学针孔模型</a>
+        <a href="#pinhole">针孔成像几何</a>
+        <a href="#intrinsic">内参与像素坐标</a>
+        <a href="#projection">完整投影链条</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这节课在全书里的位置</h4>
+          <p>第二讲把 SLAM 写成了“运动方程 + 观测方程”。第三、四讲解决了位姿怎么表示、怎么在线性化。到了这一讲，我们终于要把观测方程里的 <code>h(·)</code> 写具体：空间点怎样投到图像上？</p>
+        </div>
+        <div class="callout">
+          <h4>你现在要抓住什么</h4>
+          <p>先别急着背公式。更重要的是知道这几个对象在干嘛：世界坐标点、相机坐标、归一化平面、像素坐标、内参矩阵。后面视觉里程计、PnP、三角化、点云拼接都会反复调用它们。</p>
+        </div>
+      </div>
+      <p>很多同学第一次看相机模型，会把它误解成“纯摄影知识”。其实在 SLAM 里，它是<strong>最核心的观测几何</strong>。如果第三讲告诉我们“相机在三维空间里怎么动”，那第五讲就是在告诉我们“这个动着的相机，怎样把三维世界看成一张张二维图”。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{世界点 } \boldsymbol{P}_w \xrightarrow{\ \boldsymbol{T}_{cw}\ } \text{相机坐标 } \boldsymbol{P}_c \xrightarrow{\ \text{透视投影}\ } \text{归一化平面} \xrightarrow{\ \boldsymbol{K}\ } \text{像素坐标 } (u,v) $$</div>
+      </div>
+      <p>你可以把这节课当作一条正式的传送带。后面第七到第十讲的前端估计，是在利用这条传送带反推位姿；第十一讲的图优化，是在最小化投影误差；第十三讲的稠密建图，则会利用这条传送带把像素重新抬回三维空间。</p>
+    </main>
+
+    <section class="section-card" id="pinhole">
+      <h2>1. 针孔成像：先把“光是怎么进去的”说清楚</h2>
+      <p>书里先从蜡烛投影实验讲起，这个切入点非常好。因为针孔模型的本质并不神秘，它只是把“光线穿过一个小孔后在平面上成像”的几何关系抽出来了。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/ed36a2de6bff0da239bf225b70f16825cf7c1cdeab2f4b934475f5bcc0c030f0.jpg" alt="图 5-1 针孔相机模型">
+        <figcaption>图 5-1 针孔相机模型。图里最值得看的不是“画得像不像相机”，而是三件事：光心 <code>O</code>、空间点 <code>P</code>、成像点 <code>P'</code>。所有公式都来自这三者的相似三角形关系。</figcaption>
+      </figure>
+      <p>设相机坐标系为 $O-xyz$，习惯上让 $z$ 轴朝前、$x$ 轴向右、$y$ 轴向下。空间点写作：</p>
+      <div class="formula-box">$$ \boldsymbol{P} = \begin{bmatrix} X \\ Y \\ Z \end{bmatrix}. $$</div>
+      <p>它通过光心投到成像平面上的点记为 $\boldsymbol{P}' = [X',Y',Z']^T$。焦距记作 $f$。由相似三角形得到：</p>
+      <div class="formula-box">$$ \frac{Z}{f} = -\frac{X}{X'} = -\frac{Y}{Y'}. \tag{5.1} $$</div>
+      <p>这里的负号只是因为真实成像是倒像。书里接着做了一个非常常见、也非常实用的处理：把成像平面对称到相机前方，这样我们就不用总和倒像的负号纠缠了。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/c821ed415f55c7496f1e0755a4a3a597b2d9daf8d09da8db4ee6b8079e8684b0.jpg" alt="图 5-2 真实成像平面和对称成像平面">
+        <figcaption>图 5-2 真实成像平面、对称成像平面和归一化平面。这里最容易被忽略的一点是：这不是在篡改物理事实，而是在换一个更适合计算的数学表达。相机软件本身通常也会把图像翻正。</figcaption>
+      </figure>
+      <p>于是公式变成：</p>
+      <div class="formula-box">$$ \frac{Z}{f} = \frac{X}{X'} = \frac{Y}{Y'}. \tag{5.2} $$</div>
+      <p>直接整理，就得到最经典的透视投影关系：</p>
+      <div class="formula-box">$$ X' = f\frac{X}{Z}, \qquad Y' = f\frac{Y}{Z}. \tag{5.3} $$</div>
+      <div class="callout">
+        <h4>这条式子真正表达了什么</h4>
+        <p>它在说：图像上的位置，不是由 $X$ 和 $Y$ 单独决定的，而是由它们与深度 $Z$ 的比值决定的。所以“近大远小”不是一句口语，它正是由 $X/Z$、$Y/Z$ 这样的比值直接写出来的。</p>
+      </div>
+      <div class="interactive-card">
+        <h3>快速判断</h3>
+        <p>为什么单张图像里，很多不同深度的点会落到同一个像素方向上？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。只要保持 $X/Z$ 和 $Y/Z$ 不变，投影位置就不变。所以单目只给出一条视线方向，不直接给出深度。" onclick="lessonKit.answer(this, 'quiz-0032-a')">因为投影只和比值 $X/Z, Y/Z$ 有关</button>
+          <button data-correct="no" data-explanation="焦距会影响成像尺度，但不是深度歧义的根源。" onclick="lessonKit.answer(this, 'quiz-0032-a')">因为焦距总是不准确</button>
+          <button data-correct="no" data-explanation="像素坐标原点位置不会造成这种几何歧义。" onclick="lessonKit.answer(this, 'quiz-0032-a')">因为像素坐标系从左上角开始</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0032-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="intrinsic">
+      <h2>2. 从成像平面到像素平面：内参矩阵为什么会出现</h2>
+      <p>到目前为止，我们得到的 $X'$、$Y'$ 还是<strong>成像平面上的几何坐标</strong>。但真正的图像不是一块连续的几何平面，而是一张被离散成像素网格的图。因此还差两步：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>缩放</h4>
+          <p>把“米”或“毫米”这样的物理长度，变成“像素个数”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>平移</h4>
+          <p>把原点从成像平面中心，挪到图像左上角定义的像素坐标系里。</p>
+        </div>
+      </div>
+      <p>于是有：</p>
+      <div class="formula-box">$$ u = \alpha X' + c_x, \qquad v = \beta Y' + c_y. \tag{5.4} $$</div>
+      <p>把式 (5.3) 代进去，再把 $\alpha f$、$\beta f$ 分别记成 $f_x$、$f_y$，得到：</p>
+      <div class="formula-box">$$ u = f_x\frac{X}{Z} + c_x, \qquad v = f_y\frac{Y}{Z} + c_y. \tag{5.5} $$</div>
+      <p>这就是你后面在各种标定文件、OpenCV 相机参数、ROS 相机话题里不断看到的四个量：$f_x, f_y, c_x, c_y$。它们被统一打包成内参矩阵：</p>
+      <div class="formula-box">$$ \boldsymbol{K} =
+\begin{bmatrix}
+f_x & 0 & c_x \\
+0 & f_y & c_y \\
+0 & 0 & 1
+\end{bmatrix}. \tag{5.6} $$</div>
+      <p>于是像素坐标和相机坐标之间的关系就可以写成：</p>
+      <div class="formula-box">$$ Z
+\begin{bmatrix}
+u \\ v \\ 1
+\end{bmatrix}
+=
+\boldsymbol{K}
+\begin{bmatrix}
+X \\ Y \\ Z
+\end{bmatrix}. \tag{5.7} $$</div>
+      <div class="tab-group interactive-card">
+        <h3>四个内参别混淆</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="intrinsic-tabs" data-tab-id="fxfy" onclick="lessonKit.openTab('intrinsic-tabs','fxfy')">$f_x, f_y$</button>
+          <button data-tab-button="intrinsic-tabs" data-tab-id="cxcy" onclick="lessonKit.openTab('intrinsic-tabs','cxcy')">$c_x, c_y$</button>
+          <button data-tab-button="intrinsic-tabs" data-tab-id="unit" onclick="lessonKit.openTab('intrinsic-tabs','unit')">单位问题</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="intrinsic-tabs" data-tab-id="fxfy">
+          <p>$f_x$、$f_y$ 不是“两个不同的物理焦距”，而是焦距在像素尺度下的表达。像素在横纵方向大小可能不同，所以它们通常分开写。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="intrinsic-tabs" data-tab-id="cxcy">
+          <p>$c_x$、$c_y$ 是主点在像素坐标系里的位置。它们通常接近图像中心，但不保证恰好居中。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="intrinsic-tabs" data-tab-id="unit">
+          <p>$f_x$、$f_y$ 的单位是像素，不是米；$c_x$、$c_y$ 也是像素。这个细节在手算和程序调参时特别容易错。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="projection">
+      <h2>3. 真正用于 SLAM 的完整投影：还要接上位姿变换</h2>
+      <p>前面式子里默认点已经在相机坐标系下。但在 SLAM 里，我们常常掌握的是世界坐标里的地图点 $\boldsymbol{P}_w$，而相机姿态由第三讲讲过的刚体变换给出：</p>
+      <div class="formula-box">$$ \boldsymbol{P}_c = \boldsymbol{R}\boldsymbol{P}_w + \boldsymbol{t}. $$</div>
+      <p>把它代回投影公式，就是书中这条最重要的观测关系：</p>
+      <div class="formula-box">$$ Z
+\begin{bmatrix}
+u \\ v \\ 1
+\end{bmatrix}
+=
+\boldsymbol{K}\big(\boldsymbol{R}\boldsymbol{P}_w + \boldsymbol{t}\big). \tag{5.8} $$</div>
+      <p>如果使用齐次坐标，也常写成：</p>
+      <div class="formula-box">$$ \boldsymbol{P}_{uv} \sim \boldsymbol{K}\boldsymbol{T}_{cw}\boldsymbol{P}_w. \tag{5.9} $$</div>
+      <p>这里的 $\sim$ 表示相差一个非零尺度因子。它提醒我们：像素投影只确定方向关系，还要除以深度才能得到真正的 $(u,v)$。</p>
+      <h3>归一化平面为什么常被单独拿出来讲</h3>
+      <p>因为很多公式在归一化平面上更干净。先把相机坐标除以 $Z$，得到：</p>
+      <div class="formula-box">$$ \boldsymbol{p}_n =
+\begin{bmatrix}
+X/Z \\ Y/Z \\ 1
+\end{bmatrix}. \tag{5.10} $$</div>
+      <p>然后再做像素尺度的线性变换：</p>
+      <div class="formula-box">$$ \boldsymbol{p}_{uv} = \boldsymbol{K}\boldsymbol{p}_n. $$</div>
+      <p>后面第 5 讲第二节畸变模型，就是先在归一化平面上做纠正，再乘上内参矩阵到像素平面。这个顺序一定要记住。</p>
+      <div class="callout">
+        <h4>和第十三讲的联系</h4>
+        <p>第十三讲做 RGB-D 点云建图时，会走一条反方向的路：从像素坐标和深度出发，先反投影到相机坐标，再用位姿变换到世界坐标。也就是说，建图其实是在“逆着今天的投影链条往回走”。</p>
+      </div>
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>你手里有什么</th><th>做了什么</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>世界坐标</td><td>$\boldsymbol{P}_w$</td><td>地图点的全局位置</td></tr>
+          <tr><td>相机坐标</td><td>$\boldsymbol{P}_c$</td><td>通过 $\boldsymbol{T}_{cw}$ 换到当前相机视角</td></tr>
+          <tr><td>归一化平面</td><td>$[X/Z,Y/Z,1]^T$</td><td>完成透视除法，保留方向关系</td></tr>
+          <tr><td>像素坐标</td><td>$(u,v)$</td><td>乘内参，变成真正的图像测量量</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>针孔模型的核心</h4>
+          <p>投影由相似三角形给出，关键不是“像长什么样”，而是比值 $X/Z$、$Y/Z$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>内参矩阵的意义</h4>
+          <p>它把归一化平面上的几何坐标，转换成实际像素坐标。</p>
+        </div>
+        <div class="mini-card">
+          <h4>SLAM 里的完整观测</h4>
+          <p>$\boldsymbol{K}$ 前面还要接第三讲的位姿变换，这才是完整的相机观测方程。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么单目相机仅靠一个像素不能直接确定空间点的深度？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为投影只约束了 $X/Z$ 和 $Y/Z$。沿着同一条视线方向，把点放在不同深度上，都可能落到同一个像素位置，所以单张图像不直接提供绝对深度。</div>
+            </details>
+          </li>
+          <li>
+            内参矩阵里的 $f_x,f_y,c_x,c_y$ 各自代表什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>$f_x,f_y$ 是焦距在像素尺度下的横向、纵向表达；$c_x,c_y$ 是主点在像素坐标系中的位置。它们共同决定了归一化平面怎样映射到像素平面。</div>
+            </details>
+          </li>
+          <li>
+            为什么说第十三讲点云拼接，其实是在“逆用”今天的公式？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为今天讲的是三维点如何投到像素上；而点云拼接会从像素坐标和深度值出发，先反投影回相机坐标，再用位姿变换到世界坐标。方向正好相反。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0031-第四讲-Sim3与章节总结.html">← 第四讲：Sim(3) 与章节总结</a>
+        <a class="next" href="0033-第五讲-畸变模型.html">畸变模型 →</a>
+      </div>
+      <p class="foot-note">把这节真正吃透，后面再看重投影误差、PnP、三角化时会轻松很多 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

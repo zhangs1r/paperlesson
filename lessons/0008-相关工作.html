@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 2 课 · 相关工作 — LSeg 精读</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+  body.reading { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .2rem; font-family: 'Noto Serif SC', serif; }
+  .lesson-header .subtitle { font-size: .9rem; color: var(--ink-60); font-family: var(--font-serif); font-style: italic; }
+  .lesson-header .meta { display: flex; gap: .6rem; font-size: .8rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.25rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; font-family: 'Noto Serif SC', serif; }
+  h3 { font-size: 1.05rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; font-family: 'Noto Serif SC', serif; }
+  h4 { font-size: .95rem; color: var(--ink-80); margin: .8rem 0 .4rem; font-family: 'Noto Serif SC', serif; }
+  .story-box { background: #f9f6f0; border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .story-box .label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
+  .highlight-box { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; font-size: .92rem; }
+  .highlight-box strong { color: var(--accent-deep); }
+  .paper-quote { background: #f5f3ef; border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; font-size: .9rem; }
+  .paper-quote .en { color: var(--ink-60); font-style: italic; margin-bottom: .3rem; }
+  .paper-quote .cn { color: var(--ink); }
+  .paper-quote .cite { font-size: .75rem; color: var(--ink-40); text-align: right; display: block; margin-top: .3rem; }
+  .nav-links { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav-links a { color: var(--accent-deep); text-decoration: none; }
+  .nav-links a:hover { text-decoration: underline; }
+  details.quiz { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; margin: .8rem 0; }
+  details.quiz summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); padding: .2rem 0; }
+  details.quiz .answer { margin-top: .6rem; padding-top: .6rem; border-top: 1px dashed var(--border); font-size: .92rem; }
+  .timeline { position: relative; margin: 1rem 0; padding-left: 2rem; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--accent-light); }
+  .timeline .item { position: relative; margin-bottom: 1.2rem; padding-left: .5rem; }
+  .timeline .item::before { content: ''; position: absolute; left: -1.7rem; top: .4rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--paper-light); }
+  .timeline .item .year { font-size: .8rem; font-weight: 700; color: var(--accent); }
+  .timeline .item .content { font-size: .9rem; }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 4px; font-size: .75rem; font-weight: 600; }
+  .tag-red { background: rgba(204, 120, 92, 0.15); color: var(--accent-deep); }
+  .tag-blue { background: rgba(66, 133, 244, 0.12); color: #1a5fb4; }
+  .tag-green { background: rgba(90, 158, 111, 0.15); color: var(--success); }
+  .tag-purple { background: rgba(139, 92, 246, 0.12); color: #6d28d9; }
+  .comp-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .85rem; }
+  .comp-table th, .comp-table td { border: 1px solid var(--border); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  .comp-table th { background: var(--paper); font-weight: 700; color: var(--ink-80); font-family: 'Noto Serif SC', serif; }
+  .comp-table tr:nth-child(even) { background: var(--paper-light); }
+  .interactive-demo { background: #f5f0ea; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .interactive-demo .demo-label { font-size: .75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+</style>
+</head>
+<body class="reading">
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>📚 第 2 课：相关工作</h1>
+  <div class="subtitle">LSeg · Related Work — 从固定标签集到语言驱动的演化之路</div>
+  <div class="meta">
+    <span>⏱ 20 分钟</span>
+    <span>📄 Section 2: Related Work</span>
+  </div>
+</div>
+
+<div class="story-box">
+  <div class="label">🎯 这节课的目标</div>
+  <p style="margin:0;font-size:.92rem;">
+    理解 LSeg 在学术脉络中的位置。我们将梳理语义分割从 <strong>固定标签集 → Few-shot → Zero-shot → 语言驱动</strong> 的演进路径，
+    以及语言驱动识别领域（CLIP、ViLD、MDETR）如何为 LSeg 提供了技术基础。
+    学完这节课，你将能说清楚 LSeg 与之前工作的关系，以及它 <strong>"第一"</strong> 在哪里。
+  </p>
+</div>
+
+<!-- ================ 1. 研究脉络总览 ================ -->
+<h2>1. 语义分割研究的演进脉络</h2>
+
+<p>LSeg 的 Related Work 章节梳理了两条交叉的学术线索。先看整体框架：</p>
+
+<div class="comp-table">
+  <tr><th>研究方向</th><th>核心思想</th><th>局限</th><th>与 LSeg 的关系</th></tr>
+  <tr>
+    <td><span class="tag tag-red">固定标签集</span></td>
+    <td>训练数据集的标签决定了模型能识别的类别</td>
+    <td>❌ 无法处理新类别，标注成本随类别数飙升</td>
+    <td>LSeg 要突破的根本限制</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-blue">Few-shot 分割</span></td>
+    <td>利用少量标注图像（support set）来分割新类别</td>
+    <td>❌ 仍然需要新类别的标注图像</td>
+    <td>LSeg 不需要任何标注样本</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-purple">Zero-shot 分割</span></td>
+    <td>利用词嵌入在可见/不可见类别间建立关联</td>
+    <td>❌ 使用简单词嵌入（Word2Vec），性能有限</td>
+    <td>LSeg 用 CLIP 文本编码器大幅提升性能</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-green">开集识别</span></td>
+    <td>判断样本是否在训练分布之外（二分类）</td>
+    <td>❌ 不预测新类别的具体标签</td>
+    <td>正交方向，与 LSeg 互补</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-green">跨域迁移</span></td>
+    <td>将分割模型迁移到新的视觉域（如从白天到夜晚）</td>
+    <td>❌ 不解决标签集受限问题</td>
+    <td>正交方向</td>
+  </tr>
+</div>
+
+<!-- ================ 2. 广义语义分割 ================ -->
+<h2>2. 广义语义分割（Generalized Semantic Segmentation）</h2>
+
+<h3>2.1 固定标签集范式</h3>
+
+<div class="paper-quote">
+  <div class="en">"The majority of existing semantic segmentation models are restricted to a fixed label set that is defined by the labels that are present in the training dataset."</div>
+  <div class="cn">📝 现有的大多数语义分割模型<strong>受限于固定的标签集</strong>——这个标签集由训练数据中的标签定义。这是 LSeg 要改变的根本现状。</div>
+  <span class="cite">— Section 2, Related Work</span>
+</div>
+
+<p>想象一下，如果你训练了一个能识别"人、车、路、树"的语义分割模型，现在想让它识别"斑马线"——
+传统做法是需要收集大量包含斑马线标注的新数据，重新训练整个模型。这种范式在现实中非常受限。</p>
+
+<h3>2.2 Few-shot 语义分割</h3>
+
+<p>Few-shot 方法尝试放宽固定标签集的限制，在推理时提供少量（通常是 1 或 5 张）新类别的标注图像。其核心思路是：</p>
+
+<div class="highlight-box">
+  <strong>核心范式</strong>：学习如何在 <strong>query 图像</strong>（待标注图像）和 <strong>support 图像</strong>（含新类别的标注图像）之间建立<strong>可靠的视觉对应关系</strong>。
+</div>
+
+<p>论文引用了一系列 few-shot 方法（括号内为发表年份）：</p>
+<ul>
+  <li><strong>OSLSM</strong> (Shaban et al., 2017) — 开创性工作，提出 one-shot 分割</li>
+  <li><strong>co-FCN</strong> (Rakelly et al., 2018) — 条件 FCN，从 support 中提取条件信息</li>
+  <li><strong>PANet</strong> (Wang et al., 2019) — 原型对齐网络</li>
+  <li><strong>PFENet</strong> (Tian et al., 2020) — 先验引导的 few-shot 分割</li>
+  <li><strong>HSNet</strong> (Min et al., 2021) — 超相关网络，本文的主要对比基线</li>
+</ul>
+
+<div class="paper-quote">
+  <div class="en">"While this strategy can significantly enhance the generality of the resulting model, it requires the availability of at least one labeled example image with the target label set, something that is not always practical."</div>
+  <div class="cn">📝 论文点出了 few-shot 方法的<strong>根本局限</strong>：至少需要一张新类别的标注图像，这在许多实际场景中并不现实。</div>
+  <span class="cite">— Section 2, Related Work</span>
+</div>
+
+<h3>2.3 Zero-shot 语义分割</h3>
+
+<p>Zero-shot 方法更进一步——试图在没有任何新类别标注样本的情况下分割未见过的物体。文本嵌入（word embeddings）在其中扮演了核心角色。</p>
+
+<div class="paper-quote">
+  <div class="en">"Text embeddings of class labels play a central role in these works."</div>
+  <div class="cn">📝 注意论文特别强调：文本嵌入在这类方法中扮演<strong>核心角色</strong>——LSeg 也是基于同样的理念，但用了更强力的文本编码器。</div>
+  <span class="cite">— Section 2, Related Work</span>
+</div>
+
+<p>论文介绍了几个代表性的 zero-shot 分割工作：</p>
+<ul>
+  <li><strong>ZS3Net</strong> (Bucher et al., 2019) — 使用 Word2Vec 嵌入 + 生成模型为不可见类别生成视觉特征</li>
+  <li><strong>CaGNet</strong> (Gu et al., 2020) — 同样使用词嵌入 + 生成模型</li>
+  <li><strong>SPNet</strong> (Xian et al., 2019) — 将视觉特征投影到简单词嵌入空间</li>
+  <li><strong>Hu et al.</strong> — 不确定性感知学习，处理可见类别的噪声标签</li>
+  <li><strong>Li et al.</strong> — 结构化学习方法更好利用可见/不可见类别间的关系</li>
+</ul>
+
+<div class="highlight-box">
+  <strong>🔑 关键对比</strong>：所有这些方法的共同点是使用<strong>简单词嵌入</strong>（如 Word2Vec），且主要关注<strong>图像编码器</strong>的改进。LSeg 的核心突破在于引入了<strong>CLIP 这样的高容量文本编码器</strong>，并展示了一个可以<strong>与固定标签集方法和 few-shot 方法性能匹敌</strong>的 zero-shot 分割模型。
+</div>
+
+<h3>2.4 开集识别与跨域迁移（正交方向）</h3>
+
+<p>论文还简要提到两个正交的研究方向：</p>
+
+<table>
+  <tr><th>方向</th><th>目标</th><th>与 LSeg 的关系</th></tr>
+  <tr>
+    <td><strong>开集识别</strong><br>(Open-set Recognition)</td>
+    <td>对样本是否落在训练分布之外做<strong>二分类判断</strong></td>
+    <td>不预测新类别的具体标签，与 LSeg 解决的问题不同</td>
+  </tr>
+  <tr>
+    <td><strong>跨域迁移</strong><br>(Cross-domain Adaptation)</td>
+    <td>将模型迁移到新的<strong>视觉域</strong>（如从仿真到真实）</td>
+    <td>不解决标签集受限问题，与 LSeg 互补</td>
+  </tr>
+</table>
+
+<div class="paper-quote">
+  <div class="en">"The target of these works is to enhance the transferability of models to novel visual domains, but they do not address the issue of a restricted label set. As such they are orthogonal to our work."</div>
+  <div class="cn">📝 论文明确将这些方向标记为<strong>"正交"(orthogonal)</strong>，即可以<strong>与 LSeg 结合</strong>来获得叠加收益。</div>
+  <span class="cite">— Section 2, Related Work</span>
+</div>
+
+<!-- ================ 3. 语言驱动识别 ================ -->
+<h2>3. 语言驱动识别（Language-driven Recognition）</h2>
+
+<p>这是 LSeg 真正的技术源头所在，也是 Related Work 中最重要的部分。</p>
+
+<h3>3.1 研究脉络</h3>
+
+<div class="timeline">
+  <div class="item">
+    <span class="year">2014-2015</span>
+    <div class="content"><strong>图像描述 & VQA</strong>：早期将语言与视觉结合的任务，如 Image Captioning (Vinyals et al., 2014) 和 Visual Question Answering (Antol et al., 2015)</div>
+  </div>
+  <div class="item">
+    <span class="year">2020-2021</span>
+    <div class="content"><strong>图文检索</strong>：Li et al. 提出统一编码器的图文检索方法</div>
+  </div>
+  <div class="item">
+    <span class="year">2021 (ICML)</span>
+    <div class="content"><strong>🔥 CLIP</strong> (Radford et al., 2021)：对比学习 + 高容量语言/视觉编码器，实现极其鲁棒的零样本图像分类。这是 LSeg 的<strong>直接灵感来源</strong>。</div>
+  </div>
+  <div class="item">
+    <span class="year">2021-2022</span>
+    <div class="content"><strong>ViLD</strong> (Gu et al., 2021) — 零样本目标检测，利用 CLIP<br><strong>MDETR</strong> (Kamath et al., 2021) — 端到端文本调制检测<br>这些工作证明语言辅助可以提高检测模型的鲁棒性和泛化性</div>
+  </div>
+  <div class="item">
+    <span class="year">2022 (ICLR)</span>
+    <div class="content"><strong>🏆 LSeg</strong>：首个利用高容量语言模型<strong>灵活合成零样本语义分割模型</strong>的方法</div>
+  </div>
+</div>
+
+<h3>3.2 CLIP 对 LSeg 的启发</h3>
+
+<div class="paper-quote">
+  <div class="en">"Our work is inspired by the CLIP model for image classification, which pairs high-capacity image and text encoders to produce robust zero-shot classifiers."</div>
+  <div class="cn">📝 LSeg 明确承认其灵感来自 CLIP。CLIP 证明了两个重要事实：</div>
+  <span class="cite">— Section 1, Introduction</span>
+</div>
+
+<div class="highlight-box">
+  <strong>CLIP 给 LSeg 的两大启示</strong>：
+  <ol>
+    <li><strong>高容量文本编码器</strong>（与视觉数据共同训练的）可以产生极其丰富的语义表示，远超传统 Word2Vec</li>
+    <li><strong>对比学习</strong>可以有效对齐视觉和文本的嵌入空间</li>
+  </ol>
+  LSeg 的创新在于：<strong>将 CLIP 从图像级分类扩展到像素级分割</strong>
+</div>
+
+<h3>3.3 LSeg 与 ViLD / MDETR 的对比</h3>
+
+<table>
+  <tr><th>方法</th><th>任务</th><th>如何使用语言</th><th>输出粒度</th></tr>
+  <tr><td><strong>CLIP</strong></td><td>图像分类</td><td>对比学习匹配图像-文本对</td><td>图像级</td></tr>
+  <tr><td><strong>ViLD</strong></td><td>目标检测</td><td>用 CLIP 辅助零样本检测</td><td>边界框级</td></tr>
+  <tr><td><strong>MDETR</strong></td><td>目标检测</td><td>Transformer 文本调制检测器</td><td>边界框级</td></tr>
+  <tr><td><strong>LSeg</strong></td><td><strong>语义分割</strong></td><td>逐像素对比文本嵌入</td><td><strong>像素级</strong> ✅</td></tr>
+</table>
+
+<div class="paper-quote">
+  <div class="en">"Our work is inspired by these approaches and presents, to the best of our knowledge, the first approach to flexibly synthesize zero-shot semantic segmentation models by leveraging high-capacity language models."</div>
+  <div class="cn">📝 论文宣称这是<strong>第一个</strong>利用高容量语言模型灵活合成零样本语义分割模型的方法。</div>
+  <span class="cite">— Section 2, Related Work</span>
+</div>
+
+<!-- ================ 4. LSeg 的学术定位 ================ -->
+<h2>4. LSeg 的学术定位总结</h2>
+
+<div class="interactive-demo">
+  <div class="demo-label">💡 互动理解：LSeg 在做什么，没在做什么？</div>
+  <p style="font-size:.9rem;">点击下面的按钮，切换理解角度：</p>
+  <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:.5rem 0;">
+    <button onclick="showAngle('angle1')" style="padding:.4rem .8rem;border:1px solid var(--accent);border-radius:6px;background:var(--paper);cursor:pointer;font-size:.85rem;">从 CLIP 角度看</button>
+    <button onclick="showAngle('angle2')" style="padding:.4rem .8rem;border:1px solid var(--accent);border-radius:6px;background:var(--paper);cursor:pointer;font-size:.85rem;">从 Zero-shot 分割角度看</button>
+    <button onclick="showAngle('angle3')" style="padding:.4rem .8rem;border:1px solid var(--accent);border-radius:6px;background:var(--paper);cursor:pointer;font-size:.85rem;">从 Few-shot 分割角度看</button>
+  </div>
+  <div id="angle1" class="demo-content" style="display:none;font-size:.9rem;margin-top:.5rem;">
+    <strong>从 CLIP 角度看</strong>：CLIP 能做图像级零样本分类（整张图是"狗"）。LSeg 把 CLIP <strong>从"这是什么图"推进到"这个像素是什么"</strong>。
+    这需要解决一个关键技术难题：CLIP 的图像编码器输出的是全局特征，LSeg 需要<strong>逐像素的密集特征</strong>。
+  </div>
+  <div id="angle2" class="demo-content" style="display:none;font-size:.9rem;margin-top:.5rem;">
+    <strong>从 Zero-shot 分割角度看</strong>：之前的工作（ZS3Net, CaGNet）用 Word2Vec 做文本嵌入，性能有限。
+    LSeg 用 CLIP 文本编码器替换 Word2Vec，并证明<strong>这是关键的改进因素</strong>——消融实验中不同文本编码器带来高达 2.5% 的 mIoU 差异。
+  </div>
+  <div id="angle3" class="demo-content" style="display:none;font-size:.9rem;margin-top:.5rem;">
+    <strong>从 Few-shot 分割角度看</strong>：Few-shot 方法（HSNet 等）在特定基准上精度更高，但<strong>需要新类别的标注样本</strong>。
+    LSeg 作为零样本方法，在完全<strong>不需要标注样本</strong>的前提下达到了有竞争力的性能（在 FSS-1000 上甚至超过了 HSNet 的 1-shot 结果）。
+  </div>
+</div>
+
+<script>
+function showAngle(id) {
+  var contents = document.querySelectorAll('.interactive-demo .demo-content');
+  for (var i = 0; i < contents.length; i++) { contents[i].style.display = 'none'; }
+  document.getElementById(id).style.display = 'block';
+}
+</script>
+
+<!-- ================ 5. 课后练习 ================ -->
+<h2>📝 课后练习</h2>
+
+<p>点击题目下方的 <strong>"查看答案"</strong> 展开参考答案。建议先自己思考再对照。</p>
+
+<details class="quiz">
+  <summary>📌 练习 1：LSeg 与 CLIP 的关系是什么？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>LSeg <strong>受 CLIP 启发</strong>，但做了关键的扩展：</p>
+    <ul>
+      <li><strong>相同点</strong>：都使用对比学习来对齐视觉和文本嵌入空间</li>
+      <li><strong>不同点</strong>：CLIP 做<strong>图像级</strong>分类（整张图一个标签），LSeg 做<strong>像素级</strong>分割（每个像素一个标签）</li>
+      <li><strong>技术借用</strong>：LSeg 直接使用 CLIP 的<strong>文本编码器</strong>作为其文本分支，且训练时冻结不动</li>
+    </ul>
+    <p>可以理解为：LSeg 就是把 CLIP 的"这张图是什么"的全局能力，拆解为"每个像素是什么"的密集预测能力。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 2：为什么论文说开集识别和跨域迁移与 LSeg "正交"？</summary>
+  <div class="answer">
+    <p><strong>答案：</strong>"正交"意味着这些方法解决的是<strong>不同维度的限制</strong>，可以与 LSeg <strong>叠加使用</strong>：</p>
+    <ul>
+      <li><strong>LSeg</strong> 解决的是<strong>标签集限制</strong>——不能识别未见过的类别名称</li>
+      <li><strong>开集识别</strong> 解决的是<strong>样本是否在分布内</strong>——无法拒绝未知物体</li>
+      <li><strong>跨域迁移</strong> 解决的是<strong>视觉域差异</strong>——白天训练的模型在夜晚失效</li>
+    </ul>
+    <p>例如，你可以先对图像做跨域迁移（把夜晚图像变成白天风格），再用 LSeg 做灵活标签分割，再用开集识别过滤掉不确定区域——这是正交方法叠加的例子。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 3：简要对比 Few-shot 分割和 Zero-shot 分割的核心不同。</summary>
+  <div class="answer">
+    <p><strong>答案：</strong></p>
+    <table>
+      <tr><th>维度</th><th>Few-shot 分割</th><th>Zero-shot 分割</th></tr>
+      <tr><td><strong>对新类别的需求</strong></td><td>需要至少 1 张标注图像</td><td>不需要任何标注样本</td></tr>
+      <tr><td><strong>推理信息</strong></td><td>文本标签 + 标注的 support 图像</td><td>仅文本标签</td></tr>
+      <tr><td><strong>典型方法</strong></td><td>HSNet, PFENet, PANet</td><td>ZS3Net, CaGNet, <strong>LSeg</strong></td></tr>
+      <tr><td><strong>灵活性</strong></td><td>较低（需要找标注样本）</td><td>较高（只需提供标签名）</td></tr>
+      <tr><td><strong>预期精度</strong></td><td>通常更高（有额外信息）</td><td>通常较低</td></tr>
+    </table>
+    <p>LSeg 的特别之处在于：作为 zero-shot 方法，它的性能在某些基准上<strong>逼近甚至超过</strong> few-shot 方法，这在之前的工作中没有出现过。</p>
+  </div>
+</details>
+
+<details class="quiz">
+  <summary>📌 练习 4（思考题）：论文指出哪些工作与 LSeg 是"正交"的？如果你要把 LSeg 用在机器人导航中，你可能还需要考虑哪些正交方向？</summary>
+  <div class="answer">
+    <p><strong>参考答案：</strong></p>
+    <p>论文指出的正交方向：<strong>开集识别</strong>（判断是否在训练分布内）和<strong>跨域迁移</strong>（适应不同的视觉域）。</p>
+    <p>在机器人导航场景下，可能还需要考虑：</p>
+    <ul>
+      <li><strong>跨域迁移</strong>：仿真环境训练的 LSeg 迁移到真实世界场景</li>
+      <li><strong>时序一致性</strong>：视频流中的分割结果需要在时间上平滑</li>
+      <li><strong>推理速度</strong>：机器人需要实时分割，可能需要轻量化 LSeg</li>
+      <li><strong>开集拒绝</strong>：当机器人遇到完全未知的物体时，LSeg 目前会强行匹配"最接近"的标签，开集识别可以避免这类错误</li>
+    </ul>
+  </div>
+</details>
+
+<!-- ================ 导航 ================ -->
+<div class="nav-links">
+  <a href="0007-论文全景与核心动机.html">← 上一课：论文全景与核心动机</a>
+  <a href="0009-方法文本与图像编码器.html">下一课：方法：文本与图像编码器 →</a>
+</div>
+
+<p style="margin-top:2rem;font-size:.8rem;color:var(--ink-40);text-align:center;border-top:1px solid var(--border);padding-top:.8rem;">
+  如有任何疑问，随时向你的 AI 助教提问 🤖
+</p>
+
+</body>
+</html>

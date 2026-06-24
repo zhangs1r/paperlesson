@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · Bundle Adjustment 与 PnP 实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Lesson 6</div>
+      <h1>Bundle Adjustment 与 PnP 实践</h1>
+      <p class="subtitle">上一课说明了 PnP 能给出相机位姿，但第六讲已经提醒过我们：闭式或线性解往往只是初值。现在这节课要把“重投影误差 + 李代数位姿 + g2o 图优化”真正接起来，让 PnP 结果变得更稳、更细。🎯</p>
+      <div class="hero-meta">
+        <span>📐 原书图 7-12、7-13</span>
+        <span>🧮 与第六讲 G-N / L-M 完整接轨</span>
+        <span>🏗️ 为第十讲 BA 主线做提前预热</span>
+      </div>
+      <div class="toc">
+        <a href="#epnp">先用 EPnP 拿到位姿初值</a>
+        <a href="#reproj">重投影误差到底在比什么</a>
+        <a href="#jacobian">雅可比为什么会长成那样</a>
+        <a href="#graph">g2o 图优化如何建模</a>
+        <a href="#bridge">它和第九、第十讲怎么连</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="epnp">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>看懂 <code>solvePnP()</code> 和后续 BA 的角色分工：一个给初值，一个吃掉误差；同时真正理解“重投影误差”而不是只背名词。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文的联系</h4>
+          <p>这一课是第六讲优化思想在第七讲前端中的第一次完整落地；而第十讲会把这里的小规模 BA 放大成真正的后端主角。</p>
+        </div>
+      </div>
+      <p>原书这里先做了一个非常实际的选择：不用单目三角化点来示范，而是直接从 RGB-D 的深度图里拿 3D 点。这样可以把注意力集中在 PnP 与优化本身，而不是初始化噪声。</p>
+      <pre><code>ushort d = d1.ptr&lt;unsigned short&gt;(int(keypoints_1[m.queryIdx].pt.y))
+    [int(keypoints_1[m.queryIdx].pt.x)];
+if (d == 0) continue;
+float dd = d / 1000.0;
+Point2d p1 = pixel2cam(keypoints_1[m.queryIdx].pt, K);
+pts_3d.push_back(Point3f(p1.x * dd, p1.y * dd, dd));
+pts_2d.push_back(keypoints_2[m.trainIdx].pt);</code></pre>
+      <p>这段代码很值得停一下：它说明 3D-2D 对应不是凭空来的，而是“第一帧关键点 + 深度图 → 三维点”，“第二帧关键点位置 → 像素观测”。然后才轮到：</p>
+      <pre><code>solvePnP(pts_3d, pts_2d, K, Mat(), r, t, false, cv::SOLVEPNP_EPNP);</code></pre>
+      <p>此时得到的 $R,t$ 已经有了真实尺度含义，和上一课的 2D-2D 恢复结果相比，最大的变化通常会出现在平移量上，因为这里真正引入了深度信息。</p>
+    </main>
+
+    <section class="section-card" id="reproj">
+      <h2>1. 重投影误差到底在比什么</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b3fe0628918287b23f9d2faa0f56ef30bb76b012353ad62d97807498558ce579.jpg" alt="原书图7-12 重投影误差示意图">
+        <figcaption>原书图 7-12。它最想让你看明白的是：误差不是拿 3D 点直接比较，而是把 3D 点按当前位姿投影回像素平面，再和真实观测到的像素位置比差距。</figcaption>
+      </figure>
+      <p>这一节的核心目标函数，和第六讲已经完全同一语言了。设相机位姿的李代数参数为 $\xi$，三维点为 $P_i$，像素观测为 $u_i$，则优化目标写成：</p>
+      <div class="formula-box">$$
+      \xi^* =
+      \arg\min_{\xi}
+      \frac{1}{2}
+      \sum_{i=1}^{n}
+      \left\|
+      u_i -
+      \frac{1}{s_i}
+      K\exp(\xi^\wedge)P_i
+      \right\|_2^2.
+      \tag{7.35}
+      $$</div>
+      <p>这就是重投影误差。你可以用一句人话记它：</p>
+      <div class="formula-box flow-formula">观测到的像素位置 − 根据“当前位姿猜测”重新投影出来的像素位置</div>
+      <p>如果这个误差为 0，说明当前相机位姿和三维点解释得完美；现实里当然做不到全 0，所以我们求的是整体上“最讲得通”的那组变量。</p>
+    </section>
+
+    <section class="section-card" id="jacobian">
+      <h2>2. 为什么雅可比推导会和第四讲、第六讲碰头</h2>
+      <p>这一节最容易被看成“密密麻麻公式堆”，但其实它只是把前面已经讲过的两件事连起来：</p>
+      <ul>
+        <li>第四讲讲过，位姿变量最好在李代数上加扰动。</li>
+        <li>第六讲讲过，非线性优化要靠雅可比告诉求解器往哪儿走。</li>
+      </ul>
+      <p>书里先把相机坐标系下的点记成 $P'=[X',Y',Z']^T$，再用第五讲投影模型写出：</p>
+      <div class="formula-box">$$
+      u = f_x\frac{X'}{Z'} + c_x,\qquad
+      v = f_y\frac{Y'}{Z'} + c_y.
+      \tag{7.40}
+      $$</div>
+      <p>然后通过链式法则：</p>
+      <div class="formula-box">$$
+      \frac{\partial e}{\partial \delta \xi}
+      =
+      \frac{\partial e}{\partial P'}
+      \frac{\partial P'}{\partial \delta \xi}.
+      \tag{7.41}
+      $$</div>
+      <p>这其实就是第六讲“误差对变量求导”的具体化。差别只在于，这次变量不是一般欧氏向量，而是李代数中的相机位姿增量。</p>
+      <p>如果你暂时不想把式 (7.45) 的每个元素都背下来，也没关系，但至少要明白：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>前半部分</h4>
+          <p>来自像素投影对相机坐标点的导数，本质是透视除法对深度的敏感性。</p>
+        </div>
+        <div class="mini-card">
+          <h4>后半部分</h4>
+          <p>来自李代数扰动对空间点变换结果的导数，也就是第四讲讲过的左乘扰动模型。</p>
+        </div>
+      </div>
+      <p>所以这整段不是凭空冒出来的，而是第四、五、六讲知识在第七讲第一次汇合。🙂</p>
+    </section>
+
+    <section class="section-card" id="graph">
+      <h2>3. g2o 图优化在这里是怎么落地的</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/89397528f7ded35f8ff9c1c629e2ccdd0eb3c39d310ad9eb37be609d5205a3b8.jpg" alt="原书图7-13 PnP的BA图优化表示">
+        <figcaption>原书图 7-13。图里要你抓住的是结构，而不是名字：一个位姿节点、很多空间点节点、很多投影边。换句话说，这就是第六讲“很多局部误差项拼成一个大优化问题”的具体样子。</figcaption>
+      </figure>
+      <p>书里把 PnP 的 BA 建模得非常典型：</p>
+      <ul>
+        <li><strong>位姿节点</strong>：第二个相机的 $SE(3)$ 位姿。</li>
+        <li><strong>空间点节点</strong>：每个匹配到的三维点。</li>
+        <li><strong>观测边</strong>：每个 3D 点投到第二帧像素平面的重投影误差。</li>
+      </ul>
+      <p>于是 g2o 里的核心代码长这样：</p>
+      <pre><code>auto* pose = new g2o::VertexSE3Expmap();
+auto* point = new g2o::VertexSBAPointXYZ();
+auto* edge = new g2o::EdgeProjectXYZ2UV();</code></pre>
+      <p>如果把这三样和原书图 7-13 对起来看，你会发现它们一一对应。这也是为什么第十讲再讲 BA 时，你不会觉得自己是第一次见到这些概念。</p>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>在这一节里，为什么我们还要在 EPnP 之后继续做 BA？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。EPnP 很适合给一个快而靠谱的初值，但 BA 能进一步最小化重投影误差，同时协调位姿和点的位置。" onclick="lessonKit.answer(this, 'quiz-0051-a')">因为 EPnP 给的是初值，BA 负责继续减小重投影误差</button>
+          <button data-correct="no" data-explanation="BA 不是拿来把 3D 点删掉的，而是联合优化它们与位姿。" onclick="lessonKit.answer(this, 'quiz-0051-a')">因为 BA 的作用是完全忽略 3D 点</button>
+          <button data-correct="no" data-explanation="BA 当然也依赖观测边，它不是不看像素数据。" onclick="lessonKit.answer(this, 'quiz-0051-a')">因为 BA 可以在没有像素观测的情况下独立工作</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0051-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="bridge">
+      <h2>4. 这节课怎样为第九讲和第十讲铺路</h2>
+      <p>如果把这节课放进整本书里看，它其实做了两层过渡：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>通向第九讲</h4>
+          <p>VO 前端里的每次位姿更新，不会停在粗糙的 PnP 初值上，而是倾向于继续做局部优化，提高稳定性。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向第十讲</h4>
+          <p>这里的 BA 只是两帧局部版本；第十讲会把同样的思想扩展到更多关键帧、更多地图点、更大的稀疏系统。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向工程实现</h4>
+          <p>你会开始真正习惯“先闭式 / 线性初值，再非线性优化精修”的双阶段求解套路。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里选择“EPnP + BA”而不是只停在 EPnP？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 EPnP 更像高效初值，能快速给出姿态估计；BA 则进一步利用重投影误差把位姿和空间点一起往更精确的方向调整。</div>
+            </details>
+          </li>
+          <li>
+            重投影误差和直接法里的光度误差有何不同？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>重投影误差比较的是像素位置，建立在特征匹配之上；光度误差比较的是像素亮度，直接利用灰度一致性，不依赖显式描述子匹配。</div>
+            </details>
+          </li>
+          <li>
+            为什么这节课的雅可比推导离不开第四讲的李代数？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为相机位姿是定义在 $SE(3)$ 上的，优化时需要在李代数的小增量空间里做无约束更新，雅可比必须对这种扰动形式求导。</div>
+            </details>
+          </li>
+          <li>
+            第十讲 BA 与这一节的 BA 最大的差别是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>这一节主要是局部、小规模、两帧级别的 BA；第十讲会处理更多位姿和更多点，重点转向稀疏结构、Schur 消元和后端求解策略。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0050-第七讲-PnP理论基础.html">← 上一课：PnP 理论基础</a>
+        <a class="next" href="0052-第七讲-ICP理论与实践.html">下一课：ICP 理论与实践 →</a>
+      </div>
+      <p class="foot-note">如果你愿意，用一句话收走这节课：PnP 负责把位姿“拉到正确附近”，BA 负责把它“拧到更准”。✨</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

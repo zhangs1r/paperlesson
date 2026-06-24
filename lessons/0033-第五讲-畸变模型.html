@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第五讲 · 畸变模型 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第五讲 · 相机与图像 / Lesson 2</div>
+      <h1>第五讲 · 畸变模型</h1>
+      <p class="subtitle">理想针孔模型只能描述“如果镜头完美无瑕会怎样成像”。真实相机有透镜，于是图像边缘会弯，前端匹配和后端优化都会受影响。🪞</p>
+      <div class="hero-meta">
+        <span>🔗 承接上一节针孔模型</span>
+        <span>🧮 畸变先在归一化平面上处理</span>
+        <span>🛠️ 关系到后面特征匹配与建图质量</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么必须处理畸变</a>
+        <a href="#radial">径向畸变</a>
+        <a href="#tangential">切向畸变</a>
+        <a href="#undistort">去畸变流程</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>上一节留下了一个理想化前提</h4>
+          <p>针孔模型里，一条空间直线投到图像上仍是直线。但现实镜头前有透镜，透镜制造误差和装配误差都会让这个“理想直线”变弯。</p>
+        </div>
+        <div class="callout">
+          <h4>这节课为什么不只是“标定附录”</h4>
+          <p>如果畸变不处理好，第七讲的特征匹配、第八讲的直接法、第十一讲的重投影误差、甚至第十三讲的点云对齐，都会在边缘区域累积系统误差。</p>
+        </div>
+      </div>
+      <p>很多同学学相机模型时会把“内参”当主角，把“畸变”当小尾巴。实际上畸变不是小修小补，它是在告诉我们：真实相机和理想针孔之间，有一层必须校正的偏差。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{理想投影位置} \Longrightarrow \text{畸变扰动后的位置} \Longrightarrow \text{图像中的真实测量} $$</div>
+      </div>
+      <p>后面我们会默认图像已经做过去畸变，但这个“默认”不能白来，你得知道它背后的模型是什么。</p>
+    </main>
+
+    <section class="section-card" id="radial">
+      <h2>1. 径向畸变：离图像中心越远，扭曲越明显</h2>
+      <p>书里先讲径向畸变，这个顺序很合理，因为它最常见，也最容易从图上直观看出来。它来自透镜本身的形状和成像放大率变化，呈现出以光轴为中心的对称性。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/e688c175e747ec231b8b018e34b9165ec4cb91c29a4f7081d7ac285c83a2906e.jpg" alt="桶形畸变">
+        <figcaption>图 5-3 的一个典型例子是桶形畸变。你可以注意图像边缘的直线似乎被向外拉弯了。这意味着离中心越远，投影缩得越厉害。</figcaption>
+      </figure>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/95cde8407d017a6e555b71e72efbc69e18bdc0edfffb17d9ad46bbe8ec0206f5.jpg" alt="正常图像">
+          <figcaption>正常情况：直线仍是直线，边缘没有明显弯曲。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/7e56d5ff52e98372844129dfc5919622eb56c02f26a5fb2490d21f27c0a4ef65.jpg" alt="枕形畸变">
+          <figcaption>枕形畸变：边缘直线向内收。它和桶形畸变方向相反，但同样属于“围绕中心的径向变化”。</figcaption>
+        </figure>
+      </div>
+      <p>从数学上讲，径向畸变意味着：点在归一化平面上的方向大致不变，但离中心的半径 $r$ 变了。把平面点写成极坐标 $[r,\theta]^T$ 会更直观，因为“径向畸变”本来就在说半径出了问题。</p>
+      <p>书里的多项式模型写作：</p>
+      <div class="formula-box">$$
+\begin{aligned}
+x_{\text{dist}} &= x(1+k_1r^2+k_2r^4+k_3r^6), \\
+y_{\text{dist}} &= y(1+k_1r^2+k_2r^4+k_3r^6),
+\end{aligned}
+\qquad r^2=x^2+y^2. \tag{5.11}
+$$</div>
+      <p>请注意这里的坐标是<strong>归一化平面坐标</strong>，不是像素坐标。这一点非常关键，也是 OCR 文本里最容易看花的地方。顺序必须是：先到归一化平面，再施加畸变模型，最后再乘内参。</p>
+      <div class="callout">
+        <h4>三个系数怎么理解</h4>
+        <p>$k_1$ 往往主导中心附近的畸变趋势，$k_2$ 主要修边缘，$k_3$ 通常只在畸变很重的镜头里才需要明显发挥作用。普通视觉 SLAM 摄像头，前两个就很常见。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="tangential">
+      <h2>2. 切向畸变：不是镜头“太弯”，而是装得“不正”</h2>
+      <p>如果说径向畸变是“镜头中心对称地把图像拉坏了”，那切向畸变更像是“镜头和成像平面没装平”。它会让点沿着切线方向偏移，直觉上看起来像是图像在局部被扯歪了。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/6f6e1359906b72a3488fb38ef37a24789a89b5dfade2455bd4965c8ebfd4251e.jpg" alt="图 5-4 切向畸变来源">
+        <figcaption>图 5-4 不是在讲“某种奇怪的相机结构”，而是在提醒你：只要透镜平面和成像平面没严格平行，几何中心就会偏，点不再只沿半径方向移动。</figcaption>
+      </figure>
+      <p>书里的切向畸变模型是：</p>
+      <div class="formula-box">$$
+\begin{aligned}
+x_{\text{dist}} &= x + 2p_1xy + p_2(r^2 + 2x^2), \\
+y_{\text{dist}} &= y + p_1(r^2 + 2y^2) + 2p_2xy.
+\end{aligned}
+\tag{5.12}
+$$</div>
+      <p>和径向畸变相比，这里多出来的交叉项 $xy$ 很值得注意。它说明切向畸变不再只是“离中心远就一样地变”，而是和方向也有关系。</p>
+      <div class="interactive-card">
+        <h3>理解检查</h3>
+        <p>为什么切向畸变比径向畸变更不像“同心圆式”变化？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。切向畸变和透镜装配偏斜有关，因此偏移方向不仅取决于半径，还和点在平面上的方向位置有关。" onclick="lessonKit.answer(this, 'quiz-0033-a')">因为它和方向有关，不只和半径有关</button>
+          <button data-correct="no" data-explanation="切向畸变不是像素坐标原点定义造成的。" onclick="lessonKit.answer(this, 'quiz-0033-a')">因为像素坐标的原点不在中心</button>
+          <button data-correct="no" data-explanation="切向畸变并不是由于焦距变成负数。" onclick="lessonKit.answer(this, 'quiz-0033-a')">因为焦距发生了符号翻转</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0033-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="undistort">
+      <h2>3. 去畸变到底在做什么：先纠正，再投到像素</h2>
+      <p>把两类畸变合起来，对于相机坐标系中的点 $\boldsymbol{P}(X,Y,Z)$，通常先做透视除法得到归一化坐标：</p>
+      <div class="formula-box">$$ x=\frac{X}{Z}, \qquad y=\frac{Y}{Z}. $$</div>
+      <p>再计算畸变后的归一化位置：</p>
+      <div class="formula-box">$$
+\begin{cases}
+x_{\text{dist}} = x(1+k_1r^2+k_2r^4+k_3r^6)+2p_1xy+p_2(r^2+2x^2), \\
+y_{\text{dist}} = y(1+k_1r^2+k_2r^4+k_3r^6)+p_1(r^2+2y^2)+2p_2xy,
+\end{cases}
+\quad r^2=x^2+y^2. \tag{5.13}
+$$</div>
+      <p>最后再进入像素平面：</p>
+      <div class="formula-box">$$
+\begin{cases}
+u = f_x x_{\text{dist}} + c_x, \\
+v = f_y y_{\text{dist}} + c_y.
+\end{cases}
+\tag{5.14}
+$$</div>
+      <p>很多同学第一次看到去畸变会疑惑：“到底是在求 distorted 还是 undistorted？”工程里常见的做法是，利用标定好的参数，把原始图像重映射到一个理想针孔图像上。也就是说，我们常常先<strong>整图去畸变</strong>，然后后续算法就当它是理想针孔相机拍出来的图。</p>
+      <table>
+        <thead>
+          <tr><th>做法</th><th>思路</th><th>SLAM 里常见程度</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>整图去畸变</td><td>先把整张图校正成理想针孔模型，再做特征、光度、几何处理</td><td>更常见</td></tr>
+          <tr><td>按点去畸变</td><td>只在处理某个像素测量时，临时按模型纠正</td><td>也可行，但实现更碎</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <h4>和后面章节的联系</h4>
+        <p>第七讲和第八讲一旦在边缘区域提取特征或做光度误差，畸变没处理好就会直接污染配准质量；第十三讲做 RGB-D 建图时，如果彩色图和深度图的几何对齐里还夹着畸变误差，点云边缘也会出现拉扯感和重影。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>径向畸变</h4>
+          <p>围绕图像中心对称变化，本质上是半径 $r$ 的函数。</p>
+        </div>
+        <div class="mini-card">
+          <h4>切向畸变</h4>
+          <p>多与装配偏斜有关，偏移不只和距离有关，也和方向有关。</p>
+        </div>
+        <div class="mini-card">
+          <h4>工程习惯</h4>
+          <p>常先把整图去畸变，再把后续算法都建立在理想针孔模型上。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            桶形畸变和枕形畸变的直观区别是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>桶形畸变会让边缘直线向外鼓，看起来像桶；枕形畸变会让边缘向内收，看起来像枕头。二者都属于径向畸变，只是变化方向相反。</div>
+            </details>
+          </li>
+          <li>
+            为什么畸变公式通常写在归一化平面上，而不是直接写在像素坐标上？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为畸变描述的是镜头光学成像偏差，先在几何上最自然的归一化平面处理，模型更干净；若直接在像素坐标上写，会把相机分辨率和像素尺度也混进去。</div>
+            </details>
+          </li>
+          <li>
+            为什么视觉 SLAM 中常常倾向于“先整图去畸变”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为这样后续特征提取、匹配、光度误差、重投影误差都可以统一按理想针孔模型处理，代码更整洁，也更不容易在不同模块里重复处理畸变。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0032-第五讲-针孔相机模型.html">← 针孔相机模型</a>
+        <a class="next" href="0034-第五讲-双目与RGB-D相机.html">双目与 RGB-D 相机 →</a>
+      </div>
+      <p class="foot-note">后面如果你看到“默认图像已经去畸变”，脑子里就应该自动浮现今天这套流程 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

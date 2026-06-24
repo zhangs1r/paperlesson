@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · 指数与对数映射 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 3</div>
+      <h1>第四讲 · 指数与对数映射</h1>
+      <p class="subtitle">上一节定义了 so(3)、se(3)；这一节要回答最核心的问题：这些局部增量坐标，究竟怎样变成真正的旋转矩阵和变换矩阵？也就是，怎样在“代数”和“群”之间来回走。🌉</p>
+      <div class="hero-meta">
+        <span>🔗 承接 so(3)、se(3)</span>
+        <span>📐 这是第四讲最核心的桥梁课</span>
+        <span>🧭 直接连到 Sophus 和位姿优化</span>
+      </div>
+      <div class="toc">
+        <a href="#so3-exp">SO(3) 指数映射</a>
+        <a href="#so3-log">SO(3) 对数映射</a>
+        <a href="#se3-exp">SE(3) 指数映射</a>
+        <a href="#overview">原图与总览</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="so3-exp">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>真正吃透“指数映射 / 对数映射”不是抽象名词，而是把局部李代数增量和真正位姿对象连接起来的桥。后面一切“左乘更新”“位姿扰动”“图优化导数”，都靠这座桥。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节你已经知道 so(3)、se(3) 是局部坐标；这一节要把它们送回 SO(3)、SE(3) 真正的几何对象上。没有这一步，李代数只是“好看的局部向量”，还无法真正参与姿态表达。</p>
+        </div>
+      </div>
+      <p>书里从矩阵指数的一般定义出发：</p>
+      <div class="formula-box">$$ \exp(\boldsymbol{A}) = \sum_{n=0}^{\infty}\frac{1}{n!}\boldsymbol{A}^n. \tag{4.18} $$</div>
+      <p>然后把它应用到 so(3) 元素 $\boldsymbol{\phi}^{\wedge}$ 上：</p>
+      <div class="formula-box">$$ \exp(\boldsymbol{\phi}^{\wedge}) = \sum_{n=0}^{\infty}\frac{1}{n!}(\boldsymbol{\phi}^{\wedge})^n. \tag{4.19} $$</div>
+      <p>表面看像是机械展开，但书里真正巧妙的地方在于：通过</p>
+      <div class="formula-box">$$ \boldsymbol{a}^{\wedge}\boldsymbol{a}^{\wedge} = \boldsymbol{a}\boldsymbol{a}^T - \boldsymbol{I}, \qquad \boldsymbol{a}^{\wedge}\boldsymbol{a}^{\wedge}\boldsymbol{a}^{\wedge} = -\boldsymbol{a}^{\wedge}. \tag{4.20-4.21} $$</div>
+      <p>把高阶项收缩成有限模式，最后推回你在第三讲已经见过的结果：</p>
+      <div class="formula-box">$$ \exp(\theta \boldsymbol{a}^{\wedge}) = \cos\theta\,\boldsymbol{I} + (1-\cos\theta)\boldsymbol{a}\boldsymbol{a}^T + \sin\theta\,\boldsymbol{a}^{\wedge}. \tag{4.22} $$</div>
+      <p>也就是说：<strong>so(3) 上的指数映射，本质上就是罗德里格斯公式</strong>。这是整节课最值得记住的一句。</p>
+    </main>
+
+    <section class="section-card" id="so3-log">
+      <h2>1. 对数映射：把旋转矩阵重新拉回旋转向量</h2>
+      <p>既然指数映射能把 $\boldsymbol{\phi}$ 送到 $\boldsymbol{R}$ 上，那对数映射就是反方向：给定一个旋转矩阵，找回对应的李代数向量。</p>
+      <div class="formula-box">$$ \boldsymbol{\phi} = \ln(\boldsymbol{R})^{\vee}. \tag{4.23} $$</div>
+      <p>书里也明确说了：实际计算通常不会真的去按泰勒展开算，而是回到第三讲已经介绍过的旋转矩阵 → 旋转向量求法，用迹和旋转轴去恢复。</p>
+      <p>这里有两个非常重要的理解点：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>指数映射是满射</h4>
+          <p>每个 SO(3) 中的旋转矩阵，都能找到某个 so(3) 向量映过去。</p>
+        </div>
+        <div class="mini-card">
+          <h4>但它不是单射</h4>
+          <p>因为多转 $2\pi$ 和不转在群上是同一个旋转，所以多个李代数向量可能映成同一个旋转矩阵。</p>
+        </div>
+      </div>
+      <p>这点看似数学细节，实际上会影响你后面如何理解“姿态更新的局部唯一性”。</p>
+    </section>
+
+    <section class="section-card" id="se3-exp">
+      <h2>2. SE(3) 上的指数映射：平移为什么会冒出一个 J</h2>
+      <p>对 se(3) 元素 $\boldsymbol{\xi}=\begin{bmatrix}\boldsymbol{\rho}\\\boldsymbol{\phi}\end{bmatrix}$，指数映射结果写成：</p>
+      <div class="formula-box">$$
+      \exp(\boldsymbol{\xi}^{\wedge})
+      =
+      \begin{bmatrix}
+      \boldsymbol{R} & \boldsymbol{J}\boldsymbol{\rho}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}
+      =
+      \boldsymbol{T}.
+      \tag{4.24-4.25}
+      $$</div>
+      <p>这里最容易被忽略、但最值得停下来理解的是：</p>
+      <div class="callout">
+        <h4>请务必注意</h4>
+        <p>平移部分不是直接等于 $\boldsymbol{\rho}$，而是 $\boldsymbol{J}\boldsymbol{\rho}$。也就是说，李代数里的平移相关量，并不会原封不动地成为最终位姿矩阵中的平移向量。</p>
+      </div>
+      <p>书里给出的 Jacobian 矩阵是：</p>
+      <div class="formula-box">$$
+      \boldsymbol{J} =
+      \frac{\sin\theta}{\theta}\boldsymbol{I}
+      +
+      \left(1-\frac{\sin\theta}{\theta}\right)\boldsymbol{a}\boldsymbol{a}^T
+      +
+      \frac{1-\cos\theta}{\theta}\boldsymbol{a}^{\wedge}.
+      \tag{4.26}
+      $$</div>
+      <p>你现在不用硬背它，但一定要先形成感觉：<strong>平移和旋转在刚体变换里并不是完全分家</strong>。因为 se(3) 的局部坐标在映回 SE(3) 时，旋转部分会影响平移部分的具体落点。</p>
+      <p>反过来，对数映射时也是这个逻辑：先从左上角的 $\boldsymbol{R}$ 恢复 $\boldsymbol{\phi}$，再由 $\boldsymbol{t}=\boldsymbol{J}\boldsymbol{\rho}$ 解出 $\boldsymbol{\rho}$。</p>
+    </section>
+
+    <section class="section-card" id="overview">
+      <h2>3. 原书总览图：它最值得看的不是装饰，而是对应关系</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/fca2c7e694a122102e85e5dd3195b348a425f279c6c2fd1d7bf63a477e2563f9.jpg" alt="SO3 与 so3 对应关系">
+        <figcaption>图 4-1 上半部分在讲 SO(3) 与 so(3) 的来回关系：指数映射把旋转向量推成旋转矩阵，对数映射再把它拉回来。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b3051ec389adf11b7a257dbf398988c7c73fba899487b86dcf6e9fb7616f1a95.jpg" alt="SE3 与 se3 对应关系">
+        <figcaption>图 4-1 下半部分在讲 SE(3) 与 se(3) 的对应。你现在最该记住的是：平移部分不是简单复制，而是要经过 $J$ 的参与。</figcaption>
+      </figure>
+      <p>这两张图其实就是第四讲最浓缩的一页总结。后面你只要看到：</p>
+      <ul>
+        <li><code>exp(·)</code>：通常在做“从局部增量到真实位姿”的映射</li>
+        <li><code>log(·)</code>：通常在做“从真实位姿差异回到局部误差向量”的映射</li>
+      </ul>
+      <p>那么第十讲 BA 和第十一讲位姿图里的很多公式，都会变得顺眼很多。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>这节课里最值得你牢牢记住的一句“工程语言版”总结是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。指数映射 / 对数映射本质上就是在做这两种世界之间的来回翻译。" onclick="lessonKit.answer(this, 'quiz-0027-a')">exp / log 是“局部增量坐标”和“真实位姿对象”之间的翻译器</button>
+          <button data-correct="no" data-explanation="四元数当然重要，但不是这节课的中心。" onclick="lessonKit.answer(this, 'quiz-0027-a')">四元数会彻底取代所有李群李代数方法</button>
+          <button data-correct="no" data-explanation="J 非常重要，尤其在 SE(3) 平移部分里。" onclick="lessonKit.answer(this, 'quiz-0027-a')">SE(3) 的平移部分和旋转部分完全独立</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0027-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>SO(3) 指数映射</h4>
+          <p>本质就是罗德里格斯公式，所以 so(3) 和旋转向量之间联系非常紧。</p>
+        </div>
+        <div class="mini-card">
+          <h4>SO(3) 对数映射</h4>
+          <p>把旋转矩阵重新变回旋转向量，一般不直接按泰勒展开算，而用第三讲的旋转恢复方式。</p>
+        </div>
+        <div class="mini-card">
+          <h4>SE(3) 指数映射</h4>
+          <p>最重要的提醒是：平移部分会经过 $J$，不能把 $\boldsymbol{\rho}$ 直接当成最终平移。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 so(3) 上的指数映射和第三讲的罗德里格斯公式其实是同一件事？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为把 so(3) 元素写成 $\boldsymbol{\phi}=\theta\boldsymbol{a}$ 后，其指数映射推导出来正好就是罗德里格斯公式，因此两者在几何上描述的是同一个旋转生成过程。</div>
+            </details>
+          </li>
+          <li>
+            为什么 SE(3) 上要特别引入 Jacobian 矩阵 $J$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 se(3) 到 SE(3) 的指数映射中，平移部分并不是简单照抄局部坐标，而要结合旋转部分一起映射到真正的刚体位姿上。$J$ 正是在描述这种耦合关系。</div>
+            </details>
+          </li>
+          <li>
+            这节课和后面的位姿优化之间最关键的联系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>后面的优化往往在李代数空间里求小增量，然后通过指数映射左乘或右乘回到李群位姿上；误差也常通过对数映射从群元素差异变回局部向量误差。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0026-第四讲-so3与se3李代数.html">← so(3) 与 se(3) 李代数</a>
+        <a class="next" href="0028-第四讲-BCH公式与近似.html">BCH 公式与近似 →</a>
+      </div>
+      <p class="foot-note">这一节一旦吃透，你后面再看“左乘更新”“位姿误差取 log”就会顺眼很多 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

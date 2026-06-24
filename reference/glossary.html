@@ -734,5 +734,90 @@ MathJax = {
 </div>
 </div>
 
+<div class="letter-group">
+<div class="letter-label">H · VLMaps 基础概念</div>
+
+<div class="term">
+  <div class="en"><strong>VLMaps</strong> (Visual Language Maps)</div>
+  <div class="cn"><strong>视觉语言地图</strong> — 将预训练的视觉-语言特征（来自 LSeg）融合到 3D 重建中的空间地图表示。支持自然语言索引。</div>
+  <div class="detail">E2Map [9] 的建图基础。VLMaps 提供"有什么、在哪里"，E2Map 叠加"有什么经验、要小心什么"。</div>
+  <div class="ref">VLMaps ICRA 2023 | §1</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LSeg</strong></div>
+  <div class="cn"><strong>语言驱动的语义分割模型</strong> — 将图像编码为稠密的视觉-语言特征网格（每像素 d 维向量），与 CLIP 文本空间对齐。</div>
+  <div class="detail">VLMaps 使用 LSeg 提取每帧特征。相较于 CLIP 的全局特征，LSeg 的稠密特征能实现精确的空间定位。</div>
+  <div class="ref">Li et al., ICLR 2022 | VLMaps §IV-A</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Open-vocabulary landmark indexing</strong></div>
+  <div class="cn"><strong>开放词汇地标索引</strong> — 通过计算栅格特征与 CLIP 文本编码的余弦相似度，从 VLMaps 中定位任意物体的位置。</div>
+  <div class="detail">不需要预定义类别列表。查询 "couch"、"red chair" 或 "桌子上的书" 均可。</div>
+  <div class="ref">VLMaps §IV-B</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Top-down map</strong></div>
+  <div class="cn"><strong>俯视二维栅格地图</strong> — 将 3D 点云投影到水平面的 2D 栅格表示。VLMaps 的导航规划基于此表示。</div>
+  <div class="ref">VLMaps §IV-A</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Feature averaging</strong></div>
+  <div class="cn"><strong>特征平均融合</strong> — VLMaps 将多帧投影到同一栅格位置的特征向量取平均，以聚合多视角信息。</div>
+  <div class="detail">优点：简单高效、平滑噪声。缺点：可能模糊细节（如桌面和桌腿特征混合）。</div>
+  <div class="ref">VLMaps §IV-A</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Socratic fusion</strong></div>
+  <div class="cn"><strong>苏格拉底式融合</strong> — 不微调模型，而是将多个预训练模型"对话式"组合，各司其职地解决复杂任务。</div>
+  <div class="detail">VLMaps + LLM(Codex) 的协作方式：LLM 写代码调用 VLMaps API，不直接控制底层运动。</div>
+  <div class="ref">Zeng et al. 2022 | VLMaps §I</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Navigation primitives</strong></div>
+  <div class="cn"><strong>导航原语</strong> — VLMaps 定义的 17 个可编程导航操作（如 move_to, move_to_left, get_pos 等）。</div>
+  <div class="detail">LLM 将这些原语组合成复杂导航行为。原语的"中间位置"由 VLMaps 提供空间坐标。</div>
+  <div class="ref">VLMaps Appendix §A | Table II</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Multi-embodiment obstacle map</strong></div>
+  <div class="cn"><strong>多形态障碍地图</strong> — 同一张 VLMaps 通过指定不同的障碍物列表，为不同形态机器人生成不同的可通行地图。</div>
+  <div class="detail">示例：对地面机器人，桌子是障碍；对无人机，桌子可飞越而天花板灯是障碍。</div>
+  <div class="ref">VLMaps §IV-C, §V-C</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>CoW</strong> (CLIP on Wheels)</div>
+  <div class="cn"><strong>轮上 CLIP</strong> — 使用 CLIP 显著性图进行零样本物体导航的基线方法。</div>
+  <div class="detail">对比 VLMaps：CoW 用 GradCAM 生成物体热力图（噪声大），VLMaps 用 LSeg 稠密特征（精度高）。</div>
+  <div class="ref">Gadre et al., CoRL 2023 | VLMaps §II</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>LM-Nav</strong></div>
+  <div class="cn"><strong>语言模型导航</strong> — 结合三个预训练模型（GPT-3, CLIP, ViT）通过拓扑图进行真实世界导航的基线方法。</div>
+  <div class="detail">局限：只有拓扑图，无法处理空间关系指令（"在沙发和电视之间"）。</div>
+  <div class="ref">Shah et al., CoRL 2023 | VLMaps §II</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Matterport3D</strong></div>
+  <div class="cn">三维室内场景数据集 — VLMaps 仿真实验使用其 5 个场景进行评估。</div>
+  <div class="ref">Chang et al. 2017 | VLMaps §V-A</div>
+</div>
+
+<div class="term">
+  <div class="en"><strong>Habitat Simulator</strong></div>
+  <div class="cn">Facebook AI 的 3D 室内仿真平台 — VLMaps 仿真实验的模拟环境。</div>
+  <div class="ref">Savva et al. 2019 | VLMaps §V-A</div>
+</div>
+</div>
+
 </body>
 </html>

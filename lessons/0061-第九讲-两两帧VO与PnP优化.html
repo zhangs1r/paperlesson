@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第九讲 · 两两帧VO与PnP优化 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第九讲 · 设计前端 / Lesson 2</div>
+      <h1>第九讲 · 两两帧 VO 与 PnP 优化</h1>
+      <p class="subtitle">先搭出一版最能跑的前端，再亲眼看见它为什么不稳，为什么必须把优化拉进来。🪜</p>
+      <div class="hero-meta">
+        <span>📍 强依赖第七讲特征点法</span>
+        <span>🧮 会回到第六讲最小二乘</span>
+        <span>🔧 为第十讲 BA 预热</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#pairwise">两两帧 VO</a>
+        <a href="#fsm">状态机主循环</a>
+        <a href="#why-fails">为什么它不够好</a>
+        <a href="#g2o-refine">PnP 后再优化</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>实现一版最简单的前端：只估计参考帧与当前帧之间的相对运动。然后再加上一层 g2o 的非线性优化，体会“初值”和“精化”在工程里如何分工。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>这一课正好站在第七讲和第十讲之间：前者教你怎么得到 2D-3D 对应和 PnP 初值，后者会告诉你更大规模的 BA 为什么要把“重投影误差”真正做成系统后端。</p>
+        </div>
+      </div>
+      <p>这节课最重要的学习姿态，不是追求“立刻做出最强 VO”，而是先允许自己做出一版<strong>明显不够好但结构清楚</strong>的 VO。因为只有这样，你才会真切明白：为什么参考帧策略会漂，为什么单次 PnP 还不够，为什么地图和后端会被一层层引入。</p>
+    </main>
+
+    <section class="section-card" id="pairwise">
+      <h2>1. 两两帧 VO：故意先选一条最简单、也最容易暴露问题的路</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/31d61f8a085d2e1c1d13018721bd09a4dd82b2b36fd8992344103e82947343a5.jpg" alt="图 9-4 两两帧 VO 示意图">
+        <figcaption>图 9-4 这张图真正强调的是“参考帧 Ref”和“当前帧 Curr”的角色分工。每一步只关心当前帧相对于参考帧的运动，然后把当前帧扶正为新的参考帧。</figcaption>
+      </figure>
+      <p>所谓两两帧 VO，就是每次只处理一对相邻帧。它并不显式维护地图，也不同时优化路标点，所以书里把它叫作 <strong>pair-wise、structureless VO</strong>。这类方法有个明显优点：<strong>实现负担低，逻辑非常清楚</strong>。</p>
+      <p>如果参考帧相对于世界坐标的位姿为 $T_{rw}$，当前帧为 $T_{cw}$，那么我们希望估计的是参考帧到当前帧的相对运动 $T_{cr}$，满足：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ T_{cw} = T_{cr} T_{rw}. $$</div>
+      </div>
+      <p>这条式子看起来简单，但它把第七讲 PnP 的角色讲清楚了：PnP 不负责直接给你全局轨迹，它只是在当前时刻，帮你求出一个局部相对位姿。前端真正做的，是把这些局部相对运动不断串起来。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>优点</h4>
+          <p>实现快，调试路径短，很适合先把前端“跑起来”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>代价</h4>
+          <p>强依赖参考帧。一旦某一步估错，后面会立刻被拖偏。</p>
+        </div>
+        <div class="mini-card">
+          <h4>工程意义</h4>
+          <p>它是第九讲最好的起点，因为你能很快看到问题到底从哪开始冒头。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="fsm">
+      <h2>2. VisualOdometry 其实是一个小型状态机</h2>
+      <p>书里这部分特别值得你记住，因为它体现了前端代码的“程序结构感”。<code>VisualOdometry</code> 并不是一串无序函数，而是一个小型有限状态机：</p>
+      <table>
+        <thead>
+          <tr><th>状态</th><th>它在做什么</th><th>为什么要单独设成状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>INITIALIZING</code></td><td>接收第一帧，提特征、算描述子、准备参考数据</td><td>第一帧没有前驱，流程天然不同</td></tr>
+          <tr><td><code>OK</code></td><td>正常跟踪，提特征 → 匹配 → PnP → 检查结果 → 更新参考帧</td><td>这是主工作流</td></tr>
+          <tr><td><code>LOST</code></td><td>连续失败过多，认为前端已失效</td><td>避免系统在错误状态下继续堆漂移</td></tr>
+        </tbody>
+      </table>
+      <p>这和第六讲讲优化器状态、和第十一讲讲后端节点状态的感觉是一致的：<strong>工程系统不是一口气往前冲，而是不断判断“我现在处于什么工作阶段”</strong>。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{addFrame} \Rightarrow \text{提特征} \Rightarrow \text{匹配} \Rightarrow \text{PnP} \Rightarrow \text{检查结果} \Rightarrow \text{更新参考帧} $$</div>
+      </div>
+      <p>这里最容易忽略的一个小点是：<code>checkEstimatedPose()</code> 这种结果检查不是“多余保险”，而是前端鲁棒性的第一道门槛。它会检查内点数是否太少、估计位姿是否异常大，防止一次离谱匹配把整条轨迹拖飞。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么在前端主循环里，需要有单独的“位姿结果检查”这一步？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。前端是流水线式工作的，一次明显错误如果不拦截，会直接污染后续参考帧与轨迹。" onclick="lessonKit.answer(this, 'quiz-0061-a')">因为一次坏估计会连续污染后面的帧</button>
+          <button data-correct="no" data-explanation="运行快不快和要不要检查是两回事。" onclick="lessonKit.answer(this, 'quiz-0061-a')">因为这样会让程序运行更快</button>
+          <button data-correct="no" data-explanation="关键帧选择更靠后，它不等同于错误拦截。" onclick="lessonKit.answer(this, 'quiz-0061-a')">因为这样就不用再做关键帧判断</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0061-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="why-fails">
+      <h2>3. 为什么只做两两帧，很快就会露怯</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/1a2853784e0449ef671a21df045c76d9332e1ffce6fc5564512b78b4be16a423.jpg" alt="图 9-5 两两帧 VO 运行示意">
+        <figcaption>图 9-5 这张演示图的重要信息，不是“它能跑”，而是“它虽能跑，但稳定性和精度都还离工程可用有距离”。</figcaption>
+      </figure>
+      <p>书里接下来没有粉饰太平，而是直接拆两两帧 VO 的短板。你可以把它们理解成三层问题：</p>
+      <div class="grid-3">
+        <div class="mini-card">
+          <h4>第一层：初值本身不稳</h4>
+          <p>RANSAC PnP 虽然能抗外点，但它本身还是一个受随机采样影响的初值过程，不是最后答案。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二层：深度被当成真值</h4>
+          <p>RGB-D 深度在边缘和远近极端区域往往不准，而两两帧 VO 会把这些 3D 点近似看成确定值。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三层：只信上一帧</h4>
+          <p>一旦某一帧参考信息差，后面所有估计都会受牵连，这就是第九讲下一节为什么必须引入局部地图。</p>
+        </div>
+      </div>
+      <p>这里和第八讲直接法的对照也很有意思：直接法会直接优化像素强度误差，特征法这里则先靠匹配给出对应，再做 PnP。两条路线表面不同，但都躲不开一个事实：<strong>单次估计只是近似，全局更稳的答案一定离不开后续优化或地图支撑</strong>。</p>
+    </section>
+
+    <section class="section-card" id="g2o-refine">
+      <h2>4. 为什么 PnP 后面还要再接一层 g2o 优化</h2>
+      <p>第九讲这一改进，本质上就是把“第七讲的 PnP”与“第六讲的非线性最小二乘”重新接起来。做法非常朴素：</p>
+      <ol>
+        <li>先用 RANSAC PnP 求一个能用的位姿初值；</li>
+        <li>再把这个初值放进 g2o；</li>
+        <li>最小化重投影误差，把位姿再拧紧一圈。</li>
+      </ol>
+      <p>对应的误差项还是我们已经很熟悉的重投影误差：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ e_i = u_i - \pi(T_{cw} P_i). $$</div>
+      </div>
+      <p>这件事特别值得你从“前后端分工”角度去理解：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>PnP 负责什么</h4>
+          <p>快速给出一个合理初值，让系统先能落到正确盆地附近。</p>
+        </div>
+        <div class="mini-card">
+          <h4>g2o 负责什么</h4>
+          <p>把这个初值继续沿着误差下降方向精修，减少随机采样和测量噪声带来的抖动。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么这和第十讲 BA 是一条线</h4>
+          <p>因为它们都在做重投影误差最小化。差别只在于这里规模更小，暂时只优化位姿或者局部量。</p>
+        </div>
+      </div>
+      <p>也正因此，第九讲这一步其实已经在暗暗预告第十讲：一旦你把“误差项 + 初值 + 迭代优化”这件事吃透，后面理解 BA 就不会突然断层。</p>
+      <div class="callout">
+        <h4>一个容易被 OCR 搞乱的知识点</h4>
+        <p>书里这里有些识别文本会把 <code>bundle adjustment</code>、<code>g2o</code>、李代数更新写得断裂或粘连。课堂里你要记住的核心不是字符串长相，而是逻辑顺序：<strong>先初值，再非线性优化</strong>。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>这一课的主线</h4>
+          <p>先做出一版两两帧 VO，再亲手看见它为什么不够稳，然后用 PnP 后的 g2o 精化补上第一层改进。</p>
+        </div>
+        <div class="mini-card">
+          <h4>它和第十讲的关系</h4>
+          <p>第十讲会把这里的小规模“位姿精修”扩大成真正的 BA 和稀疏求解问题。</p>
+        </div>
+        <div class="mini-card">
+          <h4>它和下一课的关系</h4>
+          <p>即便引入优化，这一版仍然过度依赖参考帧。下一节我们要解决的就是这个结构性问题：把地图拉进前端。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说“两两帧 VO 能帮助你理解前端，但不适合直接当长期方案”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它的逻辑非常清楚，适合入门和调试；但它强依赖上一帧或参考帧，一旦某一步出错就会把误差不断串下去，缺乏对更长时间信息的利用。</div>
+            </details>
+          </li>
+          <li>
+            用自己的话解释：PnP 和后续 g2o 优化各自负责什么。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>PnP 负责快速给一个位姿初值，g2o 负责围绕这个初值继续最小化重投影误差，让解更平稳、更准确。前者更像“先落地”，后者更像“再拧紧”。</div>
+            </details>
+          </li>
+          <li>
+            这一课和第八讲直接法最大的共同点是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>虽然一个更依赖特征点、一个更直接使用像素，但它们都属于前端状态估计，都需要面对局部估计不完美、误差会积累、因此必须继续引入优化或地图约束的问题。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0060-第九讲-VO框架与五大数据结构.html">← VO 框架与五大数据结构</a>
+        <a class="next" href="0062-第九讲-局部地图改进与章节总结.html">局部地图改进与章节总结 →</a>
+      </div>
+      <p class="foot-note">先把一版会漂的系统做出来，往往比空想一版完美系统更有教学价值。🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

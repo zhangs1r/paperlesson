@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第七讲 · 章节总结与习题 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第七讲 · 视觉里程计 1 / Summary</div>
+      <h1>章节总结与习题</h1>
+      <p class="subtitle">第七讲是整本《视觉 SLAM 十四讲》里一个非常关键的“转折章”：从第三、四、五讲准备好的刚体运动、李代数和相机模型，第一次真正落到前端估计流程里。到这里，视觉里程计终于开始像一个能跑起来的系统了。📘</p>
+      <div class="hero-meta">
+        <span>📍 特征点法主线收束</span>
+        <span>🧮 2D-2D / 3D-2D / 3D-3D 三路比较</span>
+        <span>🚀 无缝过渡到第八讲直接法与第九讲 VO 框架</span>
+      </div>
+      <div class="toc">
+        <a href="#map">本讲知识地图</a>
+        <a href="#compare">三类位姿估计横向对比</a>
+        <a href="#connections">它和前后章节怎么连</a>
+        <a href="#practice">本讲最该动手复现什么</a>
+        <a href="#exercises">习题与答案</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="map">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本讲真正学会了什么</h4>
+          <p>不是单独记住 ORB、PnP、ICP 这些词，而是知道：视觉前端如何从图像里找观测、建立对应、恢复位姿，并开始生成地图点。</p>
+        </div>
+        <div class="callout">
+          <h4>为什么它重要</h4>
+          <p>因为第九讲的 VO 代码框架，实际上就是把这一讲拆成工程模块并长期循环执行；第十讲后端优化，则是在这套前端观测基础上继续做全局修正。</p>
+        </div>
+      </div>
+
+      <h2>1. 本讲知识地图</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>特征提取</h4>
+          <p>ORB = Oriented FAST + Rotated BRIEF。它把一整张图压缩成可复现、可描述、可匹配的局部锚点。</p>
+        </div>
+        <div class="mini-card">
+          <h4>特征匹配</h4>
+          <p>汉明距离、距离筛选、误匹配控制，是后续所有几何求解的入口，而不是附属步骤。</p>
+        </div>
+        <div class="mini-card">
+          <h4>2D-2D</h4>
+          <p>对极几何负责单目初始化，用本质矩阵从像素对应关系恢复相对位姿，但有尺度歧义，也怕纯旋转。</p>
+        </div>
+        <div class="mini-card">
+          <h4>三角测量</h4>
+          <p>它把 2D 匹配点撑成第一批稀疏 3D 地图点，为后续 PnP 做准备。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3D-2D</h4>
+          <p>PnP 是初始化后的常规主线；线性或闭式解给初值，BA 再减小重投影误差。</p>
+        </div>
+        <div class="mini-card">
+          <h4>3D-3D</h4>
+          <p>ICP 在深度信息足够时直接做刚体对齐，SVD 提供解析解，优化版本则用于统一到同一误差框架里。</p>
+        </div>
+      </div>
+    </main>
+
+    <section class="section-card" id="compare">
+      <h2>2. 三类位姿估计方法的横向比较</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>路线</th>
+            <th>输入信息</th>
+            <th>适合场景</th>
+            <th>主要优势</th>
+            <th>主要限制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2D-2D 对极几何</td>
+            <td>两帧像素对应</td>
+            <td>单目初始化</td>
+            <td>不需要深度即可恢复相对运动</td>
+            <td>有尺度歧义，纯旋转退化</td>
+          </tr>
+          <tr>
+            <td>3D-2D PnP</td>
+            <td>地图点 + 当前像素观测</td>
+            <td>初始化后的常规跟踪</td>
+            <td>稳定、直接、适合连续 VO</td>
+            <td>依赖已有 3D 点质量</td>
+          </tr>
+          <tr>
+            <td>3D-3D ICP</td>
+            <td>两侧都有三维点</td>
+            <td>RGB-D / 双目点云对齐</td>
+            <td>信息最充足，SVD 有解析解</td>
+            <td>依赖双侧深度质量与匹配质量</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="tab-group interactive-card">
+        <h3>方法选择速览</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="slam7-choice" data-tab-id="choice-1" onclick="lessonKit.openTab('slam7-choice','choice-1')">只有像素匹配</button>
+          <button data-tab-button="slam7-choice" data-tab-id="choice-2" onclick="lessonKit.openTab('slam7-choice','choice-2')">有局部地图点</button>
+          <button data-tab-button="slam7-choice" data-tab-id="choice-3" onclick="lessonKit.openTab('slam7-choice','choice-3')">两侧深度都齐</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="slam7-choice" data-tab-id="choice-1">
+          <p>优先走 2D-2D。典型场景是单目初始化，还没有现成地图点时只能靠对极几何和三角化先把第一批结构搭起来。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="slam7-choice" data-tab-id="choice-2">
+          <p>优先走 PnP。只要局部地图已经存在，3D-2D 就比每次重做 2D-2D 更直接、更稳，也更贴近第九讲的真实主循环。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="slam7-choice" data-tab-id="choice-3">
+          <p>优先考虑 ICP 或混合误差模型。此时你能直接对齐两组 3D 点，甚至把 3D-2D 与 3D-3D 误差一起喂给同一个优化器。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="connections">
+      <h2>3. 这一讲和前后章节的关系</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>回扣第三、四讲</h4>
+          <p>没有坐标变换、李群李代数，你几乎无法把位姿估计写成可靠的更新模型。</p>
+        </div>
+        <div class="mini-card">
+          <h4>回扣第五讲</h4>
+          <p>没有针孔相机模型，重投影误差、本质矩阵、PnP 推导都无从谈起。</p>
+        </div>
+        <div class="mini-card">
+          <h4>回扣第六讲</h4>
+          <p>这一讲所有 BA、误差项、雅可比，都是第六讲“状态估计 → 最小二乘 → 优化”框架的具体实例。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向第八讲</h4>
+          <p>第八讲会给出另一条前端路线：不用描述子匹配，而是直接用像素亮度估计运动。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向第九讲</h4>
+          <p>第九讲会把这一讲的 ORB、匹配、PnP、局部地图维护，真正封装成一个能连续运行的 VO 系统。</p>
+        </div>
+        <div class="mini-card">
+          <h4>通向第十讲</h4>
+          <p>这里出现的小规模 BA，会在第十讲被放大成真正的后端核心问题。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="practice">
+      <h2>4. 如果你只复现本讲三件事，优先复现什么</h2>
+      <ol>
+        <li><strong>ORB 提取与匹配 demo</strong>：这是后面所有位姿估计的入口。</li>
+        <li><strong>2D-2D + 三角化 demo</strong>：它能帮助你真正理解单目初始化、尺度歧义和纯旋转失败。</li>
+        <li><strong>EPnP + g2o BA demo</strong>：这是第九讲 VO 前端最接近工程主线的一段。</li>
+      </ol>
+      <p>如果你时间足够，再把 3D-3D 的 SVD ICP 跑一遍，会对三种位姿估计的“信息量差异”形成非常具体的直觉。</p>
+    </section>
+
+    <section class="section-card" id="exercises">
+      <h2>5. 习题与参考答案</h2>
+      <section class="exercise-box">
+        <h3>综合练习</h3>
+        <ol>
+          <li>
+            为什么说第七讲是从“模型课”走向“前端系统课”的分界线？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为前几讲主要在准备数学与成像基础，第七讲则第一次把这些基础真正串成前端估计流程：提特征、做匹配、恢复位姿、建立第一批地图点。</div>
+            </details>
+          </li>
+          <li>
+            第七讲的三条位姿估计路线，本质上是按什么顺序展开的？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>按可用信息量从少到多展开：先只有两帧像素匹配的 2D-2D，再到已有地图点的一侧深度 3D-2D，最后到两侧都有三维点的 3D-3D。</div>
+            </details>
+          </li>
+          <li>
+            为什么单目系统通常只在一开始强依赖 2D-2D，而后续更偏向 PnP？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为一旦初始化完成并建立了第一批地图点，后续帧就可以直接利用 3D-2D 约束做位姿估计，既更稳定，也摆脱了单目尺度歧义问题。</div>
+            </details>
+          </li>
+          <li>
+            第六讲优化思想在第七讲中出现了哪两个最典型的落点？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>一个是 PnP 中最小化重投影误差的 BA；另一个是 ICP 的李代数优化写法。两者都把位姿更新、误差项、雅可比和 LM/GN 框架接了起来。</div>
+            </details>
+          </li>
+          <li>
+            第七讲和第八讲、第九讲分别是什么关系？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>第八讲是与第七讲并列的另一条前端路线，用直接法替代特征点匹配；第九讲则把第七讲的特征法路线工程化，组织成一个完整 VO 系统。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0052-第七讲-ICP理论与实践.html">← 上一课：ICP 理论与实践</a>
+        <a class="next" href="0054-第八讲-直接法动机与光流理论.html">下一讲：直接法动机与光流理论 →</a>
+      </div>
+      <p class="foot-note">如果你把第七讲读顺了，后面第八讲会像“另一条前端路线”，第九讲则会像“把这一讲真正装进系统”。🌿</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

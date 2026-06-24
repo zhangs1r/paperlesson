@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十三讲 · 为什么SLAM还需要建图 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十三讲 · 建图 / Lesson 1</div>
+      <h1>第十三讲 · 为什么 SLAM 还需要建图</h1>
+      <p class="subtitle">前面我们一直在定位，现在终于回头认真问一句：地图到底要拿来干什么，以及为什么稀疏路标地图并不够用。🗺️</p>
+      <div class="hero-meta">
+        <span>🏗️ 稀疏地图 vs 稠密地图</span>
+        <span>🔭 为单目稠密重建做铺垫</span>
+        <span>📌 从应用需求理解建图</span>
+      </div>
+      <div class="toc">
+        <a href="#mapping-need">为什么必须谈建图</a>
+        <a href="#map-types">地图类型</a>
+        <a href="#dense-intro">稠密重建引子</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="mapping-need">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把“地图只是给定位服务的辅助量”这个狭窄理解，拓展成“定位、导航、避障、重建、交互”五类地图需求。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第七到第十一讲其实一直在隐含地建图，因为我们估计了路标点；但第十三讲开始讨论的，是应用层真正想要的地图。</p>
+        </div>
+      </div>
+      <p>前面我们做的视觉里程计、BA、位姿图优化，表面上都在估计位姿；但只要你还在维护特征点位置，你其实就在建图。只是那种地图主要服务于“继续定位自己”，而不一定服务于更高层的任务。</p>
+      <p>书里为什么到第十三讲才认真讨论建图，不是因为它不重要，而是因为：<strong>定位和建图在不同应用里，输出要求并不一样</strong>。定位要的是位姿；地图则可能要障碍物、表面、语义，甚至要好看。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/57e78aa612bc2c65b79c309224df2f8f2b6af7ff930d43a075d4aac30b1ec9fc.jpg" alt="图 13-1 地图类型与用途关系图">
+        <figcaption>图 13-1 地图需求与地图类型关系示意。定位、导航、重建、交互对应的地图表达并不一样。</figcaption>
+      </figure>
+    </main>
+
+    <section class="section-card" id="map-types">
+      <h2>1. 五类需求，决定了地图不会只有一种</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>定位</h4>
+          <p>只要地图能稳定提供重定位约束，稀疏路标地图就已经很有价值。</p>
+        </div>
+        <div class="mini-card">
+          <h4>导航</h4>
+          <p>你得知道哪里能走、哪里不能走，所以必须回答“空间是否被占据”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>避障</h4>
+          <p>比导航更强调局部和动态，需要地图能表达障碍物。</p>
+        </div>
+        <div class="mini-card">
+          <h4>重建</h4>
+          <p>地图不只要有几何，还要尽量看起来完整、连续、可视化友好。</p>
+        </div>
+        <div class="mini-card">
+          <h4>交互</h4>
+          <p>增强现实或服务机器人会要求地图知道“桌子”“墙”“报纸”这些语义实体。</p>
+        </div>
+      </div>
+      <p>这就解释了一个很重要的现象：<strong>稀疏特征点地图对“我在哪儿”很有用，对“前面能不能走”却几乎没法直接回答</strong>。</p>
+      <table>
+        <thead>
+          <tr><th>地图形式</th><th>主要优点</th><th>主要局限</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>稀疏路标地图</td><td>适合定位，计算轻</td><td>不擅长导航、避障和真实表面表达</td></tr>
+          <tr><td>稠密点云 / 体素地图</td><td>更完整地表达场景几何</td><td>存储和计算更重</td></tr>
+          <tr><td>语义地图</td><td>适合交互与高层任务</td><td>构建难度更高，常依赖学习方法</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card" id="dense-intro">
+      <h2>2. 单目稠密重建为什么既诱人又麻烦</h2>
+      <p>第十三讲接下来的重点，是“已知相机轨迹时，如何恢复像素级深度”。书里先把三种路线摆出来：</p>
+      <ul>
+        <li>移动单目：靠多视角三角化推深度</li>
+        <li>双目：靠视差算深度</li>
+        <li>RGB-D：靠传感器直接测深度</li>
+      </ul>
+      <p>单目方案最有吸引力，因为硬件最简单；但它也是最费劲的，因为每个像素的深度都得靠匹配和几何一点点推出来。</p>
+      <p>这一课先给你一个总框架，下一课再把细节拆开：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{参考帧像素} \xrightarrow{\text{极线搜索}} \text{在当前帧找到对应位置} \xrightarrow{\text{三角化}} \mu_{obs},\sigma_{obs} \xrightarrow{\text{高斯融合}} \text{深度收敛} $$</div>
+      </div>
+      <p>这里你会发现前面的知识几乎全部被重新调动起来了：</p>
+      <ul>
+        <li>第七讲：三角测量</li>
+        <li>第八讲：像素块亮度比较、直接法思想</li>
+        <li>第十讲：高斯分布和滤波式融合</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>3. 本课收束</h2>
+      <p>这一课最大的任务是“改观念”：后面几课你会看到大量点云、八叉树、TSDF、语义地图，但它们不是突然冒出来的新名词，而是对不同上层需求的不同回答。✨</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说前面章节其实已经“建过图”了？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为无论是特征点地图、局部地图还是 BA 中的路标点，本质上都在表示环境结构，只是它们主要服务于定位而非更高层应用。</div>
+            </details>
+          </li>
+          <li>
+            举一个稀疏地图不够用、但稠密地图很有用的应用场景。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>例如机器人导航和避障。稀疏点无法直接回答地面是否可通行，而稠密占据地图可以。</div>
+            </details>
+          </li>
+          <li>
+            如果你只关心 AR 里虚拟物体的稳定叠加，最先需要保证的是哪种能力？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>首先是稳定定位；但如果还要做遮挡、碰撞和表面贴附，就需要更完整的稠密或语义地图。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0071-第十二讲-DBoW实践与工程经验.html">← DBoW 实践与工程经验</a>
+        <a class="next" href="0073-第十三讲-极线搜索与深度滤波.html">极线搜索与深度滤波 →</a>
+      </div>
+      <p class="foot-note">从这节课开始，我们终于认真补上“地图到底有什么用”这块拼图 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

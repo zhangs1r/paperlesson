@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第九讲 · VO框架与五大数据结构 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第九讲 · 实践章 / Lesson 1</div>
+      <h1>第九讲 · VO 框架与五大数据结构</h1>
+      <p class="subtitle">前八讲把“几何、相机、优化、特征法、直接法”这些砖都备齐了，这一课开始真正搭前端工程骨架。我们不只学算法，而是学一个能继续长成完整 SLAM 系统的程序结构。🙂</p>
+      <div class="hero-meta">
+        <span>🏗️ 前端工程骨架</span>
+        <span>🧭 衔接第 3/4/5/7 讲</span>
+        <span>🚀 为第十讲后端做准备</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#why-framework">为什么先搭框架</a>
+        <a href="#five-classes">五大数据结构</a>
+        <a href="#pipeline">它们如何串成 VO</a>
+        <a href="#wrap-up">练习与收束</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>看懂第九讲 0.1 版本里为什么先不急着“跑效果”，而是先把 <code>Camera</code>、<code>Frame</code>、<code>MapPoint</code>、<code>Map</code>、<code>Config</code> 这五个核心类搭起来。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面几讲怎么接</h4>
+          <p>第 3 讲给了坐标变换，第 4 讲给了李代数更新，第 5 讲给了相机投影，第 6 讲给了优化，第 7 讲给了 ORB / PnP。现在这些知识终于要放进同一个程序里协同工作了。</p>
+        </div>
+      </div>
+      <div class="paper-divider"></div>
+      <p>很多人第一次读到这里会觉得“怎么突然开始讲 C++ 类设计了”。其实这是这本书很重要的一个转折点：<strong>SLAM 不只是公式推导题，它还是一个长期运行的软件系统</strong>。前面几讲你已经学会了“每块零件是什么”，第九讲开始学的是“这些零件怎么被组装成机器”。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/1af91d7c0063181f60d6afc43fad2d220d2b435aa397a9c4eb37f896980142a6.jpg" alt="图 9-1 Minecraft 类比">
+        <figcaption>图 9-1 书里用 Minecraft 做比喻非常贴切：先有一个能不断加砖扩展的骨架，后面才能越搭越复杂。第九讲的工程设计就是在做这件事。</figcaption>
+      </figure>
+    </main>
+
+    <section class="section-card" id="why-framework">
+      <h2>1. 为什么第九讲先讲程序框架，而不是直接讲“算法效果”</h2>
+      <p>如果我们只想演示两帧之间的位姿估计，其实写一个小脚本就能完成。但完整的 VO / SLAM 系统要处理的是一条时间序列：每来一帧图像，就要决定它怎么进入系统、当前地图怎么更新、哪些参数该从配置文件读取、哪些对象要长期保留，哪些只临时存在。</p>
+      <p>所以书里先搭的不是“花哨功能”，而是<strong>对象之间的责任边界</strong>：</p>
+      <ul>
+        <li><strong>Camera</strong>：负责坐标变换和投影，吃掉第 3 讲与第 5 讲的知识。</li>
+        <li><strong>Frame</strong>：负责存一帧数据、位姿和图像，是时序数据入口。</li>
+        <li><strong>MapPoint</strong>：负责描述一个 3D 路标点，是第 7 讲特征法落地后的“世界坐标版本”。</li>
+        <li><strong>Map</strong>：负责管理关键帧和路标点，后面会慢慢变成局部地图。</li>
+        <li><strong>Config</strong>：负责统一读取参数，避免把阈值写死在代码里。</li>
+      </ul>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b43cf810c5482ca13c9a93832246162dd2b92719ed5b47ef760abac1958bc2e6.jpg" alt="图 9-2 工程目录结构">
+        <figcaption>图 9-2 这里不只是目录展示，而是在告诉你：SLAM 项目应该从一开始就为“持续扩展”留好位置。后面第十讲、第十一讲再加后端时，正是沿着这个骨架长出来的。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="five-classes">
+      <h2>2. 五大数据结构不是随便起名，它们对应着系统里的五类职责</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/4dd1de0027752023743549e91445210fecb57a4a4b06ac8cfeae673b72428f2e.jpg" alt="图 9-3 五大类关系图">
+        <figcaption>图 9-3 这张图最值得看的地方，不是“类名本身”，而是箭头方向。它提示你：谁依赖谁，谁持有谁，谁应该只做局部工作，谁该承担全局管理职责。</figcaption>
+      </figure>
+
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>Camera：把第 5 讲真的变成接口</h4>
+          <p>它封装的不是“一个摄像头对象”这么简单，而是 <code>world2camera</code>、<code>camera2pixel</code>、<code>pixel2camera</code> 这些投影与反投影接口。你前面学过的公式终于不再停留在纸面。</p>
+          <div class="formula-box">$$ \mathbf{p}_c = T_{cw}\mathbf{p}_w,\qquad u = f_x \frac{x}{z} + c_x,\qquad v = f_y \frac{y}{z} + c_y $$</div>
+        </div>
+        <div class="mini-card">
+          <h4>Frame：让“图像”升级成“带位姿的一帧观测”</h4>
+          <p>Frame 里不仅有彩色图、深度图、时间戳，还有位姿 $T_{cw}$。这说明书里早就把一帧看成“状态估计中的一个观测节点”，这和第 2 讲的状态估计建模是呼应的。</p>
+        </div>
+        <div class="mini-card">
+          <h4>MapPoint：把像素特征升级成 3D 世界中的路标</h4>
+          <p>它保存位置、观测次数、描述子和法向量。换句话说，第 7 讲那些 ORB 特征点一旦穿过深度和投影模型，就不再只是像素，而是地图中的候选实体。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Map：先是容器，后面会逐步变成“局部地图管理者”</h4>
+          <p>这节课的 Map 还比较“朴素”，更像一个存关键帧和地图点的仓库；但到 0062 你会看到，它会承担越来越多的筛选、增删和局部维护职责。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Config：它看起来不起眼，却决定工程是否可调</h4>
+          <p>把 ORB 特征数、匹配阈值、关键帧标准写成 YAML 参数，是让前端能被系统性调优的前提。否则每次试验都要改代码再编译，会非常痛苦。</p>
+        </div>
+      </div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个函数的任务是“把世界坐标中的路标点投到当前图像上，判断它是否落在视野里”，它最离不开哪两类对象？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对，因为 Camera 负责投影关系，Frame 里则保存了当前位姿与图像边界信息。" onclick="lessonKit.answer(this, 'quiz-0060')">Camera 和 Frame</button>
+          <button data-correct="no" data-explanation="Map 管全局容器，但不负责单点投影细节。" onclick="lessonKit.answer(this, 'quiz-0060')">Map 和 Config</button>
+          <button data-correct="no" data-explanation="MapPoint 只是被投影的对象，缺少实际的相机模型与当前帧上下文。" onclick="lessonKit.answer(this, 'quiz-0060')">MapPoint 和 Config</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0060"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="pipeline">
+      <h2>3. 五个类如何串成“前端主循环”</h2>
+      <p>这一课虽然还没真正跑起完整 VO，但已经把后面主循环的雏形摆出来了。你可以把它理解成下面这个链条：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{图像输入} \rightarrow \text{Frame} \rightarrow \text{Camera 投影/反投影} \rightarrow \text{MapPoint 构造} \rightarrow \text{Map 维护} $$</div>
+      </div>
+      <p>它看上去像“软件设计”，本质上却是在重新组织前面学过的数学内容：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>第 3 讲和第 4 讲在这里的作用</h4>
+          <p>位姿被写成 $SE(3)$ 对象之后，后面无论是第九讲里的前端跟踪更新，还是第十、十一讲里的后端优化，都能继续沿用同一套表示，不会中途换语言。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第 5 讲在这里的作用</h4>
+          <p>只有把相机模型封装成接口，你后面才能自然地写“像素 → 相机坐标 → 世界坐标”或者反过来的投影过程。否则每个模块都会重复抄一遍公式。</p>
+        </div>
+      </div>
+      <p>所以这节课真正要学会的，不只是“书里这五个类叫什么”，而是：<strong>一个视觉前端为什么必须有明确的数据边界</strong>。没有这个边界，后面你几乎没法稳定地加 PnP、加局部地图、加 BA、加位姿图。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>一句话总结</h4>
+          <p>第九讲不是突然偏离数学，而是在把前面的数学搬进一个能长期扩展的前端系统骨架。</p>
+        </div>
+        <div class="mini-card">
+          <h4>本课最该记住的点</h4>
+          <p>五大类不是平铺罗列，而是分别承接“相机模型、时序帧、地图点、地图管理、参数系统”这五种系统职责。</p>
+        </div>
+        <div class="mini-card">
+          <h4>下一课会发生什么</h4>
+          <p>下一节我们开始让这个骨架动起来：两两帧 VO、PnP 初值和 g2o 位姿优化将第一次真正串成前端主循环。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么书里会把 <code>Camera</code> 单独抽成一个类，而不是把投影公式直接写在 VO 主循环里？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为投影/反投影是跨模块复用的基础能力。把它单独封装后，前端跟踪、地图点生成、可见性判断和后续优化都能复用同一套接口，也更方便以后更换相机模型。</div>
+            </details>
+          </li>
+          <li>
+            <code>Frame</code> 为什么不只是“图像容器”，而要保存位姿？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为在 SLAM 里，一帧真正有意义的数据不是裸图像，而是“在某个时刻、某个位姿下观测到的图像”。只有把位姿也放进去，这一帧才可以参与地图构建、投影检查和后续优化。</div>
+            </details>
+          </li>
+          <li>
+            想一想：如果没有 <code>Config</code> 这样的统一参数入口，第九讲后面做实验调参会遇到什么麻烦？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>参数会散落在代码各处，每改一次都要重新找位置、重新编译，实验不可复现，也难以记录“某个效果是在哪套参数下得到的”。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0059-第八讲-章节总结与习题.html">← 第八讲 · 章节总结与习题</a>
+        <a class="next" href="0061-第九讲-两两帧VO与PnP优化.html">两两帧 VO 与 PnP 优化 →</a>
+      </div>
+      <p class="foot-note">如果你愿意，我也可以把这五个类画成一张更工程化的 UML 风格关系图给你继续巩固 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十讲 · BA求解与稀疏性边缘化 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十讲 · 后端 1 / Lesson 2</div>
+      <h1>第十讲 · BA 求解与稀疏性边缘化</h1>
+      <p class="subtitle">这节课真正要你看懂的，不只是 BA 的公式，而是为什么“位姿很多、点更多”居然还能被算得动。🧩</p>
+      <div class="hero-meta">
+        <span>🔗 接上第六讲非线性最小二乘</span>
+        <span>📍 回扣第七讲 PnP / 局部 BA</span>
+        <span>🚀 为 g2o / Ceres 实践铺路</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#ba-cost">BA 代价函数</a>
+        <a href="#sparsity">稀疏结构</a>
+        <a href="#schur">Schur 边缘化</a>
+        <a href="#robust">鲁棒核</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把 Bundle Adjustment 从“听起来很厉害的名词”拆成三件清楚的事：误差从哪里来、H 矩阵为什么稀疏、Schur 消元为什么能把大问题算得更快。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>第七讲已经在局部 PnP 问题里试过一次小型 BA，第九讲前端里也开始依赖位姿精修；这一节会把这种“局部修正”正式扩展成后端的主语言。下一节就是用 g2o 和 Ceres 真正把它跑起来。</p>
+        </div>
+      </div>
+      <p>如果你觉得 BA 很抽象，可以先记一句人话版定义：<strong>Bundle Adjustment 就是在同时调整相机位姿和空间点，让所有观测的重投影误差尽量一起变小</strong>。</p>
+    </main>
+
+    <section class="section-card" id="ba-cost">
+      <h2>1. BA 的起点：把“像素没对准”写成一个统一目标函数</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/9e362ef8b0055c50fa2a8d69b468c943089e46599e9e435a5c16bcd39dbfb094.jpg" alt="图 10-2 投影流程">
+        <figcaption>图 10-2 是 BA 的入口图。世界点先被位姿带进相机坐标，再经相机模型投到像素平面。BA 优化的就是这整条投影链最后和真实像素之间的差距。</figcaption>
+      </figure>
+      <p>从第五讲相机模型出发，一个空间点 $P_j$ 经由相机位姿 $\xi_i$ 投影到像素平面，得到预测观测 $h(\xi_i, p_j)$。于是单个观测对应的重投影误差就是：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ e_{ij} = z_{ij} - h(\xi_i, p_j). \tag{10.41} $$</div>
+      </div>
+      <p>把所有相机、所有路标、所有观测加起来，就得到 BA 的总代价函数：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \min \frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{n}\|z_{ij} - h(\xi_i,p_j)\|^2. \tag{10.42} $$</div>
+      </div>
+      <p>这条式子和第六讲的最小二乘、第七讲 PnP 后 BA、本节后面 g2o/Ceres 实践是完全一脉相承的。它们的区别不在“是不是优化”，而在于：</p>
+      <ul>
+        <li>变量规模有多大；</li>
+        <li>误差项连接了哪些变量；</li>
+        <li>能不能利用结构把线性方程解快一点。</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="sparsity">
+      <h2>2. 稀疏性为什么是 BA 真正能落地的关键</h2>
+      <p>一旦把所有变量写成一个大向量</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ x = [\xi_1,\dots,\xi_m,p_1,\dots,p_n]^T, $$</div>
+      </div>
+      <p>线性化后就会得到我们熟悉的正规方程</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ H\Delta x = g. \tag{10.48} $$</div>
+      </div>
+      <p>真正的问题是：这个 $H$ 能有多大？非常大。因为变量既包含相机位姿，也包含路标点，后者数量通常远大于前者。如果直接把它当成普通稠密矩阵去解，基本没法玩。</p>
+      <p>好消息是，BA 的误差项有非常特殊的局部性：一个观测 $e_{ij}$ 只和<strong>一个相机</strong>、<strong>一个路标</strong>有关。所以它的雅可比只会在对应的两块变量位置上非零。</p>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/0642aba9a5618fa44e3db4dda7f83b58f0fc016de82c3911ebd3de1a15ca9ffd.jpg" alt="图 10-4 两相机六路标示意">
+          <figcaption>图 10-4 用两个相机、六个路标做了一个最小例子。它的价值在于让你先看到“谁观测了谁”这种图结构。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/0c079b9b9ddc560f4311cbda9ef9b255c6e16380ccbcb2d06e940bb38d2cefe1.jpg" alt="图 10-7 非零块和图边的对应关系">
+          <figcaption>图 10-7 说明了 H 矩阵里的非零块和图上的边是一一对应的。换句话说，稀疏性本身就是观测结构在矩阵中的投影。</figcaption>
+        </figure>
+      </div>
+      <p>这就是本节最重要的认知升级：<strong>BA 不是偶然碰巧稀疏，而是它的图结构天然决定了稀疏</strong>。这也是为什么第十一讲位姿图会看起来那么自然，因为本来就是同一种“图与误差”的语言，只是变量变得更精简了。</p>
+    </section>
+
+    <section class="section-card" id="schur">
+      <h2>3. Schur 边缘化：为什么大家都爱先把路标点消掉</h2>
+      <p>把 H 按“相机变量 / 路标变量”分块，可以写成：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+\begin{bmatrix}
+B & E \\
+E^T & C
+\end{bmatrix}
+\begin{bmatrix}
+\Delta x_c \\
+\Delta x_p
+\end{bmatrix}
+=
+\begin{bmatrix}
+v \\
+w
+\end{bmatrix}. \tag{10.56}
+$$</div>
+      </div>
+      <p>这里最值得关注的是右下角的 $C$：因为不同路标之间没有直接相互作用，它通常是按路标分块的对角矩阵。于是我们就可以优先把路标变量消掉，得到只关于相机位姿的 Schur 补：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ S = B - EC^{-1}E^T, \qquad S\Delta x_c = v - EC^{-1}w. \tag{10.59} $$</div>
+      </div>
+      <p>这句公式第一次看很吓人，但它背后的直觉并不复杂：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么先消点</h4>
+          <p>因为点特别多，而每个点又只占 3 维，且 C 结构好，最适合先被整理掉。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最后还剩什么</h4>
+          <p>只剩相机位姿之间的耦合关系，也就是更小、更值得认真解的那部分问题。</p>
+        </div>
+        <div class="mini-card">
+          <h4>这和第十一讲位姿图的关系</h4>
+          <p>第十一讲可以看成把“只剩位姿约束”这件事进一步推向系统级极致。</p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/97132c45d9341c9226f83d8d7305f93172f0080401411e95b8d0c30c9ff0d85d.jpg" alt="图 10-9 H 矩阵区域划分">
+          <figcaption>图 10-9 把 H 的四个区域 B、E、E<sup>T</sup>、C 画得很清楚，方便你和公式逐项对照。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/1a52370e6e36b8bd013d8d1172fdf35163170ff4506cf3bef1a2c75e5e5b1f27.jpg" alt="图 10-10 Schur 消元后的 S 矩阵">
+          <figcaption>图 10-10 展示了 Schur 消元后的 S 矩阵。它的非零结构反映的是相机之间是否存在共同观测，也就是后面常说的共视关系。</figcaption>
+        </figure>
+      </div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>Schur 消元之所以在 BA 里特别有效，最核心的原因是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。路标点数量往往远多于相机位姿，而且对应的 C 分块结构很好，这使得先消点能立刻大幅减负。" onclick="lessonKit.answer(this, 'quiz-0064')">因为点多而且点块结构适合先消元</button>
+          <button data-correct="no" data-explanation="它不是把相机都删掉，而是先把路标变量边缘化。" onclick="lessonKit.answer(this, 'quiz-0064')">因为它直接删除了所有相机变量</button>
+          <button data-correct="no" data-explanation="是否用 Huber 核和 Schur 消元是两件不同的事。" onclick="lessonKit.answer(this, 'quiz-0064')">因为 Huber 核会自动让矩阵更小</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0064"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="robust">
+      <h2>4. 鲁棒核：别让坏匹配把整场优化劫持走</h2>
+      <p>只要是真实视觉数据，就一定会有错误匹配、动态物体或者偶发异常值。若还傻傻用纯二次误差，个别很大的残差就可能把整个优化方向拖歪。所以书里顺势引入了 Huber 核：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+\rho(e)=
+\begin{cases}
+\frac{1}{2}e^2, & |e|\le \delta,\\
+\delta\left(|e|-\frac{1}{2}\delta\right), & |e|>\delta.
+\end{cases}
+$$</div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/b39a44d0b4bf7013ff53ec5767d7bc189e437b0a3981be73e19362ca39d8db4e.jpg" alt="图 10-12 Huber 核函数">
+        <figcaption>图 10-12 清楚地告诉你：在误差较小时，Huber 核仍像二次函数一样细腻；在误差太大时，它改成更温和的线性增长，避免少数异常值绑架整体优化。</figcaption>
+      </figure>
+      <p>这一页和第九讲前端的“结果检查”其实是一脉相承的：前端是在优化前拦坏数据，鲁棒核是在优化过程中降低坏数据的破坏力。一个在门口拦，一个在屋里降噪。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>BA 到底是什么</h4>
+          <p>是同时调整相机位姿和路标位置，让所有观测的重投影误差尽可能一起变小。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它算得动</h4>
+          <p>不是因为它小，而是因为它有结构：误差局部、矩阵稀疏、点块可被优先边缘化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么这节课重要</h4>
+          <p>因为下一节的 g2o/Ceres 实践，和第十一讲位姿图优化，都会默认你已经理解了这里的结构逻辑。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 BA 的误差项天然具有“局部性”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为单个观测只会关联一个相机位姿和一个路标点，所以它对其他变量的偏导天然为零。这种局部性直接带来了雅可比和 H 矩阵的稀疏结构。</div>
+            </details>
+          </li>
+          <li>
+            用自己的话解释 Schur 消元为什么喜欢先消掉路标点。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为路标点通常数量远多于相机，而且每个点块维度小、块结构规则，先消掉它们能快速把大问题压缩成更小的“只关于位姿”的问题，从而显著减轻求解负担。</div>
+            </details>
+          </li>
+          <li>
+            前端的异常值检查和后端的鲁棒核，各自解决的是哪一层问题？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>前端检查是在优化前尽量拦截明显错误的估计或匹配；后端鲁棒核是在残差进入目标函数后，减小那些仍未被清除的异常观测对整体解的破坏力。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0063-第十讲-状态估计与卡尔曼滤波.html">← 状态估计与卡尔曼滤波</a>
+        <a class="next" href="0065-第十讲-g2o与Ceres实践BA与章节总结.html">g2o 与 Ceres 实践 BA →</a>
+      </div>
+      <p class="foot-note">这一页真正帮我们把“BA 为什么厉害”变成了“BA 为什么算得动”。🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

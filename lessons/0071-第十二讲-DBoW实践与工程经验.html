@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十二讲 · DBoW实践与工程经验 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十二讲 · 回环检测 / Lesson 3</div>
+      <h1>第十二讲 · DBoW 实践与工程经验</h1>
+      <p class="subtitle">从训练小字典到查询数据库，再到为什么“分数只有 0.05”也依然有意义。🗂️</p>
+      <div class="hero-meta">
+        <span>🧪 贴近书中代码</span>
+        <span>⚠️ 强调过拟合与几何验证</span>
+        <span>📎 这一课更偏工程感觉</span>
+      </div>
+      <div class="toc">
+        <a href="#train">训练字典</a>
+        <a href="#query">查询相似图像</a>
+        <a href="#interpret">怎么理解分数</a>
+        <a href="#engineering">工程经验</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="train">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把词袋模型的理论翻译成一段可工作的流程：提 ORB、建字典、生成 BowVector、数据库检索、结果排序。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一课已经解释了字典和 TF-IDF，这节我们看它如何在 DBoW3 里被几行代码真的实现。</p>
+        </div>
+      </div>
+      <pre><code>Ptr&lt;Feature2D&gt; detector = ORB::create();
+vector&lt;Mat&gt; descriptors;
+for (Mat&amp; image : images) {
+  vector&lt;KeyPoint&gt; keypoints;
+  Mat descriptor;
+  detector-&gt;detectAndCompute(image, Mat(), keypoints, descriptor);
+  descriptors.push_back(descriptor);
+}
+
+DBoW3::Vocabulary vocab;
+vocab.create(descriptors);
+vocab.save("vocabulary.yml.gz");</code></pre>
+      <p>这段程序短得有点反直觉，但也正说明 DBoW3 把大部分脏活都封装好了。你需要记住的只有两点：</p>
+      <ul>
+        <li>你给它的是很多张图像的 ORB 描述子集合</li>
+        <li>它还给你的是一个字典文件，里面已经固定了词典树结构、权重和评分方式</li>
+      </ul>
+    </main>
+
+    <section class="section-card" id="query">
+      <h2>1. 查询阶段在做什么</h2>
+      <p>查询时，不是直接比较原图，而是先把原图映射成 BowVector，再比较向量分数：</p>
+      <pre><code>DBoW3::BowVector v1, v2;
+vocab.transform(descriptors[i], v1);
+vocab.transform(descriptors[j], v2);
+double score = vocab.score(v1, v2);</code></pre>
+      <p>如果你把它放进数据库里，DBoW3 还会帮你按分数排序：</p>
+      <pre><code>DBoW3::Database db(vocab, false, 0);
+for (auto&amp; desc : descriptors) db.add(desc);
+DBoW3::QueryResults ret;
+db.query(descriptors[i], ret, 4);</code></pre>
+      <p>这时系统做的事，本质上和搜索引擎很像：<strong>输入一张图，返回最像的几张历史图</strong>。</p>
+    </section>
+
+    <section class="section-card" id="interpret">
+      <h2>2. 为什么“0.0525”听起来很小，但仍然有信息量</h2>
+      <p>书里的实验很有启发性。第 1 张和第 10 张是明显相似的一对，但分数也只有约 <code>0.0525</code>，而不相似图像大约是 <code>0.02</code> 左右。第一次看会觉得：这差距也太小了吧。</p>
+      <p>但回环检测从来不是在问“像不像自己和自己那样像”，而是在问：<strong>在历史数据库里，谁相对更像</strong>。只要真实候选能稳定排在前几名，后续再做几何验证就够了。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>绝对值未必大</h4>
+          <p>因为 BowVector 很稀疏，评分又经过归一化和权重处理，不必期待接近 1。</p>
+        </div>
+        <div class="mini-card">
+          <h4>排序更重要</h4>
+          <p>能否把真实候选排到前列，比“分数本身看起来多大”更关键。</p>
+        </div>
+        <div class="mini-card">
+          <h4>后续仍需验证</h4>
+          <p>BoW 更像候选生成器，而不是最终判决器。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="engineering">
+      <h2>3. 工程上真正决定效果的，是这几件事</h2>
+      <p>第十二讲后半部分特别值得抄进自己的工程 checklist：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>字典规模</h4>
+          <p>字典太小，区分力不够；字典更大时，无关图像分数会更低，相似图像排名更稳定。</p>
+        </div>
+        <div class="mini-card">
+          <h4>分数归一化</h4>
+          <p>常把当前帧和上一关键帧的相似度当作参考，再看历史候选是否明显超过这个基线。</p>
+        </div>
+        <div class="mini-card">
+          <h4>关键帧稀疏化</h4>
+          <p>太近的关键帧会互相过像，真正远程回环反而被淹没。</p>
+        </div>
+        <div class="mini-card">
+          <h4>几何验证</h4>
+          <p>词袋只看外观，不看几何；最后通常还要做特征匹配或位姿一致性检查。</p>
+        </div>
+      </div>
+      <pre><code>Vocabulary: k = 10, L = 5, Weighting = tf-idf, Scoring = L1-norm</code></pre>
+      <p>这一行输出也值得看懂：</p>
+      <ul>
+        <li><code>k = 10, L = 5</code>：10 叉树，深度 5</li>
+        <li><code>Weighting = tf-idf</code>：词权重用 TF-IDF</li>
+        <li><code>Scoring = L1-norm</code>：相似度和 $L_1$ 范数有关</li>
+      </ul>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你发现系统总是把相邻两三帧检成“最相似”，却很少把真正远程回环顶上来，最先该怀疑哪件事？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。过密关键帧会让平凡的近邻相似压过真正有价值的长程回环。" onclick="lessonKit.answer(this, 'quiz-0071')">关键帧选得太密</button>
+          <button data-correct="no" data-explanation="这不是最直接的矛盾点。" onclick="lessonKit.answer(this, 'quiz-0071')">相机分辨率太高</button>
+          <button data-correct="no" data-explanation="问题更可能在回环候选生成，而不是 BA 数学本身。" onclick="lessonKit.answer(this, 'quiz-0071')">第十讲 BA 推导错了</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0071"></div>
+      </div>
+      <div class="callout">
+        <h4>OCR 校正提醒</h4>
+        <p>原文 OCR 里有 <code>leed to overfitting</code>、<code>vector(Mat&gt; images</code> 等噪声，这里都按正确代码理解为 <code>lead to overfitting</code> 和 <code>vector&lt;Mat&gt; images</code>。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>这节课之后，你对回环检测的理解应当更工程化一点：词袋模型不是一句抽象口号，而是一条可运行流水线；而一条能运行的流水线，和一条真正在复杂场景里稳定工作的流水线，中间还隔着字典规模、关键帧策略和几何验证。</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么“用测试图像自己训练字典再测自己”会偏乐观？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为字典已经对这批图像的统计特征高度适配，检索结果会比真正的跨场景泛化情况更好，这就是过拟合。</div>
+            </details>
+          </li>
+          <li>
+            为什么词袋输出排序常比绝对分值更值得看？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为不同词典、不同评分函数、不同图像集下分数尺度并不统一，但排序直接反映了“真实候选有没有被推到前面”。</div>
+            </details>
+          </li>
+          <li>
+            如果你想把 DBoW 用到自己的数据集上，至少该替换哪两样？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>至少要换成自己的图像数据和用这些数据训练出的字典；如果特征类型也变了，还要保证字典和查询使用的是同一类特征描述子。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0070-第十二讲-词袋模型与字典结构.html">← 词袋模型与字典结构</a>
+        <a class="next" href="0072-第十三讲-为什么SLAM还需要建图.html">为什么 SLAM 还需要建图 →</a>
+      </div>
+      <p class="foot-note">这一节之后，你已经能把“词袋模型”从概念真正翻译成程序流程了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,6 +1,34 @@
 # 资源列表
 
-## 论文与代码
+## 📌 当前精读论文
+
+| 资源 | 链接 | 用途 |
+|------|------|------|
+| LSeg 论文 (ICLR 2022) | arXiv: https://arxiv.org/abs/2201.03546 | 精读材料 |
+| LSeg 代码仓库 | https://github.com/isl-org/lang-seg | 阅读代码实现 |
+| CLIP 论文 (ICML 2021) | https://arxiv.org/abs/2103.00020 | LSeg 的文本编码器基础 |
+| DPT (Dense Prediction Transformer) | https://arxiv.org/abs/2103.13413 | LSeg 的图像编码器基础 |
+
+## 核心参考文献 (LSeg)
+
+| 文献 | 简介 | 为什么重要 |
+|------|------|-----------|
+| CLIP, Radford et al., ICML 2021 | 对比学习图文匹配，零样本分类 | LSeg 文本编码器来源 |
+| DPT, Ranftl et al., 2021 | Vision Transformer 密集预测 | LSeg 图像编码器架构 |
+| ViLD, Gu et al., 2021 | 零样本目标检测，使用 CLIP | 语言驱动检测的先导工作 |
+| MDETR, Kamath et al., 2021 | 端到端文本调制目标检测 | 语言驱动检测的代表工作 |
+| ZS3Net, Bucher et al., 2019 | 零样本语义分割，Word2Vec嵌入 | LSeg 对比的零样本基线 |
+| HSNet, Min et al., 2021 | 超相关网络，小样本分割 | LSeg 对比的少样本基线 |
+
+## 后续发展 (受 LSeg 影响)
+
+| 文献 | 简介 | 与 LSeg 的关系 |
+|------|------|-----------|
+| OVSeg, 2023 | 开放词汇语义分割 | 扩展 LSeg 的零样本能力 |
+| ODISE, 2023 | 扩散模型驱动的开放词汇分割 | 用扩散模型替代传统分割架构 |
+| Grounded-SAM, 2023 | Grounding DINO + SAM | 分割基础模型 + 开放词汇 |
+
+## 论文与代码 (已有)
 
 | 资源 | 链接 | 用途 |
 |------|------|------|

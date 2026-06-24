@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · BCH公式与近似 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 4</div>
+      <h1>第四讲 · BCH公式与近似</h1>
+      <p class="subtitle">前面三节课把群、代数、指数映射都搭好了，这一节终于回答一个优化里绕不过去的问题：群上的乘法，到代数里究竟对应什么？答案不是“直接相加”，而是需要 BCH 公式来翻译。📐</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0025-0027 的 exp / log</span>
+        <span>🧠 为 0029 的求导与扰动模型打地基</span>
+        <span>📌 后面第十讲 BA 与第十一讲位姿图都会反复用到</span>
+      </div>
+      <div class="toc">
+        <a href="#motivation">为什么必须学 BCH</a>
+        <a href="#formula">BCH 公式本身在说什么</a>
+        <a href="#left-right">左乘近似与右乘近似</a>
+        <a href="#later">它如何通向后面的优化</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="motivation">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>搞清楚一个很具体的问题：如果我们在 $SO(3)$ 或 $SE(3)$ 上做矩阵乘法，在李代数里能不能当成普通向量加法？如果不能，偏差从哪来？</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>0026 讲了 so(3)、se(3) 的局部坐标；0027 讲了它们怎样通过 exp / log 回到群上。这一节则继续问：<strong>回到群上以后再相乘，代数里该如何理解？</strong></p>
+        </div>
+      </div>
+
+      <p>如果我们还停留在“李代数就是一个向量”的直觉里，就很容易下意识地写出：</p>
+      <div class="formula-box">$$
+      \exp(\boldsymbol{\phi}_1^\wedge)\exp(\boldsymbol{\phi}_2^\wedge)
+      \stackrel{?}{=}
+      \exp\big((\boldsymbol{\phi}_1+\boldsymbol{\phi}_2)^\wedge\big).
+      $$</div>
+      <p>对标量指数函数来说，这样写没有问题；但对矩阵指数来说，一般就不成立了。根源非常朴素：<strong>矩阵乘法通常不可交换</strong>，而且群上的几何结构本身也不是普通欧氏向量空间。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{李群上的“乘”}
+        \neq
+        \text{李代数上的“直接加”}
+        $$</div>
+      </div>
+      <p>所以这一节真正解决的，不是抽象地背一个公式，而是建立一条翻译规则：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{群上的复合变换}
+        \Longrightarrow
+        \text{代数上的近似叠加规则}
+        \Longrightarrow
+        \text{后续求导与优化更新}
+        $$</div>
+      </div>
+      <p>如果这条规则不清楚，后面你会很难真正理解：</p>
+      <ul>
+        <li>为什么 0029 的左扰动模型里会冒出 $J_l$、$J_r$</li>
+        <li>为什么第十讲 BA 推导里位姿增量不是简单“把 6 维向量加上去”</li>
+        <li>为什么第十一讲位姿图误差会写成对数映射，再在李代数里局部线性化</li>
+      </ul>
+    </main>
+
+    <section class="section-card" id="formula">
+      <h2>1. BCH 公式本身：它在修正“直接相加”的幻想</h2>
+      <p>原书这里讨论的是矩阵指数乘积的对数：</p>
+      <div class="formula-box">$$
+      \ln\big(\exp(\boldsymbol{A})\exp(\boldsymbol{B})\big).
+      $$</div>
+      <p>如果它真的等于 $\boldsymbol{A}+\boldsymbol{B}$，那世界就很简单了；可惜一般并不是。Baker-Campbell-Hausdorff 公式告诉我们，完整结果会带出一串由李括号构成的修正项：</p>
+      <div class="formula-box">$$
+      \ln\big(\exp(\boldsymbol{A})\exp(\boldsymbol{B})\big)
+      =
+      \boldsymbol{A}+\boldsymbol{B}
+      +\frac{1}{2}[\boldsymbol{A},\boldsymbol{B}]
+      +\frac{1}{12}[\boldsymbol{A},[\boldsymbol{A},\boldsymbol{B}]]
+      -\frac{1}{12}[\boldsymbol{B},[\boldsymbol{A},\boldsymbol{B}]]
+      +\cdots.
+      \tag{4.28}
+      $$</div>
+      <p>这里顺手修正一个 OCR 常见噪声：原始识别文本里把 $\frac{1}{12}$ 断成了奇怪的 <code>1 2</code> 形式，但正确就是标准的 $\frac{1}{12}$。</p>
+      <p>这条公式最值得你抓住的不是高阶项本身，而是这一层意思：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第一层</h4>
+          <p>“直接相加”只是一阶直觉，不是精确规律。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二层</h4>
+          <p>误差来源恰恰是李括号，也就是这些局部增量之间并不完全独立。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三层</h4>
+          <p>一旦某个增量足够小，就可以把高阶项截断，于是得到适合数值优化的一阶近似。</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/fca2c7e694a122102e85e5dd3195b348a425f279c6c2fd1d7bf63a477e2563f9.jpg" alt="原书图4-1上半部分，SO3 与 so3 的对应关系">
+          <figcaption>图 4-1 上半部分回顾的是 $SO(3)\leftrightarrow \mathfrak{so}(3)$ 的 exp / log 对应。BCH 可以看作在这条“对应关系”之上，继续追问两个群元素相乘后，代数坐标要怎样近似组合。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/b3051ec389adf11b7a257dbf398988c7c73fba899487b86dcf6e9fb7616f1a95.jpg" alt="原书图4-1下半部分，SE3 与 se3 的对应关系">
+          <figcaption>图 4-1 下半部分则提醒你：到了 $SE(3)$ / $\mathfrak{se}(3)$，事情只会更复杂，不会更简单。所以这一节先把“群乘法如何落到代数里”讲清楚，后面第 0029 课就能顺着推求导模型。</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section-card" id="left-right">
+      <h2>2. BCH 线性近似：小量进来以后，公式终于变得能用</h2>
+      <p>对 SLAM 来说，我们通常并不追求 BCH 的完整无限展开，而更关心：<strong>当其中一个增量很小的时候，一阶近似长什么样</strong>。原书给出的 so(3) 近似是：</p>
+      <div class="formula-box">$$
+      \ln\left(\exp(\boldsymbol{\phi}_1^\wedge)\exp(\boldsymbol{\phi}_2^\wedge)\right)^\vee
+      \approx
+      \begin{cases}
+      J_l(\boldsymbol{\phi}_2)^{-1}\boldsymbol{\phi}_1 + \boldsymbol{\phi}_2, & \text{若 }\boldsymbol{\phi}_1\text{ 是小量},\\[4pt]
+      J_r(\boldsymbol{\phi}_1)^{-1}\boldsymbol{\phi}_2 + \boldsymbol{\phi}_1, & \text{若 }\boldsymbol{\phi}_2\text{ 是小量}.
+      \end{cases}
+      \tag{4.29}
+      $$</div>
+      <p>这一步开始，你就要主动区分两种“更新姿态”的习惯：</p>
+      <ul>
+        <li><strong>左乘小扰动</strong>：新姿态写成 $\Delta R \cdot R$</li>
+        <li><strong>右乘小扰动</strong>：新姿态写成 $R \cdot \Delta R$</li>
+      </ul>
+      <p>这两种写法都对，但它们在李代数里对应的线性化结果不一样，所以才会分别出现左雅可比 $J_l$ 和右雅可比 $J_r$。</p>
+
+      <div class="interactive-card tab-group">
+        <h3>互动对照：左乘和右乘到底差在哪？</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="bch-compare" data-tab-id="left" onclick="lessonKit.openTab('bch-compare','left')">左乘模型</button>
+          <button data-tab-button="bch-compare" data-tab-id="right" onclick="lessonKit.openTab('bch-compare','right')">右乘模型</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="bch-compare" data-tab-id="left">
+          <p>若我们把一个小旋转左乘到当前姿态上：</p>
+          <div class="formula-box">$$
+          \exp(\Delta\boldsymbol{\phi}^\wedge)\exp(\boldsymbol{\phi}^\wedge)
+          \approx
+          \exp\Big((\boldsymbol{\phi}+J_l(\boldsymbol{\phi})^{-1}\Delta\boldsymbol{\phi})^\wedge\Big).
+          \tag{4.33}
+          $$</div>
+          <p>它的直观含义是：群上“左边来了一点新转动”，在代数里等价成“旧坐标 $\boldsymbol{\phi}$ 加上一项被 $J_l^{-1}$ 调整过的小增量”。</p>
+        </div>
+        <div class="tab-panel" data-tab-panel="bch-compare" data-tab-id="right">
+          <p>若微扰乘在右边，则对应的是右雅可比：</p>
+          <div class="formula-box">$$
+          J_r(\boldsymbol{\phi}) = J_l(-\boldsymbol{\phi}).
+          \tag{4.32}
+          $$</div>
+          <p>这就是为什么后面看别人的论文或代码时，明明都在“更新位姿”，却会看到不同雅可比和不同符号习惯。很多时候不是谁错了，而是默认的左 / 右扰动约定不同。</p>
+        </div>
+      </div>
+
+      <p>原书还把“李代数里做加法”翻译回“李群上怎么乘”写成了：</p>
+      <div class="formula-box">$$
+      \exp\big((\boldsymbol{\phi}+\Delta\boldsymbol{\phi})^\wedge\big)
+      \approx
+      \exp\big((J_l\Delta\boldsymbol{\phi})^\wedge\big)\exp(\boldsymbol{\phi}^\wedge)
+      =
+      \exp(\boldsymbol{\phi}^\wedge)\exp\big((J_r\Delta\boldsymbol{\phi})^\wedge\big).
+      \tag{4.34}
+      $$</div>
+      <p>这句非常值钱，因为它把两个世界真正接起来了：</p>
+      <ul>
+        <li>你在优化器里求出来的是一个李代数增量 $\Delta\boldsymbol{\phi}$</li>
+        <li>你真正要更新的是群上的姿态 $R$</li>
+        <li>中间靠的就是这套 BCH 近似与雅可比修正</li>
+      </ul>
+      <p>对于 $SE(3)$，原书也给出了类似形式：</p>
+      <div class="formula-box">$$
+      \exp(\Delta\boldsymbol{\xi}^\wedge)\exp(\boldsymbol{\xi}^\wedge)
+      \approx
+      \exp\big((\mathcal{J}_l^{-1}\Delta\boldsymbol{\xi}+\boldsymbol{\xi})^\wedge\big),
+      \tag{4.35}
+      $$</div>
+      <div class="formula-box">$$
+      \exp(\boldsymbol{\xi}^\wedge)\exp(\Delta\boldsymbol{\xi}^\wedge)
+      \approx
+      \exp\big((\mathcal{J}_r^{-1}\Delta\boldsymbol{\xi}+\boldsymbol{\xi})^\wedge\big).
+      \tag{4.36}
+      $$</div>
+      <p>这里的 $\mathcal{J}_l,\mathcal{J}_r$ 是 $6\times 6$ 的 SE(3) 左右雅可比。原书没有把它们全写开，因为后面的实际推导更常走扰动模型那条更省事的路。这也是 0029 要继续讲的重点。</p>
+    </section>
+
+    <section class="section-card" id="later">
+      <h2>3. 这节课为什么会反复在后面“复活”</h2>
+      <p>如果你只把 BCH 看成“第四讲中间的一条数学公式”，它会很快被忘掉。但如果你把它看成一条工程规则，就会发现它后面一直在工作：</p>
+      <table>
+        <thead>
+          <tr><th>后续位置</th><th>BCH 在那里扮演的角色</th><th>你现在该记住什么</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0029 求导与扰动模型</td><td>解释为什么左扰动求导比直接对李代数求导更干净</td><td>左乘 / 右乘并非口味问题，而是决定雅可比形式</td></tr>
+          <tr><td>第十讲 BA 推导</td><td>把相机位姿小增量从 6 维向量映回真实姿态更新</td><td>优化器解的是增量，不是直接解矩阵</td></tr>
+          <tr><td>第十一讲位姿图优化</td><td>把边误差写成李代数上的局部量，再做线性化</td><td>误差的 log 与更新的 exp 是成对出现的</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>一句助教版总结</h4>
+        <p>BCH 做的事，就是把“群上真正发生的姿态复合”翻译成“代数里我们可以线性化处理的小增量关系”。没有它，后面的“求导”和“更新”会断开。</p>
+      </div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么原书在这一节特别强调“左乘模型”和“右乘模型”不能混着说？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为它们对应不同的线性化近似与不同的雅可比，后面求导和更新的符号、矩阵形式都会跟着变。" onclick="lessonKit.answer(this, 'quiz-0028-a')">因为它们对应不同的雅可比与不同的局部线性化约定</button>
+          <button data-correct="no" data-explanation="不是精度问题本身，而是数学约定不同，写出来的公式自然不同。" onclick="lessonKit.answer(this, 'quiz-0028-a')">因为右乘模型总是比左乘模型精度更高</button>
+          <button data-correct="no" data-explanation="恰恰相反，BCH 正是在说明两边并不能简单等同。" onclick="lessonKit.answer(this, 'quiz-0028-a')">因为李群上的乘法和李代数上的加法本来就完全一样</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0028-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>BCH 解决的根问题</h4>
+          <p>群上的矩阵乘法，不能直接当作代数里的普通向量加法，需要额外的李括号修正项。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么线性近似重要</h4>
+          <p>优化里关心的是“小增量”，所以一阶截断后的 BCH 才真正变成可计算、可使用的工具。</p>
+        </div>
+        <div class="mini-card">
+          <h4>你现在该带走什么</h4>
+          <p>左乘更新、右乘更新、$J_l$、$J_r$ 这四件事是一组，不要拆开背。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 BCH 公式不是“额外加了一层复杂度”，而是在纠正一个本来就错误的直觉？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为错误直觉是把群上的乘法直接当成代数里的向量加法。但李群并不是普通线性空间，矩阵乘法也不可交换，所以“直接相加”本来就不精确。BCH 不是故意把问题复杂化，而是在告诉我们真实规律里少了哪些修正项。</div>
+            </details>
+          </li>
+          <li>
+            若当前姿态为 $\boldsymbol{\phi}$，现在在群上左乘一个很小的 $\Delta\boldsymbol{\phi}$，为什么在代数里不是简单写成 $\boldsymbol{\phi}+\Delta\boldsymbol{\phi}$？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为群上的左乘复合并不等同于代数里的朴素向量叠加。根据 BCH 近似，它更接近于 $\boldsymbol{\phi}+J_l(\boldsymbol{\phi})^{-1}\Delta\boldsymbol{\phi}$。也就是说，小增量进入代数坐标前，还要经过当前姿态相关的 Jacobian 修正。</div>
+            </details>
+          </li>
+          <li>
+            这节课与第十讲 BA、 第十一讲位姿图优化的共同联系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>这两个地方都不是直接在矩阵空间里裸优化位姿，而是在李代数里求小增量，再通过指数映射更新回李群。BCH 近似提供的正是“群上怎么更新”与“代数里怎么线性化”之间的连接规则。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0027-第四讲-指数与对数映射.html">← 指数与对数映射</a>
+        <a class="next" href="0029-第四讲-李代数求导与扰动模型.html">李代数求导与扰动模型 →</a>
+      </div>
+      <p class="foot-note">学会 BCH，不是为了炫数学，而是为了让后面的“误差怎么线性化、位姿怎么更新”真正说得通 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

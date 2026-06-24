@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · 直接法理论与雅可比推导 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Lesson 3</div>
+      <h1>第八讲 · 直接法理论与雅可比推导</h1>
+      <p class="subtitle">这一课是第八讲最“硬核”的一节，但它并不该被读成公式堆。你真正要学会的，是把第六讲的最小二乘、第七讲的重投影思路、第四讲的李代数扰动，全部串到“光度误差”这件事上。🧠</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0054 的光流思想</span>
+        <span>📐 重用第四讲李代数与左扰动</span>
+        <span>🧭 为第十讲 BA 与第十一讲位姿图做对照</span>
+      </div>
+      <div class="toc">
+        <a href="#idea">直接法到底优化什么</a>
+        <a href="#error">光度误差怎么写</a>
+        <a href="#jacobian">雅可比三段链条怎么来</a>
+        <a href="#classify">稀疏与半稠密怎么分</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="idea">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这节最容易误解的地方</h4>
+          <p>很多人会把直接法理解成“跳过匹配，直接套一个黑盒优化”。其实它仍然在做和第七讲类似的事：用两帧之间的一致性估计位姿，只是误差不再是像素坐标差，而是灰度差。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面几讲怎么合流</h4>
+          <p>第六讲教你怎样把误差堆成最小二乘；第七讲教你怎样用重投影误差估计位姿；第四讲教你如何在李代数里做局部更新。现在这三条线在直接法里正式会合。</p>
+        </div>
+      </div>
+
+      <p>第七讲的特征点法之所以能优化位姿，是因为我们知道匹配点在两帧里的像素位置，于是能最小化<span class="term">重投影误差</span>。但现在没有描述子、也不想显式匹配对应点，怎么办？书里的回答是：让当前位姿猜出第二帧投影点在哪里，然后比较那里的灰度是否和第一帧相同。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/9ee6b6d9afc32337a0c3f1a6215edb1d803b605a43217d5c7680b5c3e5d95b8b.jpg" alt="图 8-3 直接法示意图">
+        <figcaption>图 8-3 直接法示意图。图的重点是：空间点 <code>P</code> 仍然存在，第一帧与第二帧的投影 <code>p1</code>、<code>p2</code> 仍然存在，只是我们不再先做显式匹配，而是让位姿估计值去“猜”第二帧投影位置，再用灰度是否对得上来修正它。</figcaption>
+      </figure>
+      <p>所以直接法不是不要几何，而是把几何“藏”进了投影模型里，再让光度误差来驱动优化。</p>
+    </main>
+
+    <section class="section-card" id="error">
+      <h2>1. 光度误差：从“位置是否对上”改成“亮度是否对上”</h2>
+      <p>设空间点 $P$ 在第一帧与第二帧上的投影分别为 $\boldsymbol{p}_1,\boldsymbol{p}_2$。书里写出完整投影关系：</p>
+      <div class="formula-box">$$
+      \boldsymbol{p}_1 = \frac{1}{Z_1}\boldsymbol{K}\boldsymbol{P},
+      \qquad
+      \boldsymbol{p}_2 = \frac{1}{Z_2}\boldsymbol{K}\big(\boldsymbol{R}\boldsymbol{P}+\boldsymbol{t}\big)
+      = \frac{1}{Z_2}\boldsymbol{K}\big(\exp(\boldsymbol{\xi}^{\wedge})\boldsymbol{P}\big)_{1:3}.
+      $$</div>
+      <p>注意这一句和第七讲、第十讲的投影公式本质一致，所以这里没有新几何，只有新误差定义：</p>
+      <div class="formula-box">$$
+      e = I_1(\boldsymbol{p}_1)-I_2(\boldsymbol{p}_2). \tag{8.10}
+      $$</div>
+      <p>这就是<span class="term">光度误差</span>。和第七讲的重投影误差相比，它有两个非常重要的差别：</p>
+      <ul>
+        <li>它是一个标量，不再是二维像素坐标差</li>
+        <li>它不需要你先告诉优化器“第二帧的正确匹配点在哪”，而是让当前位姿自己投影过去试</li>
+      </ul>
+      <p>多个空间点一起时，就得到总目标函数：</p>
+      <div class="formula-box">$$
+      \min_{\boldsymbol{\xi}} J(\boldsymbol{\xi})
+      =
+      \sum_{i=1}^{N}e_i^Te_i,
+      \qquad
+      e_i = I_1(\boldsymbol{p}_{1,i})-I_2(\boldsymbol{p}_{2,i}). \tag{8.12}
+      $$</div>
+
+      <div class="callout">
+        <h4>为什么这里仍然是第六讲那套最小二乘</h4>
+        <p>虽然误差含义变了，但形式没变。你仍然是在构造残差、线性化、堆 Jacobian，然后交给 G-N 或 L-M 迭代求解。只是这次残差不是“像素位置差”，而是“像素亮度差”。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="jacobian">
+      <h2>2. 雅可比推导：位姿变化怎么传到灰度变化</h2>
+      <p>这部分看起来长，其实只是在做一件非常自然的事：位姿轻微改一点，三维点在相机里的位置会变；位置一变，投影像素就会变；像素一变，采样到的亮度就会变。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \delta\boldsymbol{\xi}
+        \Rightarrow
+        \delta\boldsymbol{q}
+        \Rightarrow
+        \delta\boldsymbol{u}
+        \Rightarrow
+        \delta I
+        $$</div>
+      </div>
+      <p>书里用第四讲讲过的<span class="term">左乘扰动模型</span>来展开：</p>
+      <div class="formula-box">$$
+      e(\boldsymbol{\xi}\oplus\delta\boldsymbol{\xi})
+      \approx
+      e(\boldsymbol{\xi})
+      -
+      \frac{\partial I_2}{\partial \boldsymbol{u}}
+      \frac{\partial \boldsymbol{u}}{\partial \boldsymbol{q}}
+      \frac{\partial \boldsymbol{q}}{\partial \delta\boldsymbol{\xi}}
+      \delta\boldsymbol{\xi}.
+      $$</div>
+      <p>于是 Jacobian 被拆成三段，这三段你必须分别认出来：</p>
+
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第一段：像素梯度</h4>
+          <p>$$ \frac{\partial I_2}{\partial \boldsymbol{u}} = \begin{bmatrix}I_x&I_y\end{bmatrix} $$
+          它回答的是：像素沿图像平面轻微挪动时，亮度朝哪个方向变化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二段：投影导数</h4>
+          <p>$$
+          \frac{\partial \boldsymbol{u}}{\partial \boldsymbol{q}}=
+          \begin{bmatrix}
+          \frac{f_x}{Z} & 0 & -\frac{f_xX}{Z^2}\\
+          0 & \frac{f_y}{Z} & -\frac{f_yY}{Z^2}
+          \end{bmatrix}. \tag{8.13}
+          $$
+          这和第七讲 PnP、第十讲 BA 完全是同一家族。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三段：李代数导数</h4>
+          <p>$$
+          \frac{\partial \boldsymbol{q}}{\partial \delta\boldsymbol{\xi}}
+          =
+          [\boldsymbol{I},-\boldsymbol{q}^{\wedge}]. \tag{8.14}
+          $$
+          这就是第四讲局部扰动语言真正“派上用场”的地方。</p>
+        </div>
+      </div>
+
+      <p>后两项合起来，书里给出：</p>
+      <div class="formula-box">$$
+      \frac{\partial \boldsymbol{u}}{\partial \delta\boldsymbol{\xi}}
+      =
+      \begin{bmatrix}
+      \frac{f_x}{Z} & 0 & -\frac{f_xX}{Z^2} & -\frac{f_xXY}{Z^2} & f_x+\frac{f_xX^2}{Z^2} & -\frac{f_xY}{Z}\\
+      0 & \frac{f_y}{Z} & -\frac{f_yY}{Z^2} & -f_y-\frac{f_yY^2}{Z^2} & \frac{f_yXY}{Z^2} & \frac{f_yX}{Z}
+      \end{bmatrix}. \tag{8.15}
+      $$</div>
+      <p>最终 Jacobian 是：</p>
+      <div class="formula-box">$$
+      \boldsymbol{J}
+      =
+      -
+      \frac{\partial I_2}{\partial \boldsymbol{u}}
+      \frac{\partial \boldsymbol{u}}{\partial \delta\boldsymbol{\xi}}. \tag{8.16}
+      $$</div>
+
+      <div class="callout">
+        <h4>和第七讲 / 第十讲最重要的对照</h4>
+        <p>你可以把它看成“第七讲 PnP Jacobian 外面又包了一层像素梯度”。也就是说，几何部分几乎没变，变的是误差从二维像素位置差换成了一维亮度差。</p>
+      </div>
+
+      <div class="interactive-card">
+        <h3>快速理解链式法则</h3>
+        <p>如果有人问你“直接法的 Jacobian 为什么会多出一个像素梯度项”，你应该怎么回答？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为直接法误差本身是亮度差，位姿变化不会直接变成亮度变化，必须先经过像素坐标变化，再由像素梯度把坐标变化转换成灰度变化。" onclick="lessonKit.answer(this, 'quiz-0056-a')">因为直接法优化的是亮度，不是坐标，所以要用图像梯度把像素位移翻译成灰度变化</button>
+          <button data-correct="no" data-explanation="尺度不确定性不是这里多一项的根本原因。" onclick="lessonKit.answer(this, 'quiz-0056-a')">因为直接法只适用于单目尺度不确定性</button>
+          <button data-correct="no" data-explanation="反而是 Jacobian 结构让它更能和最小二乘框架接起来。" onclick="lessonKit.answer(this, 'quiz-0056-a')">因为直接法不需要 Jacobian</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0056-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="classify">
+      <h2>3. 稀疏、半稠密、稠密：不是流派之争，而是“你喂进去多少像素”</h2>
+      <p>书里这里分得很清楚：直接法不是只有一种，而是根据参与优化的像素数量来分。</p>
+      <table>
+        <thead>
+          <tr><th>类型</th><th>点从哪里来</th><th>特点</th><th>和后文的联系</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>稀疏直接法</td><td>少量关键点</td><td>最快，适合实时位姿估计</td><td>下一节 0057 就是它的实现</td></tr>
+          <tr><td>半稠密直接法</td><td>梯度明显的像素</td><td>兼顾信息量与计算代价</td><td>0058 以及第十三讲都会再次出现</td></tr>
+          <tr><td>稠密直接法</td><td>几乎全部像素</td><td>信息最全，但代价最高</td><td>和稠密建图思路最接近</td></tr>
+        </tbody>
+      </table>
+      <p>这里有个你后面会反复碰到的判断准则：如果像素梯度很小，那么式 (8.16) 里的 Jacobian 也会接近零。这意味着这种像素对位姿优化几乎没有贡献。</p>
+      <div class="formula-box">$$
+      \left\|\frac{\partial I}{\partial \boldsymbol{u}}\right\|\approx 0
+      \quad\Rightarrow\quad
+      \boldsymbol{J}\approx 0
+      $$</div>
+      <p>这就是为什么半稠密方法天然会只取有明显梯度的部分。你可以把它和第十三讲深度滤波里的“纹理越明显越好匹配”放在一起理解，它们本质是一致的。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>直接法优化的对象</h4>
+          <p>不再是第七讲那种重投影位置差，而是两帧之间的亮度差。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Jacobain 的本质</h4>
+          <p>位姿变一下，会让三维点位置变，再让像素位置变，最后让采样亮度变。链式法则就是把这条因果链写出来。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为后面两节铺路</h4>
+          <p>下一节 0057 你会看到这套推导怎样真的被塞进 g2o 边里；0058 则会讨论半稠密和直接法的优缺点。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            光度误差和第七讲的重投影误差，最根本的区别是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>重投影误差比较的是像素坐标位置是否一致，直接法的光度误差比较的是投影到对应位置后亮度是否一致。前者通常是二维误差，后者通常是一维标量误差。</div>
+            </details>
+          </li>
+          <li>
+            为什么直接法的 Jacobian 要拆成三项？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为位姿变化不会直接变成亮度变化，它先影响三维点在相机坐标系里的位置，再影响像素位置，最后通过图像梯度影响亮度采样值。链式法则正好把这三层依赖分开。</div>
+            </details>
+          </li>
+          <li>
+            为什么半稠密直接法倾向于只选择梯度明显的像素？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为当像素梯度接近零时，光度误差对位姿的敏感度也接近零，这些像素对优化贡献很小，却会增加计算量，所以更适合过滤掉。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0055-第八讲-LK光流实践.html">← LK 光流实践</a>
+        <a class="next" href="0057-第八讲-稀疏直接法实践.html">稀疏直接法实践 →</a>
+      </div>
+      <p class="foot-note">如果你能把这节的 Jacobian 读顺，后面看 BA、位姿图，都会感觉“原来只是换了误差，不是换了整个世界” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

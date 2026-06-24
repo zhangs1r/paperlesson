@@ -59,5 +59,5 @@
 
 ## 参考
 
-- 第 5 课：`lessons/0005-deep-dive-qa.html`
+- 第 5 课：`lessons/0005-深入问答.html`
 - 术语表：`reference/glossary.html`

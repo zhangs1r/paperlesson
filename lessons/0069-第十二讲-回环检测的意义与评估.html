@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十二讲 · 回环检测的意义与评估 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十二讲 · 回环检测 / Lesson 1</div>
+      <h1>第十二讲 · 回环检测的意义与评估</h1>
+      <p class="subtitle">先别急着学词袋。先弄明白：没有回环时，SLAM 为什么迟早会漂；有了回环之后，我们又该怎样评价一个检测器。🔄</p>
+      <div class="hero-meta">
+        <span>📊 Precision / Recall 是关键词</span>
+        <span>⚠️ 强调准确率通常更重要</span>
+        <span>🔗 从 VO 走向完整 SLAM 的分水岭</span>
+      </div>
+      <div class="toc">
+        <a href="#drift">漂移为什么出现</a>
+        <a href="#methods">回环方法概览</a>
+        <a href="#pr">准确率与召回率</a>
+        <a href="#precision-first">为什么先保准确率</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="drift">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>从“前端和后端不是已经够了吗”这个自然疑问出发，真正理解回环检测为什么是完整 SLAM 和纯 VO 的分水岭。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第九讲前端估计给出位姿初值，第十讲和第十一讲后端负责把约束拉平；但如果约束永远只有相邻帧，再好的优化也只能在局部修补。</p>
+        </div>
+      </div>
+      <p>回环检测的出场时机非常自然：系统只知道“我和上一帧差多少”“我和附近几帧差多少”，却不知道“我现在是不是又回到了二十分钟前那个地方”。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/62723eb506ffa0293210faac09822e7fe63e9a3060ebc3897ecf3c97f9a4d97e.jpg" alt="图 12-1 真实轨迹">
+        <figcaption>图 12-1(a) 真实轨迹。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/a75c70fc02722c9e2b2df9c0b8c471e8d31f9edc6816b3e3463273c0fbf4334e.jpg" alt="图 12-1 只有局部约束时的漂移轨迹">
+        <figcaption>图 12-1(b) 只有局部约束时，Pose Graph 会因为累积误差而整体漂移。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/e27abadcf66cd647feb3e8e781bb1697d7e17ac201433e143d0073f730f5f811.jpg" alt="图 12-1 添加回环后的轨迹">
+        <figcaption>图 12-1(c) 加入回环边之后，轨迹有机会被重新拉回去。</figcaption>
+      </figure>
+      <p>所以回环检测的根本价值，不是“多做一个模块”，而是给后端提供<strong>跨时间的长程约束</strong>。这条约束一旦正确，常常比很多相邻帧的小修补更有分量。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{局部里程计约束} \Rightarrow \text{误差累积} \xrightarrow{\text{检测到曾经来过这里}} \text{新增回环边} \Rightarrow \text{全局一致性提升} $$</div>
+      </div>
+    </main>
+
+    <section class="section-card" id="methods">
+      <h2>1. 回环检测到底在检测什么</h2>
+      <p>它检测的不是“几何上非常接近”，而是更本质的事实：<strong>当前图像和历史中的某些图像，来自同一个地点或同一局部场景</strong>。</p>
+      <p>书里把常见思路分成两大类：</p>
+      <ul>
+        <li><strong>基于里程计的几何方法</strong>：猜测当前位置和历史某处接近，再重点验证</li>
+        <li><strong>基于外观的方法</strong>：不依赖累计位姿，直接比较当前图像和历史图像的相似性</li>
+      </ul>
+      <p>为什么外观法后来成了主流？因为几何法其实带一点“倒果为因”：如果累计漂移已经很大，你反而很难先知道“自己回来了”。而外观法绕开了这件事，直接问图像像不像。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>朴素穷举为什么不行</h4>
+          <p>把当前帧和全部历史帧都做一遍特征匹配，复杂度接近 $O(N^2)$，轨迹一长就不现实。</p>
+        </div>
+        <div class="mini-card">
+          <h4>随机抽查为什么不稳</h4>
+          <p>虽然把每次计算量压下来了，但真实回环只占历史中的极少部分，抽中的概率会随着轨迹变长而快速下降。</p>
+        </div>
+        <div class="mini-card">
+          <h4>外观法的核心问题</h4>
+          <p>如何定义“像不像”。后面词袋模型其实就是在回答这个问题。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="pr">
+      <h2>2. 判断一个回环检测器好不好，要看 Precision 和 Recall</h2>
+      <p>这是第十二讲最应当记牢的评估语言。书里把结果分成四类：真阳性 TP、假阳性 FP、假阴性 FN、真阴性 TN。</p>
+      <table>
+        <thead>
+          <tr><th>算法输出</th><th>事实是回环</th><th>事实不是回环</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>判成回环</td><td>TP</td><td>FP</td></tr>
+          <tr><td>判成非回环</td><td>FN</td><td>TN</td></tr>
+        </tbody>
+      </table>
+      <p>于是两个关键指标就是：</p>
+      <div class="formula-box">$$ \mathrm{Precision} = \frac{TP}{TP+FP}, \qquad \mathrm{Recall} = \frac{TP}{TP+FN}. \tag{12.2} $$</div>
+      <p>直白地说：</p>
+      <ul>
+        <li><strong>Precision</strong> 看的是“你报出来的回环里，有多少是真的”</li>
+        <li><strong>Recall</strong> 看的是“所有真的回环里，你抓到了多少”</li>
+      </ul>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/c88ba4cb0a1d48fa5986433dd2ae66f4470f797ffc53fbe8f3625be495340332.jpg" alt="图 12-2 假阳性示意">
+        <figcaption>图 12-2 左：假阳性示意。看起来很像，但并不是同一地点。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/bb71ddb702e71739e2791e225e1ef720947ba138810b8d5a7047f56d9c0a4e72.jpg" alt="图 12-2 假阴性示意">
+        <figcaption>图 12-2 右：假阴性示意。同一地点在不同光照下可能被错过。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/8382c5fd5b3b29bc49ac34c788d6c62933edf755f40d7959abcde28458f9f25d.jpg" alt="图 12-3 PR 曲线示意">
+        <figcaption>图 12-3 一个 PR 曲线示意。一般来说，召回率越高，准确率越难维持。</figcaption>
+      </figure>
+    </section>
+
+    <section class="section-card" id="precision-first">
+      <h2>3. 为什么 SLAM 通常宁可漏一点，也不想错一点</h2>
+      <p>这是书里非常工程化的一句经验：<strong>在 SLAM 中，假阳性比假阴性更危险</strong>。</p>
+      <p>原因很现实。漏掉一些真的回环，意味着地图仍保留部分漂移，但系统通常还活着；而一条错误回环一旦喂给后端，就可能把整张图硬拉坏，导致全局结构直接崩掉。</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>漏检 FN 的后果</h4>
+          <p>漂移纠正得不够充分，地图不够漂亮，但系统通常还能继续工作。</p>
+        </div>
+        <div class="mini-card">
+          <h4>误检 FP 的后果</h4>
+          <p>相当于给后端加了一条虚假的强约束弹簧，它可能把本来正确的轨迹拉错。</p>
+        </div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你必须在“更严格地报更少回环”和“更宽松地报更多回环”之间先选一个默认策略，SLAM 工程里更常见的是？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。很多系统宁可先少报一些，再靠验证步骤补召回。" onclick="lessonKit.answer(this, 'quiz-0069')">更严格，先保准确率</button>
+          <button data-correct="no" data-explanation="这在普通检索里有时可行，但在 SLAM 后端里错误回环代价太大。" onclick="lessonKit.answer(this, 'quiz-0069')">更宽松，先保召回率</button>
+          <button data-correct="no" data-explanation="它们对后端稳定性的影响并不对称。" onclick="lessonKit.answer(this, 'quiz-0069')">两者完全一样</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0069"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课收束</h2>
+      <p>这一课还没有讲词袋，但已经把第十二讲最重要的“问题意识”立住了：<strong>回环检测既是历史检索问题，又是一个高风险决策问题</strong>。你不能只想着“找到更多”，还必须想着“错了会怎样”。</p>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说只有前端和局部后端的系统更像 VO，而不是完整 SLAM？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它们缺少把当前观测和远历史重新关联起来的能力，无法系统性地纠正长期累积误差，也就很难保证全局一致性。</div>
+            </details>
+          </li>
+          <li>
+            试着用一句话分别解释 Precision 和 Recall，要求不要写公式。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>Precision 是“我说是回环的里面，真的有多准”；Recall 是“所有真实回环里，我抓到了多少”。</div>
+            </details>
+          </li>
+          <li>
+            如果一个办公环境里桌椅长得都很像，回环检测最容易犯哪一类错误？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>最容易出现假阳性，因为不同位置的图像外观高度相似，系统可能误以为回到了同一个地方。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0068-第十一讲-因子图与增量优化.html">← 因子图与增量优化</a>
+        <a class="next" href="0070-第十二讲-词袋模型与字典结构.html">词袋模型与字典结构 →</a>
+      </div>
+      <p class="foot-note">从这一节开始，我们正式进入“完整 SLAM 和纯 VO 的分水岭” 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

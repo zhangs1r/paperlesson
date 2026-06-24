@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第三讲 · 变换矩阵与齐次坐标 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第三讲 · 三维空间刚体运动 / Lesson 2</div>
+      <h1>第三讲 · 变换矩阵与齐次坐标</h1>
+      <p class="subtitle">上一节我们有了旋转矩阵和欧氏变换式子，但它还不够“工程友好”。这一节要做的，就是把旋转和平移统一成一个线性形式，让后面多次复合、位姿链式计算和代码实现都顺手起来。📏</p>
+      <div class="hero-meta">
+        <span>🔗 承接旋转矩阵</span>
+        <span>🧱 为 SE(3) 和后面位姿链做准备</span>
+        <span>📌 关键字：齐次坐标</span>
+      </div>
+      <div class="toc">
+        <a href="#problem">为什么原式不够方便</a>
+        <a href="#homogeneous">齐次坐标</a>
+        <a href="#transform-matrix">变换矩阵</a>
+        <a href="#composition">复合变换</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="problem">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>理解为什么式 $\boldsymbol{a}'=\boldsymbol{R}\boldsymbol{a}+\boldsymbol{t}$ 虽然正确，却还不是最适合后续 SLAM 运算的表达；并掌握齐次坐标和变换矩阵如何把它改写成更好用的线性形式。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节你已经知道刚体运动由旋转和平移组成。现在要解决的是：当运动不是一次而是很多次，或者当我们想把它写进程序、写进优化变量时，怎样把表达变得更整齐。</p>
+        </div>
+      </div>
+      <p>上一节的欧氏变换式很漂亮：</p>
+      <div class="formula-box">$$ \boldsymbol{a}' = \boldsymbol{R}\boldsymbol{a} + \boldsymbol{t}. \tag{3.8} $$</div>
+      <p>但书里在这里指出一个“小麻烦”：它<strong>不是线性的统一矩阵乘法形式</strong>。如果你连续做两次变换：</p>
+      <div class="formula-box">$$ \boldsymbol{b}=\boldsymbol{R}_1\boldsymbol{a}+\boldsymbol{t}_1,\qquad \boldsymbol{c}=\boldsymbol{R}_2\boldsymbol{b}+\boldsymbol{t}_2 $$</div>
+      <p>那么从 $\boldsymbol{a}$ 到 $\boldsymbol{c}$ 会变成：</p>
+      <div class="formula-box">$$ \boldsymbol{c} = \boldsymbol{R}_2(\boldsymbol{R}_1\boldsymbol{a}+\boldsymbol{t}_1)+\boldsymbol{t}_2. $$</div>
+      <p>你会发现，旋转和平移开始层层嵌套。次数一多，这种写法会迅速变得难以维护。作者在这里引入齐次坐标，不是为了显得高级，而是为了<strong>把平移也吸进矩阵乘法里</strong>。</p>
+    </main>
+
+    <section class="section-card" id="homogeneous">
+      <h2>1. 齐次坐标：多加一维，换来整洁</h2>
+      <p>齐次坐标的技巧非常简单：给三维向量末尾补一个 1。</p>
+      <div class="formula-box">$$ \tilde{\boldsymbol{a}} = \begin{bmatrix}x\\y\\z\\1\end{bmatrix}. $$</div>
+      <p>然后就能把旋转和平移一起塞进一个 4×4 矩阵里。书里这里还强调了齐次坐标的核心性质：同一个点乘上任意非零常数，仍表示同一个几何点。例如：</p>
+      <div class="formula-box">$$ [1,1,1,1]^T \equiv [2,2,2,2]^T. $$</div>
+      <p>只要最后一维不为 0，就总可以把它归一化回最后一维为 1 的形式：</p>
+      <div class="formula-box">$$ \tilde{\boldsymbol{x}} = [x,y,z,w]^T = [x/w,\ y/w,\ z/w,\ 1]^T. \tag{3.10} $$</div>
+      <p>所以你现在可以先这样理解齐次坐标：<strong>它确实多引入了一维冗余，但换来了把平移写进矩阵乘法的能力</strong>。这笔交易在 SLAM 里非常划算。</p>
+    </section>
+
+    <section class="section-card" id="transform-matrix">
+      <h2>2. 变换矩阵：旋转和平移终于装进同一个框架</h2>
+      <p>有了齐次坐标之后，原来的欧氏变换式就可以改写成：</p>
+      <div class="formula-box">$$
+      \begin{bmatrix}\boldsymbol{a}'\\1\end{bmatrix}
+      =
+      \underbrace{
+      \begin{bmatrix}
+      \boldsymbol{R} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}}_{\boldsymbol{T}}
+      \begin{bmatrix}\boldsymbol{a}\\1\end{bmatrix}.
+      \tag{3.9}
+      $$</div>
+      <p>这里的矩阵 $\boldsymbol{T}$ 就是后面无处不在的<strong>变换矩阵</strong>。从结构上看，它很有秩序：</p>
+      <ul>
+        <li>左上角是旋转矩阵 $\boldsymbol{R}$</li>
+        <li>右上角是平移向量 $\boldsymbol{t}$</li>
+        <li>左下角是零向量</li>
+        <li>右下角是 1</li>
+      </ul>
+      <p>这类矩阵组成的集合，就是第三讲后半节和第四讲会频繁使用的 $SE(3)$：</p>
+      <div class="formula-box">$$
+      SE(3)=\left\{
+      \boldsymbol{T}=
+      \begin{bmatrix}
+      \boldsymbol{R} & \boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}
+      \in \mathbb{R}^{4\times4}
+      \ \middle|\ 
+      \boldsymbol{R}\in SO(3),\ \boldsymbol{t}\in\mathbb{R}^3
+      \right\}. \tag{3.12}
+      $$</div>
+      <p>你现在可以先把它看成“姿态矩阵的完整版”。第四讲则会进一步告诉你：它同样是一个带约束的李群对象。</p>
+    </section>
+
+    <section class="section-card" id="composition">
+      <h2>3. 复合变换为什么突然变简单了</h2>
+      <p>这是这节课最值钱的地方。原来两次变换要写成嵌套形式，现在只要普通矩阵乘法：</p>
+      <div class="formula-box">$$
+      \tilde{\boldsymbol{b}}=\boldsymbol{T}_1\tilde{\boldsymbol{a}},\qquad
+      \tilde{\boldsymbol{c}}=\boldsymbol{T}_2\tilde{\boldsymbol{b}}
+      \Rightarrow
+      \tilde{\boldsymbol{c}}=\boldsymbol{T}_2\boldsymbol{T}_1\tilde{\boldsymbol{a}}.
+      \tag{3.11}
+      $$</div>
+      <p>这一步的意义绝对不只是“公式更好看”。它直接决定了后面很多事情为什么能顺畅发生：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>位姿链更好写</h4>
+          <p>相机从世界到当前帧经过多段运动时，可以直接连乘多个 $\boldsymbol{T}$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>代码实现更自然</h4>
+          <p>后面用 Eigen、Sophus、g2o 时，位姿对象本质上都在重复利用这种“矩阵乘法复合”的结构。</p>
+        </div>
+        <div class="mini-card">
+          <h4>优化问题更可组织</h4>
+          <p>虽然第四讲会告诉你直接对 $\boldsymbol{T}$ 求导仍不够方便，但至少它已经把姿态链条组织成统一对象了。</p>
+        </div>
+      </div>
+      <p>顺便，书里也给出了逆变换：</p>
+      <div class="formula-box">$$
+      \boldsymbol{T}^{-1}=
+      \begin{bmatrix}
+      \boldsymbol{R}^T & -\boldsymbol{R}^T\boldsymbol{t}\\
+      \boldsymbol{0}^T & 1
+      \end{bmatrix}.
+      \tag{3.13}
+      $$</div>
+      <p>这个式子后面你会几乎天天见到。尤其到了第七讲以后，从一个坐标系变到另一个坐标系时，求逆是家常便饭。</p>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>引入齐次坐标后，这节课最本质的收获是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。真正赚到的是把旋转和平移统一成矩阵乘法形式，特别是让多次复合和程序实现都变得整洁。" onclick="lessonKit.answer(this, 'quiz-0019-a')">把旋转和平移统一成一个线性矩阵框架</button>
+          <button data-correct="no" data-explanation="维度反而增加了，只是增加得很值得。" onclick="lessonKit.answer(this, 'quiz-0019-a')">减少了变量维度</button>
+          <button data-correct="no" data-explanation="它不是在取消平移，而是在把平移吸进矩阵结构里。" onclick="lessonKit.answer(this, 'quiz-0019-a')">让平移可以被忽略</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0019-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么要齐次坐标</h4>
+          <p>因为原来的欧氏变换不是统一线性形式，多次复合会越来越难写。</p>
+        </div>
+        <div class="mini-card">
+          <h4>变换矩阵是什么</h4>
+          <p>它是把旋转矩阵和位移向量装进同一个 4×4 结构里的姿态表示。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它重要</h4>
+          <p>后面所有坐标系变换、相机位姿链和代码实现，几乎都站在这个表示上。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么作者说式 (3.8) 还“不够好”，尽管它已经能正确表示欧氏变换？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它不能把旋转和平移统一写成单一线性变换，尤其在多次复合时会出现层层嵌套，不利于推导、实现和后续扩展。</div>
+            </details>
+          </li>
+          <li>
+            齐次坐标多引入了一维冗余，它换来了什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>换来了把平移吸收到矩阵乘法里，从而让刚体变换统一成线性矩阵形式，并显著简化多次变换的复合。</div>
+            </details>
+          </li>
+          <li>
+            这节课和第四讲之间最关键的连接点是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>这节课给出了 $SE(3)$ 这种位姿整体对象；第四讲接着要解决的是：这个对象虽然好用，但仍是带约束李群，怎么在它上面做局部求导和优化。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0018-第三讲-旋转矩阵.html">← 旋转矩阵</a>
+        <a class="next" href="0020-第三讲-Eigen矩阵基础.html">Eigen 矩阵基础 →</a>
+      </div>
+      <p class="foot-note">这一节看起来只是一个表示技巧，但它几乎决定了后面所有位姿链式运算的写法 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

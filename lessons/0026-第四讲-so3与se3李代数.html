@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四讲 · so(3)与se(3)李代数 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第四讲 · 李群与李代数 / Lesson 2</div>
+      <h1>第四讲 · so(3) 与 se(3) 李代数</h1>
+      <p class="subtitle">上一节讲“为什么需要李代数”，这一节终于把两个最关键的对象写出来：so(3) 负责旋转的小增量，se(3) 负责刚体位姿的小增量。它们就是后面所有位姿优化的本地坐标系。📗</p>
+      <div class="hero-meta">
+        <span>🔗 承接群与李代数的引出</span>
+        <span>📐 定义最常用的两个李代数对象</span>
+        <span>🧱 为指数映射和扰动模型打底</span>
+      </div>
+      <div class="toc">
+        <a href="#so3">so(3)</a>
+        <a href="#se3">se(3)</a>
+        <a href="#overview">对应关系总览</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="so3">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把上一节“局部线性空间”的概念真正落成公式：知道 so(3) 长什么样、它和旋转向量是什么关系、它的李括号怎样定义。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>第三讲已经引入了反对称矩阵 $\wedge$；上一节又说明李代数来自李群的局部变化率。现在这两条线终于合流，so(3) 就会显得非常自然，而不是凭空冒出来。</p>
+        </div>
+      </div>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/795d42d61eac9d91c37415d37e925d27fd3c107bcff0df1c83b6b70c6df60918.jpg" alt="SO3 流形与切空间示意图">
+        <figcaption>这张原图虽然出现在上一节的语境里，但放在这里再看最合适：so(3) 可以理解为 SO(3) 在单位元附近的切空间坐标系。</figcaption>
+      </figure>
+      <p>书里把 $SO(3)$ 对应的李代数写成定义在 $\mathbb{R}^3$ 上的向量，这一点非常关键。也就是说，<strong>so(3) 的元素本质上可以看成 3 维向量</strong>，只是它们同时又能通过 $\wedge$ 变成反对称矩阵：</p>
+      <div class="formula-box">$$
+      \boldsymbol{\Phi}=\boldsymbol{\phi}^{\wedge}
+      =
+      \begin{bmatrix}
+      0 & -\phi_3 & \phi_2 \\
+      \phi_3 & 0 & -\phi_1 \\
+      -\phi_2 & \phi_1 & 0
+      \end{bmatrix}\in \mathbb{R}^{3\times3}.
+      \tag{4.11}
+      $$</div>
+      <p>这里最应该抓住的一句话是：<strong>so(3) 就是“旋转的局部无约束表示”</strong>。如果你回想第三讲的旋转向量，会发现它们其实已经非常接近李代数语言了。</p>
+      <p>so(3) 上的李括号定义为：</p>
+      <div class="formula-box">$$ [\boldsymbol{\phi}_1,\boldsymbol{\phi}_2] = (\boldsymbol{\Phi}_1\boldsymbol{\Phi}_2-\boldsymbol{\Phi}_2\boldsymbol{\Phi}_1)^{\vee}. \tag{4.12} $$</div>
+      <p>在具体计算里，这件事等价于叉积。这也是为什么作者一直强调不要忘记第三讲里的外积和反对称矩阵：它们在这里突然“活”了过来。</p>
+    </main>
+
+    <section class="section-card" id="se3">
+      <h2>1. se(3)：把平移也装进本地增量空间</h2>
+      <p>如果说 so(3) 只负责旋转，那 se(3) 就负责完整的三维刚体运动。书里把它写成一个 6 维向量：</p>
+      <div class="formula-box">$$
+      \mathfrak{se}(3)=\left\{
+      \boldsymbol{\xi}=
+      \begin{bmatrix}
+      \boldsymbol{\rho}\\
+      \boldsymbol{\phi}
+      \end{bmatrix}
+      \in\mathbb{R}^{6}
+      \right\}.
+      \tag{4.15}
+      $$</div>
+      <p>这里可以先用最朴素的方式记：</p>
+      <ul>
+        <li>$\boldsymbol{\phi}$：旋转相关的 3 维量，对应 so(3)</li>
+        <li>$\boldsymbol{\rho}$：平移相关的 3 维量</li>
+      </ul>
+      <p>然后作者把 $\wedge$ 再推广一步，把 6 维向量写成 4×4 矩阵：</p>
+      <div class="formula-box">$$
+      \boldsymbol{\xi}^{\wedge}
+      =
+      \begin{bmatrix}
+      \boldsymbol{\phi}^{\wedge} & \boldsymbol{\rho}\\
+      \boldsymbol{0}^{T} & 0
+      \end{bmatrix}
+      \in \mathbb{R}^{4\times4}.
+      \tag{4.16}
+      $$</div>
+      <p>请特别注意书里的提醒：<strong>$\boldsymbol{\rho}$ 还不直接等于最终平移向量 $\boldsymbol{t}$</strong>。这是很多人第一次学 se(3) 时最容易误以为“前 3 维就是平移”。后面一讲的指数映射里，平移部分会经过一个 Jacobian 矩阵 $J$ 的作用，才变成真正的 $\boldsymbol{t}$。</p>
+      <p>所以更准确的理解应该是：se(3) 里的 6 个量，是<strong>描述刚体位姿局部变化的一组坐标</strong>，而不是“最终姿态参数的直接拼接”。</p>
+    </section>
+
+    <section class="section-card" id="overview">
+      <h2>2. 现在把四个对象放在一起看，就不容易乱了</h2>
+      <table>
+        <thead>
+          <tr><th>对象</th><th>所在空间</th><th>几何角色</th><th>典型形式</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>$SO(3)$</td><td>李群</td><td>真正的三维旋转</td><td>$\boldsymbol{R}\in\mathbb{R}^{3\times3}$</td></tr>
+          <tr><td>$\mathfrak{so}(3)$</td><td>李代数</td><td>旋转的局部无约束表示</td><td>$\boldsymbol{\phi}\in\mathbb{R}^{3}$</td></tr>
+          <tr><td>$SE(3)$</td><td>李群</td><td>真正的三维刚体变换</td><td>$\boldsymbol{T}\in\mathbb{R}^{4\times4}$</td></tr>
+          <tr><td>$\mathfrak{se}(3)$</td><td>李代数</td><td>刚体位姿的局部无约束表示</td><td>$\boldsymbol{\xi}\in\mathbb{R}^{6}$</td></tr>
+        </tbody>
+      </table>
+      <p>如果你现在只想记最有用的那句，我建议记这个：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{群} = \text{真正的姿态对象} \qquad\Longleftrightarrow\qquad \text{代数} = \text{方便局部求导和更新的增量坐标} $$</div>
+      </div>
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>为什么书里要特别提醒“$\boldsymbol{\rho}$ 不直接等于平移”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为从 se(3) 到 SE(3) 的指数映射里，平移部分会经过 Jacobian 矩阵作用，不能把 $\boldsymbol{\rho}$ 直接当最终 $\boldsymbol{t}$。" onclick="lessonKit.answer(this, 'quiz-0026-a')">因为指数映射里平移部分会被 J 矩阵重新作用</button>
+          <button data-correct="no" data-explanation="维度本身没问题，关键在于语义不是“直接平移量”。" onclick="lessonKit.answer(this, 'quiz-0026-a')">因为它其实不是 3 维向量</button>
+          <button data-correct="no" data-explanation="正是为了优化才引入它，不是为了避免优化。" onclick="lessonKit.answer(this, 'quiz-0026-a')">因为它永远不会参与优化</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0026-a"></div>
+      </div>
+      <div class="callout">
+        <h4>和后面哪一讲关系最大？</h4>
+        <p>下一讲的指数 / 对数映射会正式把“代数坐标”送到“群对象”上去；而第十一讲位姿图优化中的误差、雅可比和扰动更新，几乎全靠这两节课的语言系统在支撑。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>3. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>so(3)</h4>
+          <p>旋转的局部 3 维表示，既像向量，又能通过 $\wedge$ 变成反对称矩阵。</p>
+        </div>
+        <div class="mini-card">
+          <h4>se(3)</h4>
+          <p>刚体位姿的局部 6 维表示，由平移相关项和旋转相关项共同组成。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最关键提醒</h4>
+          <p>代数里的量不是“最终姿态值”，而是用于局部线性化、求导和更新的增量坐标。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 so(3) 和“第三讲里的旋转向量”关系非常紧？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 so(3) 的元素本质上就是 3 维向量，而指数映射结果又正好回到第三讲的罗德里格斯公式，所以它和旋转向量几乎是同一几何内容在不同语言下的表达。</div>
+            </details>
+          </li>
+          <li>
+            se(3) 中的 6 维向量为什么不能简单理解成“前 3 维平移、后 3 维旋转，直接拼起来就是最终位姿”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它是李代数中的局部坐标。尤其平移相关项 $\boldsymbol{\rho}$ 在指数映射到 SE(3) 时还会经过 Jacobian 矩阵作用，不能直接拿来当最终平移向量。</div>
+            </details>
+          </li>
+          <li>
+            这节课和下一节课的最关键接口是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>这节课定义了 so(3) 和 se(3) 的元素长什么样，下一节则会讲清楚这些元素如何通过指数映射和对数映射，与 SO(3)、SE(3) 真正来回转换。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0025-第四讲-群与李代数的引出.html">← 群与李代数的引出</a>
+        <a class="next" href="0027-第四讲-指数与对数映射.html">指数与对数映射 →</a>
+      </div>
+      <p class="foot-note">这一节最大的任务，是先把“局部增量坐标”这个概念彻底坐实 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

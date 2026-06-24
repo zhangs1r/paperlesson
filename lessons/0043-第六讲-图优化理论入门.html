@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · 图优化理论入门 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 5</div>
+      <h1>第六讲 · 图优化理论入门</h1>
+      <p class="subtitle">前面我们一直在写公式，这一节换一种更“结构化”的眼光：如果把优化变量看成节点、误差项看成边，整个 SLAM 最小二乘会突然变得特别直观。🕸️</p>
+      <div class="hero-meta">
+        <span>🔗 把最小二乘结构画出来</span>
+        <span>📦 为 g2o 的顶点 / 边建模做铺垫</span>
+        <span>🌉 直连第十讲 BA 与第十一讲位姿图</span>
+      </div>
+      <div class="toc">
+        <a href="#why-graph">为什么要引入图</a>
+        <a href="#example">原书图 6-2 在讲什么</a>
+        <a href="#hyper">一元边、二元边与超边</a>
+        <a href="#future">这和后续章节有什么关系</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-graph">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>不是背“顶点是变量、边是误差”这句口号，而是看懂为什么一旦换成图视角，SLAM 的稀疏性、局部性、结构关系都变得好理解了。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节你在 Ceres 里已经把误差一块一块加进总目标函数。这一节更进一步，直接把这些误差块和变量之间的关系“画出来”。</p>
+        </div>
+      </div>
+      <p>书里开门见山地问了一个很好的问题：我们已经有很多误差项了，但光看公式，并不容易直觉地知道“某个变量到底和多少个误差相连、整个优化结构到底长什么样”。</p>
+      <p>这就是图优化视角的价值：它不是改写问题本质，而是让结构浮出水面。</p>
+      <div class="formula-box">$$
+      J(\boldsymbol{x})
+      =
+      \sum_k \boldsymbol{e}_{v,k}^T \boldsymbol{R}_k^{-1}\boldsymbol{e}_{v,k}
+      +
+      \sum_k\sum_j \boldsymbol{e}_{y,k,j}^T \boldsymbol{Q}_{k,j}^{-1}\boldsymbol{e}_{y,k,j}
+      $$</div>
+      <p>上一节这个式子在代数上已经够完整了，但从“谁和谁有关”这个角度看，它还不够直观。图优化做的正是把这种关系显式化。</p>
+    </main>
+
+    <section class="section-card" id="example">
+      <h2>1. 原书图 6-2：顶点不是装饰，边也不是连线而已</h2>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/f64e57c04e6baa2854bdcf53b2155dc31d294fe93c401ea23eb759473d5a4721.jpg" alt="图优化示意图">
+        <figcaption>图 6-2 图优化的例子。三角形是位姿顶点，圆形是路标顶点，蓝线和红虚线则分别对应运动模型和观测模型的约束边。</figcaption>
+      </figure>
+      <p>书里这一页最重要的不是“图很漂亮”，而是它把公式里的角色重新分配了：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>顶点 Vertex</h4>
+          <p>代表优化变量。位姿、路标、甚至以后相机内参，都可以成为顶点。</p>
+        </div>
+        <div class="mini-card">
+          <h4>边 Edge</h4>
+          <p>代表误差项或约束。谁和谁一起出现在一个误差公式里，就让一条边把它们连起来。</p>
+        </div>
+        <div class="mini-card">
+          <h4>整张图</h4>
+          <p>就是整个最小二乘问题的结构图：变量之间如何互相牵制，一眼就能看出。</p>
+        </div>
+      </div>
+      <p>原书对图 6-2 的讲解很有代表性：蓝色线表示运动模型边，红色虚线表示观测模型边。于是，虽然数学目标函数还是式 (6.12)，但现在你能直观看到：</p>
+      <ul>
+        <li>位姿顶点会形成一条由运动约束串起来的链；</li>
+        <li>路标顶点则通过观测边和多个位姿相连；</li>
+        <li>整个问题天然是稀疏的，因为每条边只碰到少数几个顶点。</li>
+      </ul>
+      <p>这正是第十讲 BA 和第十一讲位姿图之所以能做大规模求解的结构原因，而不是后面才“突然发明”的技巧。</p>
+    </section>
+
+    <section class="section-card" id="hyper">
+      <h2>2. 为什么曲线拟合图里会出现“一元边”甚至“超边”这种说法</h2>
+      <p>书里紧接着就开始为 g2o 做铺垫。它提醒我们：图优化里的边不一定总是普通图论里那种“只连两个节点”的边。</p>
+      <div class="lead-grid">
+        <div class="mini-card">
+          <h4>一元边 Unary Edge</h4>
+          <p>只和一个顶点有关。比如曲线拟合里，每个观测残差只依赖同一个参数顶点 $[a,b,c]$。</p>
+        </div>
+        <div class="mini-card">
+          <h4>二元边 Binary Edge</h4>
+          <p>最常见于 SLAM。比如一个相机位姿和一个路标之间的重投影误差，或者两个位姿之间的里程计约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>多元边 / 超边 Hyper Edge</h4>
+          <p>一条误差同时和多个变量有关时就会出现。g2o 的“超图”概念正是在这里发挥作用。</p>
+        </div>
+      </div>
+      <p>这部分很适合和前一节 Ceres 做一个对照：</p>
+      <div class="callout">
+        <h4>Ceres vs 图优化视角</h4>
+        <p>在 Ceres 里，你更多是在“添加残差块”；在图优化里，你会更自然地想到“这一块误差到底连了哪些变量顶点”。两者本质一致，但心智模型不同。</p>
+      </div>
+      <p>而这种“连接关系”思维，到了第十一讲位姿图时会特别舒服，因为那一讲你几乎可以直接把问题看成“关键帧节点 + 约束边”的图结构。</p>
+    </section>
+
+    <section class="section-card" id="future">
+      <h2>3. 为什么这节看起来像概念课，却其实很关键</h2>
+      <p>书里对图优化最大的强调，不是为了换一个更潮的说法，而是因为这种表述方式直接暴露出许多工程上有用的信息：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>谁是孤立点</h4>
+          <p>如果某个顶点几乎没被约束，它的估计就可能不稳定，甚至没有优化意义。</p>
+        </div>
+        <div class="mini-card">
+          <h4>谁连接得最密</h4>
+          <p>边多、度数大的顶点往往受更多约束，也更值得重点关注。</p>
+        </div>
+        <div class="mini-card">
+          <h4>稀疏结构在哪里</h4>
+          <p>从图一眼就能看出雅可比和海森近似为什么不会是满矩阵，这对后端优化求解速度至关重要。</p>
+        </div>
+      </div>
+      <p>这也解释了为什么第六讲虽然还没正式讲 BA 或位姿图，却已经开始谈图优化。因为从这时起，书就在训练你以后用“结构图”而不是“长公式串”去看 SLAM。</p>
+      <p>如果把后续章节串起来看，这一节的作用可以概括成：</p>
+      <div class="formula-box flow-formula">第六讲：看懂图优化语言 → 第十讲：看懂 BA 的稀疏大图 → 第十一讲：把图压缩成位姿图继续优化</div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>图优化最值得你现在就建立起来的直觉是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。图优化最有价值的地方，就是让‘变量与误差之间的连接结构’从公式里显形。" onclick="lessonKit.answer(this, 'quiz-0043-a')">把“谁和谁通过误差项相连”这件事直观暴露出来</button>
+          <button data-correct="no" data-explanation="图视角不是在取代最小二乘，而是在表达同一个最小二乘问题的结构。" onclick="lessonKit.answer(this, 'quiz-0043-a')">让最小二乘问题不再需要公式</button>
+          <button data-correct="no" data-explanation="图优化里当然也能有一元边，曲线拟合就是例子。" onclick="lessonKit.answer(this, 'quiz-0043-a')">规定所有边都必须连接两个顶点</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0043-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>图优化不是新问题</h4>
+          <p>它只是把最小二乘问题换成了一种更直观的结构表达方式。</p>
+        </div>
+        <div class="mini-card">
+          <h4>顶点与边的对应</h4>
+          <p>顶点对应优化变量，边对应误差项，这种映射会贯穿后面的 g2o、BA 和位姿图。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最重要的收益</h4>
+          <p>结构、稀疏性、局部性都一下子变得好理解了，这正是 SLAM 后端的底层逻辑。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么明明已经有最小二乘公式了，书里还要专门引入图优化视角？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为光看公式不容易直觉把握变量和误差之间的连接结构，而图优化能把稀疏性、局部性和约束关系直接可视化出来。</div>
+            </details>
+          </li>
+          <li>
+            曲线拟合为什么会对应“一元边”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为每个观测残差只依赖同一个参数顶点 $[a,b,c]$，所以每条边只连接一个顶点，而不是两个或更多。</div>
+            </details>
+          </li>
+          <li>
+            这一节和第十一讲位姿图优化之间的联系是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>第十一讲本质上就是把“顶点=位姿、边=约束”这套图优化语言推到极致，所以这一节是在提前训练你用图结构理解后端问题。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0042-第六讲-Ceres实践曲线拟合.html">← Ceres 实践曲线拟合</a>
+        <a class="next" href="0044-第六讲-g2o实践曲线拟合.html">g2o 实践曲线拟合 →</a>
+      </div>
+      <p class="foot-note">下一节我们就把这套“顶点 / 边”的语言真正用到 g2o 代码里，让图优化不再只是概念。🧩</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

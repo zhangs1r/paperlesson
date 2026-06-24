@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第八讲 · 稀疏直接法实践 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第八讲 · 视觉里程计 2 / Lesson 4</div>
+      <h1>第八讲 · 稀疏直接法实践</h1>
+      <p class="subtitle">这一节是第八讲真正“落地”的时刻：我们把上一节的光度误差和 Jacobian 塞进 g2o，自定义一条一元边，让少量带深度的像素直接约束相机位姿。这里的关键词不是“代码多复杂”，而是“理论怎样变成工程结构”。🔧</p>
+      <div class="hero-meta">
+        <span>🔗 承接 0056 的 Jacobian 推导</span>
+        <span>📦 回扣第六讲 g2o 图优化建模</span>
+        <span>🧭 为第九讲前端替换 PnP 提供另一条路线</span>
+      </div>
+      <div class="toc">
+        <a href="#graph">图优化模型怎么搭</a>
+        <a href="#edge">自定义边到底做了什么</a>
+        <a href="#image">原书图 8-4 怎么读</a>
+        <a href="#limits">为什么远帧会飘</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="graph">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>这节和第六讲的关系</h4>
+          <p>第六讲你已经学过 g2o 的顶点、边、误差、Jacobian。现在我们只是把“曲线拟合边”换成“光度误差边”，把“待估参数”换成“相机位姿”。框架没变，语义变了。</p>
+        </div>
+        <div class="callout">
+          <h4>为什么叫稀疏直接法</h4>
+          <p>因为这里并没有拿整张图所有像素，而是只拿一小批有深度的关键点或像素来做光度约束。它比特征点法更“直接”，但仍然是稀疏的。</p>
+        </div>
+      </div>
+
+      <p>这一节最值得先抓住的，是图优化结构非常简单：</p>
+      <table>
+        <thead>
+          <tr><th>元素</th><th>在这里代表什么</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>顶点</td><td>一个相机位姿 $\mathrm{SE}(3)$</td></tr>
+          <tr><td>边</td><td>每个像素（或小块）给出一条光度误差约束</td></tr>
+          <tr><td>测量值</td><td>参考帧该点的灰度值</td></tr>
+          <tr><td>目标</td><td>让当前帧投影过去后的灰度尽量和参考帧一致</td></tr>
+        </tbody>
+      </table>
+      <p>这也是为什么它是一元边：参考帧里的灰度值和三维点位置都被看成已知，真正待调的只有当前相机位姿。</p>
+    </main>
+
+    <section class="section-card" id="edge">
+      <h2>1. 自定义边：<code>computeError()</code> 和 <code>linearizeOplus()</code> 分别在干什么</h2>
+      <p>书里这段代码表面上像是在写 g2o 模板，但本质上只做了三件事：</p>
+      <ol>
+        <li>把世界点投到当前帧图像上</li>
+        <li>取出那个位置的灰度值，和参考灰度做差</li>
+        <li>算出这条误差对位姿增量的导数</li>
+      </ol>
+
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4><code>computeError()</code></h4>
+          <p>先用当前位姿估计把三维点投到图像上，再取当前帧灰度减去测量值。如果点投到图像外，就把这条边暂时忽略。</p>
+        </div>
+        <div class="mini-card">
+          <h4><code>linearizeOplus()</code></h4>
+          <p>把 0056 推导出来的 Jacobian 真正算出来，交给 g2o 线性化求解。</p>
+        </div>
+        <div class="mini-card">
+          <h4><code>getPixelValue()</code></h4>
+          <p>用双线性插值在亚像素位置采样灰度，否则位姿一更新，误差函数会变得不光滑，很难优化。</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4>一个常见 OCR 噪声，这里顺手纠正</h4>
+        <p>原始转写里有一处把像素采样函数写成了 <code>RampValue</code>，但结合上下文和书中代码语义，正确应理解为类似 <code>getPixelValue</code> 的灰度采样函数，而不是另一个陌生 API。</p>
+      </div>
+
+      <p>双线性插值这一步不要小看，它是直接法稳定性的关键工程细节之一。因为位姿更新后投影点位置几乎总是浮点数坐标，不会老老实实落在整数像素中心上。</p>
+      <div class="formula-box">$$
+      I(u,v)
+      =
+      (1-\Delta x)(1-\Delta y)I_{00}
+      +\Delta x(1-\Delta y)I_{10}
+      +(1-\Delta x)\Delta yI_{01}
+      +\Delta x\Delta yI_{11}
+      $$</div>
+      <p>如果直接用最近邻采样，误差面会到处出现“台阶”，优化器会很难受。</p>
+    </section>
+
+    <section class="section-card" id="image">
+      <h2>2. 原书图 8-4：它告诉你的不是“跑通了”，而是“什么时候会失效”</h2>
+      <p>原书图 8-4 把稀疏直接法的实验效果分成几组帧对比。你应该重点看的是：随着帧间间隔变大，优化开始变得不可靠。</p>
+      <div class="grid-3">
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/d2f73c51194cbc8c3513dbb3f010560b0796858427719016bf11ff380665604b.jpg" alt="图 8-4 左侧误差下降">
+          <figcaption>图 8-4 左侧：误差随着迭代下降。它说明最小二乘框架本身在起作用，优化器确实在努力降低光度误差。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/a5952ee349b3a5cbd1e99703865ce4a6fa7352f736910619b22949e478f28e8e.jpg" alt="图 8-4 0-3 帧">
+          <figcaption>0-3：帧差不大时，稀疏直接法通常还能把大多数点拉到比较合理的位置。</figcaption>
+        </figure>
+        <figure class="figure">
+          <img src="../资料/视觉slam十四讲 md文档/330966d1717cd0f0943a829fe3d4c5882b0c8275bde05c068cde0dcf276d0b25.jpg" alt="图 8-4 0-9 帧">
+          <figcaption>0-9：间隔拉大以后，点位偏移明显增多。它直观地展示了直接法对初值和小运动假设的依赖。</figcaption>
+        </figure>
+      </div>
+
+      <p>这组图最值钱的地方在于，它把“直接法要求小运动”从一句理论话，变成了你一眼能看懂的现象：</p>
+      <ul>
+        <li>相邻帧时，当前位姿初值离真值近，优化有希望</li>
+        <li>隔得太远时，投影已经偏到错误纹理区域，局部梯度开始误导优化</li>
+        <li>于是误差可能虽然还在下降，但下降到的是“局部错误答案”</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="limits">
+      <h2>3. 为什么远帧会飘：这正好连到第九讲和第十三讲</h2>
+      <p>第八讲这里暴露的限制，其实正是后面系统设计要处理的问题：</p>
+      <table>
+        <thead>
+          <tr><th>问题</th><th>为什么会出现</th><th>后面会怎么应对</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>帧差大就不稳</td><td>光度误差是局部线性化的，容易掉进错误纹理</td><td>第九讲做前端时要控制参考帧策略与帧间运动</td></tr>
+          <tr><td>只用少量点信息不够</td><td>稀疏直接法约束有限</td><td>下一节 0058 会转向半稠密思路</td></tr>
+          <tr><td>需要深度</td><td>RGB-D 里三维点位置已知，单目则复杂得多</td><td>第十三讲深度滤波会补上单目深度估计这一块</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>和第九讲 VO 框架的联系</h4>
+        <p>等你到第九讲设计前端时，就会明白为什么“当前帧 / 参考帧怎么选”、“什么时候加关键帧”、“前端失败如何重置”这些工程决策这么重要。直接法的数学推导没错，但系统要想稳，还得靠框架设计托住它。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>g2o 里真正变了什么</h4>
+          <p>不是优化器换了，而是边的含义从“几何误差”换成了“光度误差”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么插值重要</h4>
+          <p>因为直接法误差依赖亚像素采样，不平滑的采样方式会直接伤害优化。</p>
+        </div>
+        <div class="mini-card">
+          <h4>本节最重要的限制</h4>
+          <p>稀疏直接法只在帧间运动较小、初值较好时更稳；隔得太远就容易偏。</p>
+        </div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么稀疏直接法里的光度误差边是一元边，而不是二元边？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为参考帧灰度和三维点位置都被视为已知，优化变量只有当前相机位姿一个，所以每条边只连接一个位姿顶点。</div>
+            </details>
+          </li>
+          <li>
+            为什么直接法实现里通常要做双线性插值？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为投影点一般落在浮点坐标位置，如果直接取最近邻像素会让误差函数很不平滑。双线性插值能提供更连续的灰度采样，利于优化。</div>
+            </details>
+          </li>
+          <li>
+            图 8-4 里 0-9 帧偏得更明显，最根本的原因是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为帧间位移变大以后，当前位姿初值离真实值更远，投影点更容易落到错误纹理区域，局部梯度会把优化引向局部错误答案。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0056-第八讲-直接法理论与雅可比推导.html">← 直接法理论与雅可比推导</a>
+        <a class="next" href="0058-第八讲-半稠密直接法与讨论.html">半稠密直接法与讨论 →</a>
+      </div>
+      <p class="foot-note">这节最好的收获不是记住类名，而是开始能把“误差、边、位姿更新、实验失效模式”看成同一件事 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第六讲 · 列文伯格马夸尔特法 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第六讲 · 非线性优化 / Lesson 3</div>
+      <h1>第六讲 · 列文伯格马夸尔特法</h1>
+      <p class="subtitle">高斯牛顿法很快，但偶尔会走得太猛。L-M 法做的事很朴素也很高级：在“快”之外，再加一层“稳”，让局部线性化不要轻易把我们带沟里。🧭</p>
+      <div class="hero-meta">
+        <span>🔗 直接修补高斯牛顿的缺点</span>
+        <span>🛡️ 信赖区域 / 阻尼牛顿法</span>
+        <span>📦 后面 Ceres、g2o 常见默认选择</span>
+      </div>
+      <div class="toc">
+        <a href="#why-lm">为什么需要 L-M</a>
+        <a href="#trust-region">信赖区域的想法</a>
+        <a href="#equation">L-M 增量方程</a>
+        <a href="#algorithm">参数 λ 在做什么</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-lm">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把 L-M 法看懂成一件很具体的事：它怎样从高斯牛顿方程出发，加一个阻尼项，让求解更稳、更能自我纠错。</p>
+        </div>
+        <div class="callout">
+          <h4>和前文怎么接</h4>
+          <p>上一节你已经知道高斯牛顿很像“便宜版牛顿法”，但它可能矩阵病态、也可能一步走太大。这一节就是在原骨架上加“信赖区域”和“阻尼”。</p>
+        </div>
+      </div>
+      <p>书里先把问题说得很实在：高斯牛顿的局部近似只在展开点附近靠谱。如果你这一步迈得太远，那么上一节的式 (6.19) 可能就不再可信。</p>
+      <p>换句话说，上一节最大的风险不是“推导错了”，而是：</p>
+      <div class="formula-box flow-formula">我用一个局部近似来指路，但这一步却可能走出了这个局部。</div>
+      <p>这就是 L-M 法要解决的第一件事。第二件事则是：上一节的 $\boldsymbol{J}^T\boldsymbol{J}$ 可能奇异或病态，而我们希望增量方程不要那么脆弱。</p>
+    </main>
+
+    <section class="section-card" id="trust-region">
+      <h2>1. 信赖区域：别急着走太远，先给局部近似画个边界</h2>
+      <p>作者这里引入的核心想法叫 <strong>Trust Region</strong>，可以翻译成“信赖区域”或“信任域”。意思非常朴素：</p>
+      <div class="callout">
+        <h4>一句话理解</h4>
+        <p>我愿意相信当前的线性 / 二次近似，但只愿意在它周围的一小块区域里相信它。出了这块区域，我就不再贸然照单全收。</p>
+      </div>
+      <p>那怎么判断近似到底靠不靠谱？书里引入了一个比值 $\rho$：</p>
+      <div class="formula-box">$$
+      \rho
+      =
+      \frac{f(\boldsymbol{x}+\Delta\boldsymbol{x})-f(\boldsymbol{x})}{\boldsymbol{J}(\boldsymbol{x})\Delta \boldsymbol{x}}.
+      \tag{6.23}
+      $$</div>
+      <p>虽然原书这里写法比较紧凑，但核心意思很清楚：<strong>比较“真实下降量”和“近似模型预测下降量”到底像不像</strong>。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>$\rho \approx 1$</h4>
+          <p>说明模型预测和现实很接近，这个局部近似值得信赖，可以适当放大胆子。</p>
+        </div>
+        <div class="mini-card">
+          <h4>$\rho$ 很小</h4>
+          <p>说明近似高估了自己的能力，实际下降没有想象中好，需要缩小步子。</p>
+        </div>
+        <div class="mini-card">
+          <h4>$\rho$ 甚至不好</h4>
+          <p>那就意味着这一步可能基本不该走，当前近似范围得收紧。</p>
+        </div>
+      </div>
+      <p>这其实特别像我们自己做题时的策略：如果线性近似和真实反馈对得上，说明当前工作点附近“形势清楚”；如果对不上，就得更保守一点。</p>
+    </section>
+
+    <section class="section-card" id="equation">
+      <h2>2. 从“加个半径限制”到“加个阻尼项”</h2>
+      <p>书里先把高斯牛顿的增量子问题改写成一个带约束优化：</p>
+      <div class="formula-box">$$
+      \min_{\Delta \boldsymbol{x}_k}
+      \frac{1}{2}
+      \|f(\boldsymbol{x}_k)+\boldsymbol{J}(\boldsymbol{x}_k)\Delta \boldsymbol{x}_k\|^2,
+      \qquad
+      \text{s.t. }
+      \|\boldsymbol{D}\Delta \boldsymbol{x}_k\|^2 \le \mu.
+      \tag{6.24}
+      $$</div>
+      <p>这里的 $\mu$ 是信赖区域半径，$\boldsymbol{D}$ 是一个尺度矩阵。原书特别提到两种选择：</p>
+      <ul>
+        <li>Levenberg 取 $\boldsymbol{D}=\boldsymbol{I}$，也就是简单的球形约束。</li>
+        <li>Marquardt 取非负对角阵，实际中常用 $\boldsymbol{J}^T\boldsymbol{J}$ 对角元素的平方根，让不同维度可以有不同尺度。</li>
+      </ul>
+      <p>这一步很有意思：它在几何上相当于说，增量不能乱跑，只能待在一个球或椭球里。</p>
+
+      <h3>2.1 为什么最后会多出一个 λ</h3>
+      <p>带不等式约束的问题不太方便直接解，于是书里用拉格朗日乘子把它改成：</p>
+      <div class="formula-box">$$
+      \min_{\Delta \boldsymbol{x}_k}
+      \frac{1}{2}
+      \|f(\boldsymbol{x}_k)+\boldsymbol{J}(\boldsymbol{x}_k)\Delta \boldsymbol{x}_k\|^2
+      +
+      \frac{\lambda}{2}
+      \|\boldsymbol{D}\Delta \boldsymbol{x}\|^2.
+      \tag{6.25}
+      $$</div>
+      <p>然后像上一节一样展开、求导、整理，就得到 L-M 的核心增量方程：</p>
+      <div class="formula-box">$$
+      \left(\boldsymbol{H}+\lambda \boldsymbol{D}^T\boldsymbol{D}\right)\Delta \boldsymbol{x}
+      =
+      \boldsymbol{g}.
+      \tag{6.26}
+      $$</div>
+      <p>如果取最简单的 $\boldsymbol{D}=\boldsymbol{I}$，那就变成你最常见的形式：</p>
+      <div class="formula-box">$$
+      \left(\boldsymbol{H}+\lambda \boldsymbol{I}\right)\Delta \boldsymbol{x}
+      =
+      \boldsymbol{g}.
+      $$</div>
+      <p>对比上一节的高斯牛顿方程，你会发现只多了一个东西：<strong>对角线上加了一个阻尼项</strong>。</p>
+    </section>
+
+    <section class="section-card" id="algorithm">
+      <h2>3. λ 到底在干嘛：它是“快”和“稳”之间的旋钮</h2>
+      <p>这是理解 L-M 最重要的地方。书里说得很清楚：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>$\lambda$ 很小时</h4>
+          <p>$\boldsymbol{H}$ 占主导，L-M 更接近高斯牛顿。此时说明局部二次近似比较可信，可以更激进一些。</p>
+        </div>
+        <div class="mini-card">
+          <h4>$\lambda$ 很大时</h4>
+          <p>$\lambda \boldsymbol{I}$ 占主导，更新方向会更像一阶梯度下降。虽然慢一点，但方向更保守、也更稳。</p>
+        </div>
+        <div class="mini-card">
+          <h4>所以 L-M 的本质</h4>
+          <p>它不是简单替代高斯牛顿，而是在“像高斯牛顿那样快”和“像最速下降那样稳”之间自动调挡。</p>
+        </div>
+      </div>
+      <p>你现在可以把 $\lambda$ 想象成一个调节旋钮：当前近似靠谱，就把旋钮拧小；当前近似不太靠谱，就把旋钮拧大。</p>
+
+      <h3>3.1 书里的经验规则</h3>
+      <p>原书给了一组很经典的经验规则：</p>
+      <div class="formula-box">$$
+      \rho > \frac{3}{4} \Rightarrow \mu = 2\mu,
+      \qquad
+      \rho < \frac{1}{4} \Rightarrow \mu = 0.5\mu.
+      $$</div>
+      <p>意思就是：如果近似表现很好，就扩大信赖区域；如果近似表现很差，就缩小信赖区域。虽然这些具体阈值不是铁律，但这种“根据反馈动态调节”的思想非常重要。</p>
+
+      <h3>3.2 为什么它在 SLAM 里这么常见</h3>
+      <p>因为 SLAM 的误差函数常常来自真实传感器数据，不够干净，也未必离最优值很近。高斯牛顿有时太冲，而 L-M 更像一个带保险装置的版本。书里直接说它“更为鲁棒”，这句话在工程上基本就是事实。</p>
+      <div class="callout">
+        <h4>和后续章节的联系</h4>
+        <p>第十讲 BA、第十一讲位姿图优化里，你会经常发现求解器默认就是 L-M，或者至少把它当成一个非常重要的选项。原因并不神秘，就是它在大多数非线性几何优化里更稳。🛠️</p>
+      </div>
+
+      <p>书里最后还顺手提到 Dog-Leg，并把优化方法分成两大类：</p>
+      <ul>
+        <li><strong>Line Search</strong>：先定方向，再找步长。最速下降法和高斯牛顿都可归到这一脉。</li>
+        <li><strong>Trust Region</strong>：先定可信区域，再找区域内最优步。L-M 是这里最经典的代表。</li>
+      </ul>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>L-M 法最该被你记成哪种“性格”？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。L-M 的关键气质就是自适应地在高斯牛顿和更保守的梯度下降之间切换。" onclick="lessonKit.answer(this, 'quiz-0041-a')">一个会根据局部可信度自动收放步子的阻尼高斯牛顿法</button>
+          <button data-correct="no" data-explanation="它没有抛弃高斯牛顿，而是在其基础上加稳健机制。" onclick="lessonKit.answer(this, 'quiz-0041-a')">一个与高斯牛顿毫无关系的新算法</button>
+          <button data-correct="no" data-explanation="速度不是唯一标准，书里更强调的是鲁棒性和稳定性。" onclick="lessonKit.answer(this, 'quiz-0041-a')">一个总是比高斯牛顿更快的方法</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0041-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>4. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>它解决了什么</h4>
+          <p>主要解决高斯牛顿的两类风险：局部近似不够可信，以及系数矩阵病态带来的不稳定。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最关键的式子</h4>
+          <p>$\left(\boldsymbol{H}+\lambda\boldsymbol{D}^T\boldsymbol{D}\right)\Delta \boldsymbol{x}=\boldsymbol{g}$，阻尼项是整节课的灵魂。</p>
+        </div>
+        <div class="mini-card">
+          <h4>最重要的直觉</h4>
+          <p>$\lambda$ 小时像高斯牛顿，$\lambda$ 大时像更稳的梯度下降，所以它是一种“会自己收敛脾气”的方法。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说 L-M 法不是推翻高斯牛顿，而是修补高斯牛顿？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它仍然建立在高斯牛顿的增量方程骨架上，只是在系数矩阵里额外加入阻尼项 / 信赖区域机制，用来提升稳定性和鲁棒性。</div>
+            </details>
+          </li>
+          <li>
+            $\lambda$ 变大和变小，分别对应怎样的优化行为？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>$\lambda$ 变小时更接近高斯牛顿，说明我们更信任局部二次近似；$\lambda$ 变大时更保守，更接近一阶梯度下降，说明当前更需要稳定而不是冒进。</div>
+            </details>
+          </li>
+          <li>
+            为什么这一节特别适合和第十、十一讲联系起来看？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为第十讲的 BA 和第十一讲的位姿图优化，本质上都在解大型非线性最小二乘问题，而 L-M 正是这些后端优化里最常用、最稳的求解策略之一。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0040-第六讲-高斯牛顿法.html">← 高斯牛顿法</a>
+        <a class="next" href="0042-第六讲-Ceres实践曲线拟合.html">Ceres 实践曲线拟合 →</a>
+      </div>
+      <p class="foot-note">学完这一节，你看到 Ceres 或 g2o 里写着 “Levenberg-Marquardt” 时，就不该只把它当成一个长名字了。✨</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

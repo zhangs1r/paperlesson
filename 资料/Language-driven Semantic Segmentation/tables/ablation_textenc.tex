@@ -1,0 +1,15 @@
+\scalebox{0.90}{
+\begin{tabular}{c|c|c|c|c|c}
+\toprule 
+Method&Backbone& Text Encoder (fixed) &embedding dimension &pixAcc [\%]&mIoU [\%] \\
+\midrule\midrule
+\methodname{}&ViT-B/32&ViT-B/32&512&79.70&37.83 \\
+\methodname{}&ViT-B/32&ViT-B/16&512&79.77&38.69 \\
+\methodname{}&ViT-B/32&RN$50\times4$&640&79.85&38.93 \\
+\methodname{}&ViT-B/32&RN$50\times16$&768&\textbf{80.26}&\textbf{40.36} \\
+\bottomrule
+\end{tabular}
+}
+\caption{Ablation study on \methodname{} with fixed text encoders of different CLIP pretrained models. }
+
+

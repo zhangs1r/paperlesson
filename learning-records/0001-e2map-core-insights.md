@@ -46,5 +46,5 @@
 ## 参考
 
 - 论文项目主页：https://e2map.github.io/
-- 课程路径：`lessons/0001-paper-overview.html` 到 `lessons/0004-presentation-guide.html`
+- 课程路径：`lessons/0001-论文全景概览.html` 到 `lessons/0004-组会汇报指南.html`
 - 术语表：`reference/glossary.html`

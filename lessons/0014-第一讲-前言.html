@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第一讲 · 前言 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第一讲 · 前言 / Lesson 1</div>
+      <h1>第一讲 · 前言</h1>
+      <p class="subtitle">先把整本书的任务、节奏、学习姿态说清楚。这样后面每一讲你都知道自己在往哪里走，也知道为什么要学这些数学和代码。🙂</p>
+      <div class="hero-meta">
+        <span>📖 视觉SLAM十四讲</span>
+        <span>🔗 为第2到第14讲定基调</span>
+        <span>🧭 目标是建立整书地图感</span>
+      </div>
+      <div class="toc">
+        <a href="#what-book">本书讲什么</a>
+        <a href="#why-hard">为什么 SLAM 难</a>
+        <a href="#how-use">如何使用本书</a>
+        <a href="#reader">面向读者</a>
+        <a href="#style">风格约定</a>
+        <a href="#wrap-up">本课小结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="what-book">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>你会先建立对整本《视觉SLAM十四讲》的全局认识：这本书到底在解决什么问题，为什么值得学，以及后面十四讲为什么会这样安排。</p>
+        </div>
+        <div class="callout">
+          <h4>和后文怎么接</h4>
+          <p>这一讲不是“可有可无的开场白”。它其实决定了你后面看第 2 讲系统框架、第 3 到第 6 讲数学基础、第 7 到第 14 讲模块实现时，能不能始终知道自己在学哪一层。</p>
+        </div>
+      </div>
+      <p>这本书讲的是<strong>视觉 SLAM</strong>。先把名字拆开：</p>
+      <ul>
+        <li><strong>SLAM</strong> = Simultaneous Localization and Mapping，同时定位与地图构建</li>
+        <li><strong>视觉</strong> = 主要依赖相机，而不是激光雷达、GPS 或外部地标</li>
+      </ul>
+      <p>所以它讨论的核心问题可以压缩成一句话：<strong>仅凭一段连续运动的视频，怎样一边估计相机自身的位置，一边恢复周围环境的结构</strong>。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{连续图像序列} \Longrightarrow \text{相机位姿} + \text{环境地图} $$</div>
+      </div>
+      <p>这听起来非常像人做的事情。我们走进一个陌生房间时，也是在一边判断“我现在站在哪”，一边记住“桌子在左边、门在前面、墙在后面”。但问题在于：人类觉得自然的事情，对计算机却非常不自然。</p>
+    </main>
+
+    <section class="section-card" id="why-hard">
+      <h2>1. 为什么 SLAM 值得写一本书，而且还挺难</h2>
+      <p>书里前言这一段最重要的情绪，不是“SLAM 很火”，而是“<strong>这件事直觉上简单，真正做起来却非常难</strong>”。难点至少有三层：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第一层：图像不是世界本身</h4>
+          <p>相机看到的是一张张二维图像，而不是直接给你“哪个物体在多远、方向如何、是否运动”。图像在计算机里只是数字矩阵。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二层：定位和建图是耦合的</h4>
+          <p>不知道自己在哪里，就很难知道地图长什么样；没有地图，又难以判断自己在哪里。这是典型的“鸡生蛋蛋生鸡”问题。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第三层：还得实时</h4>
+          <p>很多实际应用并不允许你离线慢慢算。机器人、无人机、AR/VR 设备都希望边动边算，这会把问题再往上提一个难度层级。</p>
+        </div>
+      </div>
+      <p>而它之所以值得学，是因为它和现实应用贴得非常近：扫地机器人要定位，自动驾驶要定位，无人机要定位，AR/VR 设备要定位。没有 SLAM，这些系统就只能“看得见”，却很难“知道自己身在何处”。</p>
+      <div class="interactive-card">
+        <h3>互动热身</h3>
+        <p>如果一个机器人只有摄像头，却完全不知道自己的位置，它最先会失去哪类能力？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。它可能还能采图，但无法稳定地把动作和环境位置关联起来，也就谈不上真正可靠的导航与交互。" onclick="lessonKit.answer(this, 'quiz-0014-a')">稳定导航与重定位</button>
+          <button data-correct="no" data-explanation="拍照本身未必立刻失去，失去的是“把图像和空间位置联系起来”的能力。" onclick="lessonKit.answer(this, 'quiz-0014-a')">采集图像的能力</button>
+          <button data-correct="no" data-explanation="显示界面不是本质，真正缺的是空间自我感知。" onclick="lessonKit.answer(this, 'quiz-0014-a')">显示图像的能力</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0014-a"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="how-use">
+      <h2>2. 这本书是怎样组织内容的</h2>
+      <p>前言里其实已经把全书结构说得很清楚了。为了避免你后面学到一半“只记细节、不见地图”，我们把它重新压成一个路线图：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>第一部分：数学基础篇</h4>
+          <p>第 2 讲到第 6 讲。先讲系统框架，再讲三维空间运动、李群李代数、相机模型、非线性优化。你可以把这部分理解成“后面所有 SLAM 模块的工具箱”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第二部分：SLAM 技术篇</h4>
+          <p>第 7 讲到第 14 讲。按视觉里程计、后端、回环、建图、开源系统和未来方向展开。你可以把这部分理解成“拿着前面的工具箱去拼完整系统”。</p>
+        </div>
+      </div>
+      <p>这里有一个特别适合记住的阅读姿势：<strong>先主干，后枝叶</strong>。这本书不是想穷尽所有 SLAM 论文，而是想让你先抓住主线，再去读前沿论文时不至于一头雾水。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{系统框架} \rightarrow \text{三维表示} \rightarrow \text{相机模型} \rightarrow \text{优化} \rightarrow \text{VO} \rightarrow \text{后端} \rightarrow \text{回环} \rightarrow \text{建图} $$</div>
+      </div>
+      <p>这一点和我们现在做成一节节 HTML 课是完全一致的：每一节课都尽量只讲清一个紧凑的核心主题，但又始终提醒你它在整本书中的位置。</p>
+    </section>
+
+    <section class="section-card" id="reader">
+      <h2>3. 本书默认你具备什么基础</h2>
+      <p>原书这里写得很诚恳：它不是把门槛抬高，而是提前告诉你，哪些基础缺了会让后面很吃力。核心有三块：</p>
+      <table>
+        <thead>
+          <tr><th>基础</th><th>为什么重要</th><th>不够熟会卡在哪里</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>高数 / 线代 / 概率</td><td>SLAM 的状态估计和优化都建立在这些上面</td><td>看不懂矩阵、雅可比、噪声模型</td></tr>
+          <tr><td>C++ 基础</td><td>本书代码全部用 C++</td><td>读不懂类、模板、库接口</td></tr>
+          <tr><td>Linux 基础</td><td>后面所有库的安装和工程编译都依赖 Linux 开发环境</td><td>连 cmake / make / 终端路径都跑不顺</td></tr>
+        </tbody>
+      </table>
+      <p>但也别被这里吓住。前言真正想传达的，不是“你必须全会”，而是“<strong>你至少要知道自己接下来在补哪块短板</strong>”。</p>
+    </section>
+
+    <section class="section-card" id="style">
+      <h2>4. 风格约定：为什么这本书既讲公式也讲代码</h2>
+      <p>原书很强调一点：SLAM 不是只靠数学推导就能真正掌握的技术。理解公式是一半，能把它跑成程序、调出结果是另一半。所以本书有两个非常鲜明的写作约定：</p>
+      <ul>
+        <li>重要数学公式会单独列出并编号，例如：$$ \boldsymbol{y} = \boldsymbol{A}\boldsymbol{x}. \tag{1.1} $$</li>
+        <li>关键代码会以片段或完整程序形式出现，供你真正动手实现。</li>
+      </ul>
+      <p>这也正是我们这套课程要保持的原则：<strong>不把它做成聊天记录，也不把它做成只剩结论的提纲，而是做成既能学、又能回看、还能动手练的讲义</strong>。</p>
+      <div class="callout">
+        <h4>OCR 校正提醒</h4>
+        <p>原始 markdown 在这一讲里有一处明显识别错误，书中“如何使用大书”一类乱码句并非原意。这里已按上下文恢复成正常的“如何使用本书”脉络来组织内容。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 本课小结</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>这本书到底讲什么</h4>
+          <p>讲怎样只靠视觉传感器，同时完成定位与建图。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它难</h4>
+          <p>图像不是世界本身，定位和建图强耦合，而且常常还要求实时。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么要分两部分</h4>
+          <p>前半先铺数学和表示工具，后半再把它们装配成完整 SLAM 系统。</p>
+        </div>
+      </div>
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            用一句话解释“视觉 SLAM”和“普通拍视频”的区别。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>普通拍视频只是记录图像；视觉 SLAM 要从连续图像里进一步推断相机自身的位姿和环境结构，也就是把图像变成空间理解。</div>
+            </details>
+          </li>
+          <li>
+            为什么前言里反复强调“实践”而不是只强调“理论”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 SLAM 是非常强工程性的技术。很多方法只有真正写成代码、调过参数、看过失败和成功结果，才算真的理解，而不只是“看过证明”。</div>
+            </details>
+          </li>
+          <li>
+            你现在最该把整本书看成什么：一本算法百科、一本数学证明集，还是一张系统路线图？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>更像一张系统路线图。它不会穷尽所有论文细节，而是先帮你建立主干知识，让你后续能读懂、实现并扩展视觉 SLAM 的核心模块。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a class="disabled" href="#">←</a>
+        <a class="next" href="0015-第二讲-SLAM系统框架与核心模块.html">SLAM 系统框架与核心模块 →</a>
+      </div>
+      <p class="foot-note">这一讲的任务不是学会算法，而是先把整张地图看清楚。后面每一讲都会回到这里的主线 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

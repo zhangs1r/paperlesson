@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第十讲 · g2o与Ceres实践BA与章节总结 | 视觉SLAM十四讲</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">第十讲 · 后端 1 / Lesson 3</div>
+      <h1>第十讲 · g2o 与 Ceres 实践 BA 与章节总结</h1>
+      <p class="subtitle">这一课把前两节的后端理论真正落到代码世界里。你会看到，同一个 BA，为什么在 g2o 里像“搭图”，在 Ceres 里像“写残差”；也会顺手把第十讲的主线完整收束起来。🔬</p>
+      <div class="hero-meta">
+        <span>🛠️ g2o / Ceres 双实践</span>
+        <span>📚 第十讲收束</span>
+        <span>➡️ 前瞻第十一讲位姿图</span>
+      </div>
+      <div class="toc">
+        <a href="#goal">本课目标</a>
+        <a href="#g2o">g2o 里的 BA</a>
+        <a href="#ceres">Ceres 里的 BA</a>
+        <a href="#compare">两者对照</a>
+        <a href="#chapter-summary">第十讲总图</a>
+        <a href="#wrap-up">练习与收束</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="goal">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本课目标</h4>
+          <p>把上一节的 BA 数学结构，真正落成两种主流实现视角：一种是 g2o 的顶点-边图模型，一种是 Ceres 的残差块问题定义。</p>
+        </div>
+        <div class="callout">
+          <h4>和前后文怎么接</h4>
+          <p>第九讲已经在前端里小规模用过 g2o 位姿精修；这一课把它放大成完整 BA。下一讲再看位姿图时，你就会更清楚：库不重要，变量和约束的组织方式才重要。</p>
+        </div>
+      </div>
+      <p>这一课最推荐的读法，是始终问自己一句话：<strong>这段代码到底在对应哪一层数学结构</strong>。这样你就不会掉进“API 背诵课”的陷阱里。🙂</p>
+    </main>
+
+    <section class="section-card" id="g2o">
+      <h2>1. g2o：它让你直接面对“图结构”</h2>
+      <p>g2o 的建模方式非常 SLAM：变量是顶点，误差是边。把上一节的 BA 结构翻译成 g2o，就是：</p>
+      <ul>
+        <li>相机参数块变成相机顶点；</li>
+        <li>3D 路标点变成路标顶点；</li>
+        <li>每条像素观测变成一条连接“相机 - 路标”的二元边。</li>
+      </ul>
+      <p>这意味着 g2o 很适合那些“本来就长得像图”的问题。你在写代码时，几乎是在显式重建 BA 的图模型本体。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>为什么它很直观</h4>
+          <p>因为你能直接看见“哪些变量是节点，哪些约束是边”。这和第十一讲位姿图、因子图的语言天然一致。</p>
+        </div>
+        <div class="mini-card">
+          <h4>为什么它门槛也更高一点</h4>
+          <p>因为你必须自己更明确地知道图该怎么搭，顶点维度是什么，边到底在连接谁。</p>
+        </div>
+        <div class="mini-card">
+          <h4>和第九讲的关系</h4>
+          <p>第九讲只在一个小位姿优化里尝了 g2o 的味道；这里才是完整 BA 规模下真正把它用起来。</p>
+        </div>
+      </div>
+
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/4b2f39c48801ea22af89c7d2aae65476c300c07cecd2af11dc98daca85abc971.jpg" alt="图 10-14 BA 初始值">
+        <figcaption>图 10-14 左图是 BA 优化前的形态。它看起来“散”，这恰好说明了为什么后端要工作：初始值并不等于一致答案。</figcaption>
+      </figure>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/760dd66f5d35838a52ea3b99b6013d8c2de52545d3022c92797668640cd6c986.jpg" alt="图 10-14 BA 优化后">
+        <figcaption>右图则是优化后的结果。重点不是“图更好看了”，而是它说明前两节讲的代价函数、稀疏结构和 Schur 思想，真的在真实数据里生效了。</figcaption>
+      </figure>
+
+      <p>书里提到的 <code>setMarginalized(true)</code> 特别关键。它不是某种语法小细节，而是在告诉优化器：这些路标点会进入 Schur 消元流程，需要被边缘化掉。也就是说，上一节讲的数学结构，在这里第一次真正以代码选项的形式出现了。</p>
+      <div class="callout">
+        <h4>一个容易被 OCR 搅乱的点</h4>
+        <p>书的 OCR 文本里，<code>marginalized</code>、<code>BlockSolverTraits</code>、<code>LinearSolverCholmod</code> 一类词很容易断裂或拼错。课堂里最重要的是理解其角色：<strong>设置求解结构，而不是死记字符串</strong>。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="ceres">
+      <h2>2. Ceres：它让你直接面对“残差问题”</h2>
+      <p>如果说 g2o 的第一视角是图，那么 Ceres 的第一视角就是最小二乘问题本身。你在 Ceres 里通常会先想：</p>
+      <ul>
+        <li>残差函数怎么写？</li>
+        <li>每个参数块维度是多少？</li>
+        <li>每条观测怎么被加到 Problem 里？</li>
+      </ul>
+      <p>所以 Ceres 特别像“通用数值优化器”，而不只是一套 SLAM 图优化工具。也正因此，它常常会让人觉得更顺手、更现代。</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$ \text{定义残差} \rightarrow \text{声明参数块} \rightarrow \text{AddResidualBlock} \rightarrow \text{Solve} $$</div>
+      </div>
+      <p>你可以把它和上一节 BA 公式直接对照：每一个观测误差 $e_{ij}$，都会在 Ceres 里变成一个残差块；每个相机参数块和每个路标点参数块，则成为这个残差块连接的变量。</p>
+      <figure class="figure">
+        <img src="../资料/视觉slam十四讲 md文档/dc68fa81c52aae57d18dec2a4258783cdfb6c7e5e8ed611ce845524057b88e1c.jpg" alt="图 10-15 Ceres BA 结果">
+        <figcaption>图 10-15 的意义在于告诉你：不同库的建模方式虽然长相不同，但它们最终追的还是同一个几何目标，所以结果理应在结构上趋同。</figcaption>
+      </figure>
+      <p>书里通过 <code>ParameterBlockOrdering</code> 指定 Schur 消元顺序，这一点尤其值得留心。它说明 Ceres 并不是“忽略结构”，恰恰相反，它是在用另一种 API 形式，把上一节的结构性知识重新表达出来。</p>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>3. g2o 和 Ceres 的差异，核心不是“谁更强”，而是“你从哪一层看问题”</h2>
+      <table>
+        <thead>
+          <tr><th>比较维度</th><th>g2o</th><th>Ceres</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>第一视角</td><td>图结构：顶点、边、图优化</td><td>问题结构：残差函数、参数块、求解器</td></tr>
+          <tr><td>和 SLAM 语义的贴合度</td><td>非常强，尤其适合位姿图 / BA / 因子图式表达</td><td>更通用，但要自己把 SLAM 语义映射到残差问题里</td></tr>
+          <tr><td>边缘化表达</td><td><code>setMarginalized(true)</code></td><td><code>ParameterBlockOrdering</code></td></tr>
+          <tr><td>阅读感受</td><td>像在“搭图”</td><td>像在“写优化问题”</td></tr>
+        </tbody>
+      </table>
+      <p>如果把这张表再翻译成人话，就是：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>g2o 更像工程师的图纸</h4>
+          <p>你可以直接看到节点和边，很适合把 SLAM 的结构感保持得很强。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Ceres 更像数学家的接口</h4>
+          <p>你先写清楚目标函数和变量，再让求解器帮你做剩下的事。</p>
+        </div>
+        <div class="mini-card">
+          <h4>它们最终仍在做同一件事</h4>
+          <p>都是围绕重投影误差、稀疏结构和 Schur 消元，去逼近更一致的位姿与地图。</p>
+        </div>
+      </div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果你想最直观地表达“位姿节点 - 路标节点 - 观测边”这种结构，通常会更偏向哪类工具气质？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。因为它直接把 SLAM 问题暴露成顶点与边，非常贴近图优化的原始表达。" onclick="lessonKit.answer(this, 'quiz-0065')">g2o 这种顶点 / 边风格</button>
+          <button data-correct="no" data-explanation="Ceres 当然能做，但它更像在写残差问题，而不是先把图结构摊在你面前。" onclick="lessonKit.answer(this, 'quiz-0065')">Ceres 这种先写残差块的风格</button>
+          <button data-correct="no" data-explanation="两者都能解 BA，但建模视角绝对不是完全没区别。" onclick="lessonKit.answer(this, 'quiz-0065')">两者的建模体验完全一样</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0065"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="chapter-summary">
+      <h2>4. 第十讲总图：这一讲到底完成了什么</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>0063：状态估计视角</h4>
+          <p>重新激活第 2 讲的状态估计语言，用 KF / EKF 解释后端在做什么，以及为什么滤波器思路会遇到瓶颈。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0064：BA 与稀疏结构</h4>
+          <p>真正看懂重投影误差、稀疏 H 矩阵和 Schur 消元，不再只会背“BA 很重要”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>0065：实现落地</h4>
+          <p>把 BA 变成 g2o 与 Ceres 两套具体实践，知道数学结构怎样在代码里被表达出来。</p>
+        </div>
+      </div>
+      <p>所以第十讲其实完成了三层跃迁：</p>
+      <ul>
+        <li>从“前端局部估计”跃迁到“后端全局状态估计”；</li>
+        <li>从“单次求姿态”跃迁到“联合优化位姿与路标”；</li>
+        <li>从“抽象公式理解”跃迁到“真实工程实现”。</li>
+      </ul>
+      <p>有了这三层跃迁，你再往第十一讲看位姿图，就会特别顺：那一讲不是另起炉灶，而是在问“如果把路标再进一步吸收掉，只保留位姿关系，会发生什么”。</p>
+    </section>
+
+    <section class="section-card" id="wrap-up">
+      <h2>5. 课后练习</h2>
+      <section class="exercise-box">
+        <h3>练习与答案</h3>
+        <ol>
+          <li>
+            为什么说 g2o 和 Ceres 的差异，更多是“建模入口差异”，而不是“在解不同问题”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它们都在解同一个 BA 最小二乘问题。差别只在于 g2o 更强调顶点和边，Ceres 更强调残差函数和参数块。目标函数和底层几何逻辑并没有变。</div>
+            </details>
+          </li>
+          <li>
+            第十讲为什么是第十一讲位姿图优化的直接前置？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为第十一讲仍然是后端优化，只不过把 BA 中的路标进一步折叠掉，变成关键帧位姿之间的约束图。第十讲已经把状态估计、稀疏结构和图优化语言都铺好了。</div>
+            </details>
+          </li>
+          <li>
+            如果你要用一句话向别人解释“为什么现代视觉 SLAM 喜欢 BA 而不是 EKF”，你会怎么说？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 BA 更适合处理大规模、强非线性、带长程历史约束的视觉问题，而且还能借助稀疏结构和 Schur 消元把计算规模压下来。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0064-第十讲-BA求解与稀疏性边缘化.html">← BA 求解与稀疏性边缘化</a>
+        <a class="next" href="0066-第十一讲-位姿图的动机与误差模型.html">第十一讲 · 位姿图的动机与误差模型 →</a>
+      </div>
+      <p class="foot-note">到这里，第十讲已经把“后端为什么必须认真学”从概念、结构到实现完整串起来了。🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

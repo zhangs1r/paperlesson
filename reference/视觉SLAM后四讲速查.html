@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视觉SLAM后四讲速查</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="../lessons/assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Reference</div>
+      <h1>视觉SLAM后四讲速查</h1>
+      <p class="subtitle">给第十一讲到第十四讲的一页复习卡片，适合你在整本书学完后快速回忆主线。📎</p>
+    </header>
+
+    <section class="section-card">
+      <h2>后四讲速记</h2>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>第十一讲</h4>
+          <p>关键词：Pose Graph、因子图、增量优化。先学会把误差写成 $e_{ij}=\log(\Delta T_{ij}^{-1}T_i^{-1}T_j)^\vee$，再理解因子图为什么便于扩展多源约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第十二讲</h4>
+          <p>关键词：回环检测、BoW、TF-IDF、PR 曲线。先保 Precision，再谈 Recall；词袋本质是“图像转稀疏词向量再检索”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第十三讲</h4>
+          <p>关键词：稠密重建、深度滤波、点云、OctoMap、TSDF。记住定位需求和地图需求不是一回事。</p>
+        </div>
+        <div class="mini-card">
+          <h4>第十四讲</h4>
+          <p>关键词：系统谱系、VIO、语义 SLAM。把每个系统看成对“完整性、轻量性、鲁棒性”不同取舍。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>关键公式</h2>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>位姿图误差</h4>
+          <div class="formula-box">$$ e_{ij} = \log\!\left(\Delta T_{ij}^{-1} T_i^{-1} T_j\right)^\vee $$</div>
+          <p>把观测相对位姿和当前估计相对位姿的差写到李代数里。</p>
+        </div>
+        <div class="mini-card">
+          <h4>回环评估</h4>
+          <div class="formula-box">$$ \mathrm{Precision} = \frac{TP}{TP+FP}, \qquad \mathrm{Recall} = \frac{TP}{TP+FN} $$</div>
+          <p>在 SLAM 中，误报回环通常比漏报更危险。</p>
+        </div>
+        <div class="mini-card">
+          <h4>TF-IDF</h4>
+          <div class="formula-box">$$ \eta_i = \mathrm{TF}_i \cdot \mathrm{IDF}_i $$</div>
+          <p>高频但不常见的单词，区分力更强。</p>
+        </div>
+        <div class="mini-card">
+          <h4>深度高斯融合</h4>
+          <div class="formula-box">$$ \mu_{fuse} = \frac{\sigma_{obs}^2\mu + \sigma^2\mu_{obs}}{\sigma^2 + \sigma_{obs}^2}, \qquad \sigma_{fuse}^2 = \frac{\sigma^2\sigma_{obs}^2}{\sigma^2 + \sigma_{obs}^2} $$</div>
+          <p>谁更确定，谁的权重就更大。</p>
+        </div>
+        <div class="mini-card">
+          <h4>OctoMap 对数概率</h4>
+          <div class="formula-box">$$ y = \log\frac{x}{1-x}, \qquad L(n\mid z_{1:t+1})=L(n\mid z_{1:t})+L(n\mid z_t) $$</div>
+          <p>占据融合从概率乘法转成加法累积。</p>
+        </div>
+        <div class="mini-card">
+          <h4>全书主线</h4>
+          <div class="formula-box">$$ \text{Motion} \rightarrow \text{Camera} \rightarrow \text{Optimization} \rightarrow \text{VO} \rightarrow \text{Backend} \rightarrow \text{Loop} \rightarrow \text{Mapping} $$</div>
+          <p>复习时先守住这条主线，细节就不容易散掉。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <h2>继续深挖建议</h2>
+      <table>
+        <thead>
+          <tr><th>目标</th><th>下一步建议</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>想读代码</td><td>从 ORB-SLAM 或 SVO 选一套，按本书模块顺序反向映射源码。</td></tr>
+          <tr><td>想做研究</td><td>优先抓一个点：后端因子图 / 回环 / VIO / 语义 SLAM。</td></tr>
+          <tr><td>想做机器人应用</td><td>把 SLAM 输出和导航、避障、地图保存恢复真正连起来。</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>
