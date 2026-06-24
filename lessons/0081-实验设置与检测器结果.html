@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFusion-SLAM · 实验设置与检测器结果</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">DFusion-SLAM / Lesson 5</div>
+      <h1>实验设置与检测器结果</h1>
+      <p class="subtitle">这一节先不急着看 SLAM 最终轨迹，而是把“前端有没有真的做到轻量高效”这件事审清楚：平台是什么、比较对象是谁、COCO 上的速度精度权衡怎样、后面的 TUM / Bonn 评价指标又是怎么定义的。📊</p>
+      <div class="hero-meta">
+        <span>🧪 环境：i9-14900KF + RTX 4090D</span>
+        <span>📈 核心图：Fig. 4</span>
+        <span>📋 核心表：Table II</span>
+      </div>
+      <div class="toc">
+        <a href="#env">实验环境</a>
+        <a href="#detector">检测器结果怎么读</a>
+        <a href="#datasets">SLAM 数据集设计</a>
+        <a href="#metrics">ATE / RPE 指标</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="env">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>读懂论文实验“地基”的质量。很多论文看起来结果很强，细看发现平台和比较方式并不公平；这一节就是帮你先把这些基础条件检查一遍。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上一节我们从结构上理解了 DFINE-PL 为什么可能更快。现在要看的是：实验是否真的显示它在速度和精度之间找到了一个好平衡。</p>
+        </div>
+      </div>
+
+      <h2>1. 实验环境说明了什么</h2>
+      <p>论文给出的检测实验环境是：Intel Core i9-14900KF、64 GB DDR5、NVIDIA RTX 4090D，软件为 Ubuntu 20.04、CUDA 11.4、cuDNN 8.6.1、TensorRT 10.7，且使用 FP32 而不是 FP16。</p>
+      <div class="callout">
+        <h4>这组配置该怎么理解</h4>
+        <p>它说明作者是在一台很强的工作站上测试前端时延，所以“2.34 ms”这样的数字更多反映的是<strong>相对模型效率</strong>，不能直接等价成“所有边缘设备上都能跑出这个延迟”。但由于比较对象在同平台上测试，<strong>横向比较仍然有意义</strong>。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="detector">
+      <h2>2. Table II 该怎么读：它拼的不是绝对最高 mAP，而是精度-时延比</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Params(M)</th>
+            <th>GFLOPs</th>
+            <th>FPS</th>
+            <th>mAP<sub>50-90</sub><sup>val</sup></th>
+            <th>mAP<sub>50</sub><sup>val</sup></th>
+            <th>Latency(ms)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>YOLOv5-S</td><td>7.2</td><td>16.5</td><td>217</td><td>37.4</td><td>56.8</td><td>14.3</td></tr>
+          <tr><td>YOLOv5-M</td><td>21.2</td><td>49.0</td><td>145</td><td>45.4</td><td>64.1</td><td>15.2</td></tr>
+          <tr><td>YOLOv8-N</td><td>3.2</td><td>8.7</td><td>123</td><td>37.3</td><td>54.3</td><td>6.4</td></tr>
+          <tr><td>YOLOv8-S</td><td>11.2</td><td>28.6</td><td>198</td><td>44.2</td><td>60.6</td><td>7.2</td></tr>
+          <tr><td>YOLOv8-M</td><td>25.9</td><td>78.9</td><td>149</td><td>50.2</td><td>67.2</td><td>10.1</td></tr>
+          <tr><td><strong>DFINE-PL</strong></td><td><strong>4.3</strong></td><td><strong>7.4</strong></td><td><strong>356</strong></td><td><strong>43.7</strong></td><td><strong>59.5</strong></td><td><strong>2.34</strong></td></tr>
+          <tr><td>DFINE-N</td><td>4.0</td><td>7.0</td><td>322</td><td>42.8</td><td>57.2</td><td>2.12</td></tr>
+          <tr><td>DFINE-S</td><td>10.6</td><td>25.3</td><td>367</td><td>48.5</td><td>66.3</td><td>3.49</td></tr>
+          <tr><td>DEIM-N</td><td>4.2</td><td>7.0</td><td>341</td><td>43.0</td><td>57.9</td><td>2.25</td></tr>
+        </tbody>
+      </table>
+      <p>这张表最值得你学会的阅读方式是：<strong>先看作者目标，再看数据是否匹配目标</strong>。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>不是最高精度冠军</h4>
+          <p>YOLOv8-M、DFINE-S 的 mAP 更高，所以 DFINE-PL 不是“检测精度 SOTA”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>但速度非常强</h4>
+          <p>2.34 ms 的延迟明显更低，且 43.7 的 mAP 对轻量级前端来说已经不弱。</p>
+        </div>
+        <div class="mini-card">
+          <h4>对 SLAM 更重要</h4>
+          <p>SLAM 不是离线检测比赛，前端每帧都要在线跑，所以“够准且更快”常常比“再高一点 mAP 但明显更慢”更值钱。</p>
+        </div>
+      </div>
+
+      <figure class="figure">
+        <img src="../资料/DFusion-SLAM_A_Lightweight_Semantic_Fusion_Framework_for_Robust_Visual_SLAM_in_Dynamic_Environments md文档/94c54d0950dd2b65fa9f791568c4a682b337e96cf8bafc8e5c69837800535b8e.jpg" alt="DFINE-PL 精度与时延权衡图">
+        <figcaption>Fig. 4 速度-精度图。DFINE-PL 位于更靠左上的区域，意思是：在较低时延下拿到了相当不错的精度。这正是“轻量动态前端”最想证明的事。</figcaption>
+      </figure>
+      <p>如果你把这张图和 Table II 对照着看，就会发现论文的论点其实很聚焦：<strong>DFINE-PL 的价值不是碾压所有检测器，而是在低计算代价区间里拿到了更好的 trade-off</strong>。</p>
+    </section>
+
+    <section class="section-card" id="datasets">
+      <h2>3. 后续 SLAM 测试为什么选 TUM 和 Bonn</h2>
+      <p>后面的 SLAM 对比用的是两套 RGB-D 数据：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>TUM RGB-D</h4>
+          <p>选了 fr3 系列的 6 段，涵盖坐姿、行走、平移、旋转、半球轨迹等场景。好处是标准、常用、带真值轨迹，适合看动态条件下的位姿误差。</p>
+        </div>
+        <div class="mini-card">
+          <h4>Bonn RGB-D</h4>
+          <p>选了 balloon、crowd、placing nonobstructing box、person tracking 等更“闹腾”的动态场景，适合看多目标运动、遮挡、非刚体互动时系统是否还能稳住。</p>
+        </div>
+      </div>
+      <p>论文选这些数据不是随便挑的，它们刚好对应两类问题：</p>
+      <ul>
+        <li>TUM 更像“控制变量下看轨迹误差是否收敛得更好”</li>
+        <li>Bonn 更像“复杂真实动态干扰下系统是否还扛得住”</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="metrics">
+      <h2>4. ATE 和 RPE 分别回答什么问题</h2>
+      <p>论文用两类经典指标：</p>
+      <div class="formula-box">
+        $$
+        \mathrm{ATE}_{\mathrm{RMSE}}
+        =
+        \sqrt{
+        \frac{1}{n}
+        \sum_{i=1}^{n}
+        \left\|
+        p_i^{\mathrm{gt}} - T \cdot p_i^{\mathrm{est}}
+        \right\|^2
+        } \tag{8}
+        $$
+      </div>
+      <div class="formula-box">
+        $$
+        \mathrm{RPE}_{\mathrm{trans,RMSE}}
+        =
+        \sqrt{
+        \frac{1}{n-\Delta}
+        \sum_{i=1}^{n-\Delta}
+        \left\|
+        \mathrm{RPE}_{\mathrm{trans}}(i,\Delta)
+        \right\|^2
+        } \tag{9}
+        $$
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>更偏向回答什么问题</th>
+            <th>通俗理解</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ATE</td>
+            <td>整条轨迹最终离真值有多远</td>
+            <td>像是看“你整趟路最后整体走偏了多少”</td>
+          </tr>
+          <tr>
+            <td>RPE</td>
+            <td>相邻或局部位姿变化有没有抖、有没有局部不稳</td>
+            <td>像是看“你走路时每一步是否稳定”</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个 SLAM 轨迹整体终点不算太偏，但中间经常局部抖动和尖峰，哪个指标更容易先看出问题？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。RPE 更关注局部相对运动误差，所以更容易捕捉中间过程里的抖动和不稳定。" onclick="lessonKit.answer(this, 'quiz-0081')">RPE</button>
+          <button data-correct="no" data-explanation="ATE 也可能受影响，但它更偏向整条轨迹的整体偏差，不一定最先暴露局部抖动。" onclick="lessonKit.answer(this, 'quiz-0081')">ATE</button>
+          <button data-correct="no" data-explanation="FPS 是速度指标，不是轨迹精度指标。" onclick="lessonKit.answer(this, 'quiz-0081')">FPS</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0081"></div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            从 Table II 看，DFINE-PL 的卖点更接近“绝对精度最高”还是“速度精度平衡更优”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>更接近速度精度平衡更优。它不是最高 mAP，但延迟极低，在轻量模型里很有竞争力。</div>
+            </details>
+          </li>
+          <li>
+            为什么论文需要同时报告 ATE 和 RPE，而不是只报一个？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为 ATE 看整体轨迹一致性，RPE 看局部运动稳定性。两者合起来才能更完整评价 SLAM。</div>
+            </details>
+          </li>
+          <li>
+            论文在 RTX 4090D 上测到的前端时延，能不能直接等价成嵌入式机器人上的绝对部署时延？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>不能直接等价。它更适合做同平台的横向比较，说明模型相对效率，但不等于在所有设备上都能达到相同时延。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0080-PolaLinearAttention与MetaFormer融合.html">← PolaLinearAttention 与 MetaFormer 融合</a>
+        <a class="next" href="0082-SLAM结果解读与批判性总结.html">SLAM 结果解读与批判性总结 →</a>
+      </div>
+      <p class="foot-note">前端实验这关过了，下一节我们终于来看它接进 SLAM 之后到底有没有真把轨迹拉稳 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

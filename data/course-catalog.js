@@ -50,6 +50,16 @@ window.PAPERLESSON_DATA = {
       meta: ["7 节课", "~180 分钟", "开放词汇语义分割"]
     },
     {
+      id: "dfusion-slam",
+      groupId: "papers",
+      kind: "论文精读",
+      title: "DFusion-SLAM",
+      subtitle: "A Lightweight Semantic Fusion Framework for Robust Visual SLAM in Dynamic Environments",
+      description: "第 0077 到 0082 课。围绕动态环境下的视觉 SLAM 鲁棒性问题，完整拆解 DFusion-SLAM 的研究动机、系统模型、DFINE-PL 前端、注意力与特征融合设计、检测器实验，以及 TUM / Bonn 上的 SLAM 结果与局限。",
+      quickOpen: "start lessons\\0077-论文全景与问题动机.html",
+      meta: ["6 节课", "~150 分钟", "动态 SLAM / 语义融合"]
+    },
+    {
       id: "slambook",
       groupId: "books",
       kind: "教材精读",
@@ -74,6 +84,12 @@ window.PAPERLESSON_DATA = {
     { id:"0011", path:"lessons/0011-实验设置与结果.html", paper:"lseg", title:"实验设置与结果", subtitle:"PASCAL-5ⁱ · COCO-20ⁱ · FSS-1000", emoji:"📊", duration:"30 分钟", tags:["实验","结果"], description:"理解论文结果表到底在证明什么，而不只是背分数。" },
     { id:"0012", path:"lessons/0012-消融研究与定性分析.html", paper:"lseg", title:"消融研究与定性分析", subtitle:"失败案例与方法边界", emoji:"🔬", duration:"30 分钟", tags:["消融","定性"], description:"从消融和失败模式看论文真正站住脚的部分。" },
     { id:"0013", path:"lessons/0013-总结与展望.html", paper:"lseg", title:"总结与展望", subtitle:"贡献、局限与后续影响", emoji:"🎯", duration:"20 分钟", tags:["总结","展望"], description:"把 LSeg 放进后续开放词汇视觉工作的长线上。" },
+    { id:"0077", path:"lessons/0077-论文全景与问题动机.html", paper:"dfusion-slam", title:"论文全景与问题动机", subtitle:"动态物体为什么会伤到经典视觉 SLAM", emoji:"📖", duration:"22 分钟", tags:["背景","动机","动态 SLAM"], description:"先把 DFusion-SLAM 的问题意识立住，理解作者为什么选择轻量检测驱动的动态过滤路线。" },
+    { id:"0078", path:"lessons/0078-相关工作与系统建模.html", paper:"dfusion-slam", title:"相关工作与系统建模", subtitle:"把动态 SLAM 三条路线与系统公式读清楚", emoji:"🧭", duration:"24 分钟", tags:["相关工作","系统模型"], description:"把论文放回动态 SLAM 光谱中，并读懂 RGB-D 输入、动态掩码和静态重投影优化的系统建模。" },
+    { id:"0079", path:"lessons/0079-DFINE-PL前端与动态掩码.html", paper:"dfusion-slam", title:"DFINE-PL 前端与动态掩码", subtitle:"Backbone、Hybrid Encoder、Decoder 各干什么", emoji:"⚙️", duration:"24 分钟", tags:["前端","DFINE-PL"], description:"逐块拆开 DFINE-PL 前端结构，理解它如何产出能服务 ORB-SLAM3 的动态 / 静态判断。" },
+    { id:"0080", path:"lessons/0080-PolaLinearAttention与MetaFormer融合.html", paper:"dfusion-slam", title:"PolaLinearAttention 与 MetaFormer 融合", subtitle:"方法细节与消融证据一起读", emoji:"🧠", duration:"28 分钟", tags:["注意力","MetaFormer","消融"], description:"从式(4)到式(7)理解方法设计，并用 Table I 检查作者结论到底有多扎实。" },
+    { id:"0081", path:"lessons/0081-实验设置与检测器结果.html", paper:"dfusion-slam", title:"实验设置与检测器结果", subtitle:"速度、mAP、数据集和评价指标", emoji:"📊", duration:"26 分钟", tags:["实验设置","检测器","ATE/RPE"], description:"把 DFINE-PL 的轻量化证据和后续 SLAM 评价地基读扎实，避免只看最终轨迹图。" },
+    { id:"0082", path:"lessons/0082-SLAM结果解读与批判性总结.html", paper:"dfusion-slam", title:"SLAM 结果解读与批判性总结", subtitle:"TUM / Bonn 结果、局限与下一步", emoji:"🔬", duration:"30 分钟", tags:["结果分析","局限","总结"], description:"把 TUM 与 Bonn 上的 ATE / RPE、误差分布和失败边界一起收束，形成真正的研究型理解。" },
     { id:"0014", path:"lessons/0014-第一讲-前言.html", paper:"slambook", title:"第一讲：前言", subtitle:"整本书的任务、节奏与学习地图", emoji:"📖", duration:"15 分钟", tags:["前言","总览"], description:"先把整本《视觉 SLAM 十四讲》的问题意识和学习路线建立起来。" },
     { id:"0015", path:"lessons/0015-第二讲-SLAM系统框架与核心模块.html", paper:"slambook", title:"第二讲：SLAM 系统框架与核心模块", subtitle:"先把系统骨架立住", emoji:"🏗️", duration:"18 分钟", tags:["系统框架","前端后端"], description:"理解经典视觉 SLAM 的五大模块、累计漂移与地图类型。" },
     { id:"0016", path:"lessons/0016-第二讲-SLAM的数学表述.html", paper:"slambook", title:"第二讲：SLAM 的数学表述", subtitle:"状态估计视角下的 SLAM", emoji:"📐", duration:"18 分钟", tags:["状态估计","数学表述"], description:"把 SLAM 上升为带噪声的运动方程与观测方程问题。" },
@@ -150,6 +166,8 @@ window.PAPERLESSON_DATA = {
     { title: "E2Map 项目主页", url: "https://e2map.github.io/", emoji: "🌐", description: "论文原文、代码仓库、补充材料与演示视频。" },
     { title: "VLMaps 项目主页", url: "https://vlmaps.github.io/", emoji: "🗺️", description: "Visual Language Maps for Robot Navigation 项目主页。" },
     { title: "LSeg GitHub", url: "https://github.com/isl-org/lang-seg", emoji: "💻", description: "LSeg 官方代码仓库。" },
+    { title: "DFusion-SLAM 论文页", url: "https://ieeexplore.ieee.org/document/11218208/", emoji: "🧾", description: "DFusion-SLAM 在 IEEE Xplore 的论文主页，可查看摘要、出版信息与 PDF 入口。" },
+    { title: "D-FINE 论文", url: "https://arxiv.org/abs/2410.13842", emoji: "🧠", description: "DFusion-SLAM 前端检测器改造所基于的 D-FINE 原始论文。" },
     { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" }
   ]
 };

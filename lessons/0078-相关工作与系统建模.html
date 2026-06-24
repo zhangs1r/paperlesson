@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFusion-SLAM · 相关工作与系统建模</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">DFusion-SLAM / Lesson 2</div>
+      <h1>相关工作与系统建模</h1>
+      <p class="subtitle">这一节把论文放进动态 SLAM 的大地图里，再把系统模型写成“输入、掩码、静态特征、位姿优化”的清晰链条。你会看到，它本质上是在 ORB-SLAM3 前端前面插入一层动态过滤器。🧭</p>
+      <div class="hero-meta">
+        <span>📚 主题：taxonomy + system model</span>
+        <span>🖼️ 核心原图：Fig. 1</span>
+        <span>📐 核心公式：式(1)~(3)</span>
+      </div>
+      <div class="toc">
+        <a href="#taxonomy">动态 SLAM 三条路线</a>
+        <a href="#system-arch">系统总架构</a>
+        <a href="#equations">输入、掩码与重投影</a>
+        <a href="#bridge">和旧课怎么接上</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="taxonomy">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>把相关工作不当成“文献列表”去背，而是当成路线选择题来读：为什么作者最后落在“检测驱动的动态过滤 + ORB-SLAM3”这一支。</p>
+        </div>
+        <div class="callout">
+          <h4>和前一节怎么接</h4>
+          <p>上一节我们知道问题出在动态物体污染了静态几何。现在要问：前人通常怎么挡住这类污染？作者这次选的方案在代价和效果上处于什么位置？</p>
+        </div>
+      </div>
+
+      <h2>1. 论文把动态视觉 SLAM 分成三路，其实很合理</h2>
+      <p>作者在引言里把深度学习增强的动态视觉 SLAM 粗分成三类：</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>目标检测式</h4>
+          <p>先找人、车、动物等可能动态的目标，再把这些区域做过滤。优点是快、容易工程部署；缺点是边界粗，细粒度不一定够。</p>
+        </div>
+        <div class="mini-card">
+          <h4>语义分割式</h4>
+          <p>逐像素预测类别，理论上分得更细，但网络更重、延迟更高，对嵌入式平台不太友好。</p>
+        </div>
+        <div class="mini-card">
+          <h4>实例分割式</h4>
+          <p>既要类别，又要每个实例的精细轮廓，表达能力最强，但代价通常也最高。</p>
+        </div>
+      </div>
+      <p>如果你把它翻译成人话：<strong>这不是“谁最先进”的问题，而是“你愿意花多少算力换多少动态理解能力”的问题</strong>。</p>
+      <div class="callout">
+        <h4>为什么作者没选最重的路</h4>
+        <p>因为他们想服务的是实时机器人 / 车载 / IoT 平台，所以默认不能把前端感知做成一个很慢的大模型。论文立场很明确：<strong>要在足够好的动态识别和足够快的在线推理之间找到平衡点。</strong></p>
+      </div>
+    </main>
+
+    <section class="section-card" id="system-arch">
+      <h2>2. Fig. 1 不是“装饰图”，它已经把整篇论文讲完了一半</h2>
+      <figure class="figure">
+        <img src="../资料/DFusion-SLAM_A_Lightweight_Semantic_Fusion_Framework_for_Robust_Visual_SLAM_in_Dynamic_Environments md文档/a51f65d175979f22d6bb42499a8ca31f42ac88cea196015f22a407e3aacd2d4d.jpg" alt="DFusion-SLAM 系统总架构">
+        <figcaption>Fig. 1 系统总架构。你可以把它读成“RGB-D 输入 → 动态区域识别 → 静态特征提取 → 跟踪与建图”。关键不是加了多少模块，而是动态过滤被前移到了前端入口。</figcaption>
+      </figure>
+      <p>这张图最值得盯住的不是名字，而是<strong>顺序</strong>：</p>
+      <ol>
+        <li>先拿到 RGB-D 帧</li>
+        <li>先做动态目标感知，产出动态 / 静态掩码</li>
+        <li>再提取 ORB 特征，但只保留静态区域里的点</li>
+        <li>再把这些静态特征送去跟踪、局部建图和全局图优化</li>
+      </ol>
+      <p>这个顺序很关键，因为它说明作者的策略不是“等后端发现不对再擦屁股”，而是<strong>尽量别让脏数据进系统</strong>。</p>
+    </section>
+
+    <section class="section-card" id="equations">
+      <h2>3. 论文的系统模型其实很好懂：先定义帧，再定义掩码，再定义只看静态点的位姿优化</h2>
+      <p>作者先把输入帧写成 RGB 图像和深度图的成对输入：</p>
+      <div class="formula-box">
+        $$ \mathcal{I}_t = \left\{ I_t^{\mathrm{RGB}}, D_t \right\}. \tag{1} $$
+      </div>
+      <p>意思很朴素：每个时刻进来的不是单张图，而是<strong>颜色 + 深度</strong>这对 RGB-D 观测。</p>
+
+      <p>接着，前端感知模块给出一个二值掩码：</p>
+      <div class="formula-box">
+        $$
+        M_t(x,y)=
+        \begin{cases}
+        1, & (x,y)\in \text{static region} \\
+        0, & (x,y)\in \text{dynamic region}
+        \end{cases}
+        \tag{2}
+        $$
+      </div>
+      <p>这里最重要的是它的工程含义：<strong>掩码不是最终目标，它只是决定“哪些像素位置上的特征可以被信任”</strong>。</p>
+
+      <p>所以真正送进位姿估计的，只是静态点集合 $\mathcal{S}_t$。作者把位姿优化写成：</p>
+      <div class="formula-box">
+        $$
+        T_t^{*}
+        =
+        \arg\min_{T_t}
+        \sum_{i \in \mathcal{S}_t}
+        \left\|
+        u_i - \pi(T_t \cdot P_i)
+        \right\|^2.
+        \tag{3}
+        $$
+      </div>
+      <p>这行公式和你在前面课程里学过的重投影误差优化几乎一模一样，唯一真正的新点是：<strong>求和不再对全部匹配点做，而是只对被判断为静态的点做</strong>。</p>
+
+      <div class="interactive-card tab-group">
+        <h3>把 Fig. 1 拆开看</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="dfusion-flow" data-tab-id="input" onclick="lessonKit.openTab('dfusion-flow','input')">输入层</button>
+          <button data-tab-button="dfusion-flow" data-tab-id="mask" onclick="lessonKit.openTab('dfusion-flow','mask')">掩码层</button>
+          <button data-tab-button="dfusion-flow" data-tab-id="tracking" onclick="lessonKit.openTab('dfusion-flow','tracking')">跟踪层</button>
+          <button data-tab-button="dfusion-flow" data-tab-id="mapping" onclick="lessonKit.openTab('dfusion-flow','mapping')">建图层</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="dfusion-flow" data-tab-id="input">
+          RGB-D 输入决定了系统既能看纹理，也能直接拿到深度，这使得动态过滤后的三维点与重投影关系更容易建立。
+        </div>
+        <div class="tab-panel" data-tab-panel="dfusion-flow" data-tab-id="mask">
+          掩码层是全篇的灵魂。它的作用不是自己完成 SLAM，而是给后续模块提供“静态可信区域”的先验。
+        </div>
+        <div class="tab-panel" data-tab-panel="dfusion-flow" data-tab-id="tracking">
+          跟踪层仍然依赖 ORB-SLAM3 的经典思想：运动模型预测、特征匹配、局部位姿优化。变化在于输入点更干净了。
+        </div>
+        <div class="tab-panel" data-tab-panel="dfusion-flow" data-tab-id="mapping">
+          局部建图、地图合并、全局图优化仍然保留。前端过滤做得好，后端受到的动态污染就少，地图也更稳定。
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="bridge">
+      <h2>4. 这一节和前面哪几节最强相关</h2>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>对应第七讲：特征点法</h4>
+          <p>因为这里真正被改造的是“哪些特征值得信”。不是换 ORB，而是在 ORB 前先做语义过滤。</p>
+        </div>
+        <div class="mini-card">
+          <h4>对应第九讲：VO 框架</h4>
+          <p>如果你记得前端主循环、Frame / MapPoint / Map 等数据结构，就会看懂：DFusion-SLAM 改的是进入这个框架之前的数据质量。</p>
+        </div>
+        <div class="mini-card">
+          <h4>对应第十到十一讲：后端优化</h4>
+          <p>后端没有被根本重写，但它受益于更少的动态离群点，所以优化问题更“干净”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>对应第十四讲：未来方向</h4>
+          <p>这就是典型的“语义 / 感知增强型 SLAM”。它不是脱离经典 SLAM，而是在经典骨架上加先验。</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4>OCR 修正提醒</h4>
+        <p>原始 Markdown 中有若干典型 OCR 噪声，例如 <code>dynamicaware</code>、<code>tradeof</code>、<code>halfshpere</code>。课堂里我统一恢复为 <strong>dynamic-aware</strong>、<strong>trade-off</strong>、<strong>halfsphere</strong> 等标准写法，避免把错误术语学进去。</p>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            式(3) 相比普通重投影误差最关键的新约束是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>求和只在静态点集合 $\mathcal{S}_t$ 上进行，也就是说动态区域的特征不会参与位姿优化。</div>
+            </details>
+          </li>
+          <li>
+            为什么说 DFusion-SLAM 更像“给 ORB-SLAM3 加门卫”，而不是“重新发明一套 SLAM”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它保留了 ORB-SLAM3 的跟踪、建图和优化骨架，核心改动是前端动态感知和静态特征筛选。</div>
+            </details>
+          </li>
+          <li>
+            检测式、分割式、实例分割式动态 SLAM 的主要差别，可以用哪一句话概括？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>它们本质上是在“动态理解精细度”和“在线计算代价”之间做不同位置的权衡。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0077-论文全景与问题动机.html">← 论文全景与问题动机</a>
+        <a class="next" href="0079-DFINE-PL前端与动态掩码.html">DFINE-PL 前端与动态掩码 →</a>
+      </div>
+      <p class="foot-note">如果你能把 Fig. 1 和式(1)~(3)讲顺，这篇论文的“系统壳子”你就已经搭起来了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

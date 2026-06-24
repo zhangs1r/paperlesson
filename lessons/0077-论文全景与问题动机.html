@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFusion-SLAM · 论文全景与问题动机</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">DFusion-SLAM / Lesson 1</div>
+      <h1>论文全景与问题动机</h1>
+      <p class="subtitle">先把这篇论文真正要解决的痛点看清楚：为什么 ORB-SLAM3 一进动态场景就容易“眼花”，而作者为什么选择“轻量检测 + 语义融合”这条路线，而不是更重的分割路线。📖</p>
+      <div class="hero-meta">
+        <span>🎯 主题：动态环境下的鲁棒视觉 SLAM</span>
+        <span>🧭 入口：Abstract + Introduction</span>
+        <span>🔗 论文页：<a href="https://ieeexplore.ieee.org/document/11218208/" target="_blank">IEEE Xplore</a></span>
+      </div>
+      <div class="toc">
+        <a href="#why-dynamic">动态场景为什么难</a>
+        <a href="#paper-idea">论文的核心主张</a>
+        <a href="#contrib">三条贡献怎么读</a>
+        <a href="#roadmap">接下来六节课怎么学</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-dynamic">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>这一节不急着进网络细节，先把大问题掰开：动态物体到底破坏了 SLAM 的哪几层假设，以及这篇论文为什么不是简单“外挂一个检测器”就结束。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>如果你刚学完《视觉 SLAM 十四讲》，这篇论文正好接在第七讲特征点法、第九讲 VO 框架、第十到十一讲后端优化之后。你会看到：作者其实是在前端入口处先做“动态污染隔离”。</p>
+        </div>
+      </div>
+
+      <h2>1. 为什么动态场景会让传统视觉 SLAM 变脆</h2>
+      <p>经典特征点 SLAM 有一个默认前提：<strong>大多数可跟踪特征来自静态世界</strong>。一旦这个前提被打破，问题就会像连锁反应一样往下传：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{动态目标进入视野}
+        \rightarrow
+        \text{错误匹配 / 错误数据关联}
+        \rightarrow
+        \text{位姿估计偏移}
+        \rightarrow
+        \text{地图被污染}
+        \rightarrow
+        \text{后续跟踪越来越难}
+        $$</div>
+      </div>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>前端层面</h4>
+          <p>FAST / ORB 并不知道“这个角点属于行人还是墙角”。只要纹理显著，它就会被提出来。</p>
+        </div>
+        <div class="mini-card">
+          <h4>优化层面</h4>
+          <p>如果把动态点也当成静态约束写进重投影误差，优化器会被“假约束”拖偏。</p>
+        </div>
+        <div class="mini-card">
+          <h4>地图层面</h4>
+          <p>移动物体一旦被建进地图，后面回头看同一区域时就会出现不一致，轻则漂移，重则跟踪失败。</p>
+        </div>
+      </div>
+      <p>通俗地说，SLAM 像是在试图盯着房间的“骨架”定位自己；但如果它总把来回走动的人也误当成骨架的一部分，定位就会乱。</p>
+    </main>
+
+    <section class="section-card" id="paper-idea">
+      <h2>2. 这篇论文的解决思路：先认出会动的，再别拿它们做几何</h2>
+      <p>DFusion-SLAM 的主线非常清楚：在 ORB-SLAM3 的前端前面，放一个轻量语义感知模块，把动态区域尽量提前剔掉，只把“更像静态背景”的特征送给后续跟踪和建图模块。</p>
+      <div class="callout">
+        <h4>一句话版</h4>
+        <p><strong>不是替换 ORB-SLAM3，而是给 ORB-SLAM3 装一个更聪明的门卫。</strong> 门卫负责问一句：“这个区域是不是可能在动？”如果答案是“是”，那这里的点就先别进几何优化。</p>
+      </div>
+      <p>作者选的是<strong>检测感知路线</strong>，而不是更重的实例分割 / 语义分割路线。背后的现实考虑很工程：</p>
+      <ul>
+        <li>分割往往更细，但计算代价更大</li>
+        <li>移动机器人、车载平台、IoT 边缘端往往更在乎时延和功耗</li>
+        <li>如果能用更轻的视觉模块换到足够稳定的动态过滤，系统整体更容易实时落地</li>
+      </ul>
+      <p>这也解释了标题里的两个关键词为什么必须一起读：<code>Lightweight</code> 和 <code>Robust</code>。它不是只追求最强感知，而是在追求<strong>“对动态更稳，同时还跑得动”</strong>。</p>
+    </section>
+
+    <section class="section-card" id="contrib">
+      <h2>3. 论文列出的三条贡献，应该怎么理解</h2>
+      <p>论文在引言里列了三条贡献。我们别机械背诵，直接翻译成“研究动作”：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>贡献一：改检测前端</h4>
+          <p>把 D-FINE 里的原始 Transformer 编码部分改造成更轻、更适合跨尺度特征聚合的版本，引入 PolaLinearAttention 和 MetaFormer 结构。</p>
+        </div>
+        <div class="mini-card">
+          <h4>贡献二：接进 ORB-SLAM3</h4>
+          <p>不是单看检测 mAP，而是看接入 SLAM 后，TUM / Bonn 这种动态 RGB-D 数据上的 ATE、RPE 和轨迹稳定性是否真的变好。</p>
+        </div>
+        <div class="mini-card">
+          <h4>贡献三：强调模块化落地</h4>
+          <p>作者特别提到车载网络 / IoT 场景，说明他们想把这件事包装成一个可插拔感知模块，而不是一套难以维护的强耦合系统。</p>
+        </div>
+        <div class="mini-card">
+          <h4>你该重点盯什么</h4>
+          <p>真正值得精读的不是“又用了哪个注意力模块”，而是：这些轻量化改动有没有真正换来更好的动态 SLAM 表现。</p>
+        </div>
+      </div>
+
+      <div class="interactive-card">
+        <h3>互动判断</h3>
+        <p>如果一个 SLAM 系统只是在后端优化时做鲁棒核，而前端照样把行人身上的角点大批送进来，最可能出现什么问题？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。后端鲁棒核能减轻一部分异常值影响，但如果前端一直喂进大量动态特征，跟踪、地图和关键帧选择仍会持续被污染。" onclick="lessonKit.answer(this, 'quiz-0077')">系统仍可能持续漂移，因为污染在前端就开始了</button>
+          <button data-correct="no" data-explanation="不对。后端并不是万能清洁工，前端输入如果持续失真，后端很难完全补救。" onclick="lessonKit.answer(this, 'quiz-0077')">没关系，优化器会自动修正掉所有动态误差</button>
+          <button data-correct="no" data-explanation="不对。动态点问题不是“特征点太少”，而是“错误特征太多”。" onclick="lessonKit.answer(this, 'quiz-0077')">主要问题只是特征数量减少</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0077"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="roadmap">
+      <h2>4. 这组课程接下来怎么展开</h2>
+      <p>为了把论文讲透，我们把它拆成六节连续小课：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>课次</th>
+            <th>主题</th>
+            <th>你会解决什么疑问</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0077</td>
+            <td>论文全景与问题动机</td>
+            <td>为什么动态物体会伤到特征法 SLAM？作者总体想法是什么？</td>
+          </tr>
+          <tr>
+            <td>0078</td>
+            <td>相关工作与系统建模</td>
+            <td>这篇工作放在动态 SLAM 光谱里的哪一支？系统模型和掩码机制怎么写？</td>
+          </tr>
+          <tr>
+            <td>0079</td>
+            <td>DFINE-PL 前端与动态掩码</td>
+            <td>轻量检测前端到底由哪些部件组成？</td>
+          </tr>
+          <tr>
+            <td>0080</td>
+            <td>PolaLinearAttention 与 MetaFormer 融合</td>
+            <td>为什么作者要动注意力和特征融合结构？消融表真的支持这些结论吗？</td>
+          </tr>
+          <tr>
+            <td>0081</td>
+            <td>实验设置与检测器结果</td>
+            <td>它的轻量化前端在速度、mAP、平台设置上表现如何？</td>
+          </tr>
+          <tr>
+            <td>0082</td>
+            <td>SLAM 结果解读与批判性总结</td>
+            <td>ATE / RPE 的改进是否扎实？论文还有哪些值得质疑或继续做的地方？</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么“动态场景中的错误数据关联”会比“静态场景中的普通噪声”更难处理？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为它不是均值为零的小扰动，而是系统性地把本不该作为静态几何约束的点送进 SLAM。它会同时污染匹配、位姿、地图和回环，不只是让误差稍微变大。</div>
+            </details>
+          </li>
+          <li>
+            这篇论文为什么特别强调“轻量化”，而不只是强调“精度更高”？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为目标场景是机器人、智能车辆、IoT 平台，实时性和资源受限是硬约束。一个精度更高但时延太大的模块，未必适合真正接进在线 SLAM。</div>
+            </details>
+          </li>
+          <li>
+            用你自己的话复述 DFusion-SLAM 的直觉，尽量不要照搬论文原句。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>一个可接受的说法是：先用轻量语义模块判断哪些区域可能在动，再只用更可靠的静态区域做 ORB 特征与位姿估计，从源头降低动态干扰。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a class="disabled" href="#">←</a>
+        <a class="next" href="0078-相关工作与系统建模.html">相关工作与系统建模 →</a>
+      </div>
+      <p class="foot-note">先把问题意识立住，后面看网络和实验时你才知道作者到底在为谁优化 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

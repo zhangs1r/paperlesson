@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFusion-SLAM · PolaLinearAttention 与 MetaFormer 融合</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">DFusion-SLAM / Lesson 4</div>
+      <h1>PolaLinearAttention 与 MetaFormer 融合</h1>
+      <p class="subtitle">这一节进入论文最“方法论”的部分：作者为什么要把原始 Transformer 换成 PolaLinearAttention，又为什么在 FPN / PAN 里塞进 MetaFormer Block。更重要的是，我们会认真检查表格数据到底支不支持这些说法。🧠</p>
+      <div class="hero-meta">
+        <span>📐 核心公式：式(4)~(7)</span>
+        <span>🖼️ 核心原图：Fig. 3</span>
+        <span>📊 核心表格：Table I</span>
+      </div>
+      <div class="toc">
+        <a href="#pola">PolaLinearAttention 怎么想</a>
+        <a href="#metaformer">MetaFormer 为何放进 FPN/PAN</a>
+        <a href="#ablation">消融表怎么读</a>
+        <a href="#critique">批判性提醒</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="pola">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>把方法里的“注意力替换”和“跨尺度融合改造”从名字翻译成直觉，并学会用表格证据检验作者的论证是否成立。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上一节你已经知道 DFINE-PL 的三段结构；这一节要问的是：作者为什么不满足于原版组件，而要专门替换 attention 和 fusion block。</p>
+        </div>
+      </div>
+
+      <h2>1. PolaLinearAttention 想解决什么问题</h2>
+      <p>标准 Transformer 注意力的痛点很经典：输入 token 多起来时，计算和显存代价容易随 $N^2$ 增长。对视觉前端来说，这意味着分辨率越高、特征图越大，代价越吃紧。</p>
+      <p>作者的替换逻辑是：</p>
+      <div class="formula-box">
+        $$
+        Q = XW_Q,\quad K = XW_K,\quad V = XW_V \tag{4}
+        $$
+      </div>
+      <div class="formula-box">
+        $$
+        \tilde{Q}=\phi(Q), \qquad \tilde{K}=\phi(K) \tag{5}
+        $$
+      </div>
+      <div class="formula-box">
+        $$
+        \mathrm{Attention}(Q,K,V)=
+        \frac{\tilde{Q}(\tilde{K}^{\top}V)}{\tilde{Q}(\tilde{K}^{\top}\mathbf{1})}
+        \tag{6}
+        $$
+      </div>
+      <p>通俗解释一下：<strong>不是直接做完整的二次复杂度注意力，而是先把 Query / Key 映射到某种核特征空间里，再用线性方式近似注意力计算</strong>。于是复杂度从论文声称的 $O(N^2)$ 朝 $O(N)$ 靠。</p>
+      <p>它再额外加入“极化”建模，也就是把空间维度和通道维度的关注分开做：</p>
+      <div class="formula-box">
+        $$
+        Y = \operatorname{Pola}_{\text{spatial}}(X) + \operatorname{Pola}_{\text{channel}}(X)
+        \tag{7}
+        $$
+      </div>
+      <p>直觉上就是：<strong>一边问“图上哪些位置彼此相关”，一边问“哪些语义通道应该一起被强调”</strong>。</p>
+    </main>
+
+    <section class="section-card" id="metaformer">
+      <h2>2. MetaFormer 为什么要进 FPN / PAN</h2>
+      <figure class="figure">
+        <img src="../资料/DFusion-SLAM_A_Lightweight_Semantic_Fusion_Framework_for_Robust_Visual_SLAM_in_Dynamic_Environments md文档/562c1597b975ac7ede02b304e6d237faf7d59db6e10f28678caa8a88416cde6b.jpg" alt="PolaLinearAttention 与 MetaFormer 结构图">
+        <figcaption>Fig. 3 上半部分展示 FPN / PAN 的跨尺度融合路径，下半部分拆开了 MetaFormer Block 的内部：LayerNorm、UniRepLKNetBlock、大核空间建模，以及 EFFN 通道变换。</figcaption>
+      </figure>
+      <p>这里作者不只是换 attention，还把跨尺度融合模块也做了重写。原因是：动态目标检测非常吃多尺度融合能力。</p>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>FPN 的任务</h4>
+          <p>把高层强语义往下传，让浅层细节也能“知道自己看到的是谁”。</p>
+        </div>
+        <div class="mini-card">
+          <h4>PAN 的任务</h4>
+          <p>把低层空间细节反过来往上传，让高层语义不至于只会粗略定位大区域。</p>
+        </div>
+        <div class="mini-card">
+          <h4>MetaFormer Block 的角色</h4>
+          <p>统一 top-down 和 bottom-up 两条融合路径中的局部结构建模与通道变换，让不同尺度的信息交换更稳定。</p>
+        </div>
+      </div>
+      <p>作者特别强调大核 UniRepLKNetBlock 的好处：感受野更大，更适合抓住跨尺度上下文。这点对动态物体尤其重要，因为一个人既可能只占画面小角落，也可能近距离占很大面积。</p>
+    </section>
+
+    <section class="section-card" id="ablation">
+      <h2>3. Table I 消融实验：别只看结论，要看数字</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Attention</th>
+            <th>MetaBlock</th>
+            <th>GFLOPs</th>
+            <th>mAP<sub>50-90</sub><sup>val</sup></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A</td>
+            <td>Vanilla</td>
+            <td>0</td>
+            <td>7.0</td>
+            <td>42.8</td>
+          </tr>
+          <tr>
+            <td>B</td>
+            <td>PolaLinear</td>
+            <td>0</td>
+            <td>7.1</td>
+            <td>43.1</td>
+          </tr>
+          <tr>
+            <td>C</td>
+            <td>Vanilla</td>
+            <td>1</td>
+            <td>7.2</td>
+            <td>42.2</td>
+          </tr>
+          <tr>
+            <td>D</td>
+            <td>PolaLinear</td>
+            <td>1</td>
+            <td>7.4</td>
+            <td>43.7</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="interactive-card tab-group">
+        <h3>逐个组合读表</h3>
+        <div class="tab-buttons">
+          <button data-tab-button="ablation" data-tab-id="a" onclick="lessonKit.openTab('ablation','a')">A 基线</button>
+          <button data-tab-button="ablation" data-tab-id="b" onclick="lessonKit.openTab('ablation','b')">B 只换注意力</button>
+          <button data-tab-button="ablation" data-tab-id="c" onclick="lessonKit.openTab('ablation','c')">C 只加 MetaBlock</button>
+          <button data-tab-button="ablation" data-tab-id="d" onclick="lessonKit.openTab('ablation','d')">D 两者都加</button>
+        </div>
+        <div class="tab-panel" data-tab-panel="ablation" data-tab-id="a">
+          A 是标准参照组：Vanilla attention，没有 MetaBlock，43 以下的 mAP 是所有比较的起点。
+        </div>
+        <div class="tab-panel" data-tab-panel="ablation" data-tab-id="b">
+          只换成 PolaLinearAttention，mAP 从 42.8 升到 43.1，GFLOPs 只增 0.1，说明这个改动单独看是有正收益的。
+        </div>
+        <div class="tab-panel" data-tab-panel="ablation" data-tab-id="c">
+          这是最值得警惕的一行：只加 MetaBlock 反而掉到 42.2。也就是说，MetaBlock 单独并没有在这张表里证明自己“必然有效”。
+        </div>
+        <div class="tab-panel" data-tab-panel="ablation" data-tab-id="d">
+          两者一起用得到最好结果 43.7，说明更像是“搭配有效”而不是“每个部件单独都稳定增益”。
+        </div>
+      </div>
+      <p>这张表带来的最重要启示是：<strong>作者最后方案确实最好，但论文文字里的叙述比数据更乐观</strong>。</p>
+    </section>
+
+    <section class="section-card" id="critique">
+      <h2>4. 批判性提醒：这里有两处你读论文时要主动留神</h2>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>提醒一：MetaBlock “单独也有效”并未被表格证明</h4>
+          <p>正文说 “MetaBlock alone also provides gains”，但 Table I 里 C 比 A 更差。这意味着更准确的结论应该是：<strong>MetaBlock 与 PolaLinearAttention 联用时效果最好</strong>，而不是 MetaBlock 单独也提升。</p>
+        </div>
+        <div class="mini-card">
+          <h4>提醒二：贡献表述前后略有混用</h4>
+          <p>引言有时说“用 MetaFormer-based module 替换原 Transformer encoder”，有时又明确说“用 PolaLinearAttention 替换原 Transformer，并加入 MetaFormer 融合”。读的时候要按实际结构理解：<strong>这是 attention 替换 + fusion block 改造的组合动作</strong>。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h4>这类阅读习惯很重要</h4>
+        <p>真正的论文精读，不是把作者结论直接搬进脑子，而是看“文字说了什么”和“表格是否真支撑了它”。你现在已经在做研究型阅读了，这个习惯非常值钱。✨</p>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            PolaLinearAttention 相比标准 attention，论文想强调的核心收益是什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>核心是用线性化近似把注意力复杂度从二次级别降下来，同时通过空间 / 通道极化建模保留较强的表征能力。</div>
+            </details>
+          </li>
+          <li>
+            Table I 里哪一行最值得你停下来质疑正文结论？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>Model C，因为它只加 MetaBlock 却比基线 A 更差，这和“MetaBlock 单独也带来增益”的文字说法并不一致。</div>
+            </details>
+          </li>
+          <li>
+            FPN 和 PAN 为什么都需要，而不是只保留其中一个？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为一个负责把高层语义往下传，一个负责把低层细节往上传。两者结合，跨尺度信息流才更完整。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0079-DFINE-PL前端与动态掩码.html">← DFINE-PL 前端与动态掩码</a>
+        <a class="next" href="0081-实验设置与检测器结果.html">实验设置与检测器结果 →</a>
+      </div>
+      <p class="foot-note">读到这里，你不只是知道模块名字，还知道哪些结论是强证据，哪些只是偏乐观表述了 🙂</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>
