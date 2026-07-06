@@ -64,8 +64,18 @@ window.PAPERLESSON_DATA = {
       title: "DFusion-SLAM",
       subtitle: "A Lightweight Semantic Fusion Framework for Robust Visual SLAM in Dynamic Environments",
       description: "第 0077 到 0082 课。围绕动态环境下的视觉 SLAM 鲁棒性问题，完整拆解 DFusion-SLAM 的研究动机、系统模型、DFINE-PL 前端、注意力与特征融合设计、检测器实验，以及 TUM / Bonn 上的 SLAM 结果与局限。",
-      quickOpen: "start lessons\\0077-论文全景与问题动机.html",
+      quickOpen: "start lessons\\\\0077-论文全景与问题动机.html",
       meta: ["6 节课", "~150 分钟", "动态 SLAM / 语义融合"]
+    },
+    {
+      id: "ocd-slam",
+      groupId: "papers",
+      kind: "论文精读",
+      title: "OCD SLAM",
+      subtitle: "A Stereo Visual SLAM System Using Object-Level Motion Estimation and Geometric Filtering Based on Cross Disparity",
+      description: "第 0083 到 0088 课。动态立体视觉 SLAM，利用交叉视差（Cross Disparity）几何方法 + SMOKE 3D 检测进行双层动态过滤，在 ORB-SLAM2 上扩展实现鲁棒位姿估计。",
+      quickOpen: "start lessons\\\\0083-论文全景与问题动机.html",
+      meta: ["6 节课", "~150 分钟", "动态 SLAM / 双目 / 交叉视差"]
     },
     {
       id: "slambook",
@@ -108,6 +118,12 @@ window.PAPERLESSON_DATA = {
     { id:"0080", path:"lessons/0080-PolaLinearAttention与MetaFormer融合.html", paper:"dfusion-slam", title:"PolaLinearAttention 与 MetaFormer 融合", subtitle:"方法细节与消融证据一起读", emoji:"🧠", duration:"28 分钟", tags:["注意力","MetaFormer","消融"], description:"从式(4)到式(7)理解方法设计，并用 Table I 检查作者结论到底有多扎实。" },
     { id:"0081", path:"lessons/0081-实验设置与检测器结果.html", paper:"dfusion-slam", title:"实验设置与检测器结果", subtitle:"速度、mAP、数据集和评价指标", emoji:"📊", duration:"26 分钟", tags:["实验设置","检测器","ATE/RPE"], description:"把 DFINE-PL 的轻量化证据和后续 SLAM 评价地基读扎实，避免只看最终轨迹图。" },
     { id:"0082", path:"lessons/0082-SLAM结果解读与批判性总结.html", paper:"dfusion-slam", title:"SLAM 结果解读与批判性总结", subtitle:"TUM / Bonn 结果、局限与下一步", emoji:"🔬", duration:"30 分钟", tags:["结果分析","局限","总结"], description:"把 TUM 与 Bonn 上的 ATE / RPE、误差分布和失败边界一起收束，形成真正的研究型理解。" },
+    { id:"0083", path:"lessons/0083-论文全景与问题动机.html", paper:"ocd-slam", title:"论文全景与问题动机", subtitle:"双目 SLAM 为什么怕动态？交叉视差直觉是什么？", emoji:"📖", duration:"20 分钟", tags:["背景","动机","双目 SLAM"], description:"理解动态场景对双目 SLAM 的破坏链条，以及 OCD SLAM 的双层过滤总体思路。" },
+    { id:"0084", path:"lessons/0084-ORB-SLAM2基础与系统框架.html", paper:"ocd-slam", title:"ORB-SLAM2 基础与系统框架", subtitle:"ORB-SLAM2 回顾 + SMOKE + Kalman 滤波", emoji:"🏗️", duration:"22 分钟", tags:["ORB-SLAM2","SMOKE","Kalman"], description:"回顾 ORB-SLAM2 核心模块，理解 OCD SLAM 新增的五个模块及其功能。" },
+    { id:"0085", path:"lessons/0085-交叉视差核心方法.html", paper:"ocd-slam", title:"交叉视差核心方法", subtitle:"从普通视差到交叉视差的推导", emoji:"📐", duration:"25 分钟", tags:["交叉视差","几何","数学推导"], description:"从普通视差出发，逐步推导交叉视差的定义，理解它为什么能检测动态特征点。" },
+    { id:"0086", path:"lessons/0086-双层动态过滤系统.html", paper:"ocd-slam", title:"双层动态过滤系统", subtitle:"物体级 + 像素级协同工作", emoji:"🛡️", duration:"22 分钟", tags:["双层过滤","运动标签","地图点剔除"], description:"SMOKE 做物体级过滤，交叉视差做像素级精过滤，理解两层如何互补。" },
+    { id:"0087", path:"lessons/0087-实验设计与结果分析.html", paper:"ocd-slam", title:"实验设计与结果分析", subtitle:"KITTI Odometry / Raw 全面评测", emoji:"📊", duration:"24 分钟", tags:["ATE","RPE","KITTI"], description:"系统评测 OCD SLAM 在 KITTI 双目序列上的表现，对比多种动态 SLAM 方法。" },
+    { id:"0088", path:"lessons/0088-消融研究与总结.html", paper:"ocd-slam", title:"消融研究与总结展望", subtitle:"交叉视差 vs SMOKE，各自的贡献有多大？", emoji:"🔬", duration:"20 分钟", tags:["消融","总结","局限"], description:"消融实验验证双层互补性，诚实讨论论文局限，与 PaperLesson 其他课程关联总结。" },
     { id:"0014", path:"lessons/0014-第一讲-前言.html", paper:"slambook", title:"第一讲：前言", subtitle:"整本书的任务、节奏与学习地图", emoji:"📖", duration:"15 分钟", tags:["前言","总览"], description:"先把整本《视觉 SLAM 十四讲》的问题意识和学习路线建立起来。" },
     { id:"0015", path:"lessons/0015-第二讲-SLAM系统框架与核心模块.html", paper:"slambook", title:"第二讲：SLAM 系统框架与核心模块", subtitle:"先把系统骨架立住", emoji:"🏗️", duration:"18 分钟", tags:["系统框架","前端后端"], description:"理解经典视觉 SLAM 的五大模块、累计漂移与地图类型。" },
     { id:"0016", path:"lessons/0016-第二讲-SLAM的数学表述.html", paper:"slambook", title:"第二讲：SLAM 的数学表述", subtitle:"状态估计视角下的 SLAM", emoji:"📐", duration:"18 分钟", tags:["状态估计","数学表述"], description:"把 SLAM 上升为带噪声的运动方程与观测方程问题。" },
@@ -186,6 +202,7 @@ window.PAPERLESSON_DATA = {
     { title: "LSeg GitHub", url: "https://github.com/isl-org/lang-seg", emoji: "💻", description: "LSeg 官方代码仓库。" },
     { title: "DFusion-SLAM 论文页", url: "https://ieeexplore.ieee.org/document/11218208/", emoji: "🧾", description: "DFusion-SLAM 在 IEEE Xplore 的论文主页，可查看摘要、出版信息与 PDF 入口。" },
     { title: "D-FINE 论文", url: "https://arxiv.org/abs/2410.13842", emoji: "🧠", description: "DFusion-SLAM 前端检测器改造所基于的 D-FINE 原始论文。" },
-    { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" }
+    { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" },
+    { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" }
   ]
 };

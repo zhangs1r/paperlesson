@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCD SLAM · 论文全景与问题动机</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">OCD SLAM / Lesson 1</div>
+      <h1>论文全景与问题动机</h1>
+      <p class="subtitle">这篇论文试图解决一个非常实际的问题：当双目 SLAM 遇上动态场景，如何不依赖昂贵的语义分割，仅靠几何线索就能把"真的在动"和"只是可能动"区分开。📖</p>
+      <div class="hero-meta">
+        <span>🎯 主题：动态场景下的双目视觉 SLAM</span>
+        <span>🧭 入口：Abstract + Introduction</span>
+        <span>🔗 论文：<a href="https://arxiv.org/abs/2607.02005v1" target="_blank">arXiv 2607.02005</a></span>
+      </div>
+      <div class="toc">
+        <a href="#why-dynamic">双目 SLAM 为什么怕动态</a>
+        <a href="#previous-work">现有方法为什么不够</a>
+        <a href="#paper-idea">OCD SLAM 的直觉</a>
+        <a href="#roadmap">六节课怎么展开</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why-dynamic">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>不急着进公式，先把问题看清楚：双目 SLAM 在动态场景下到底出了什么问题，为什么不能简单用单目 SLAM 的策略去修。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>这篇论文与 <strong>DFusion-SLAM</strong>（第 0077-0082 课）同属动态环境 SLAM 方向，但走的是<strong>几何路线</strong>而非语义路线。它的 SLAM 基础是 ORB-SLAM2，对应<strong>视觉 SLAM 十四讲</strong>第 0046~0053 课（特征点法/对极几何/PnP）。</p>
+        </div>
+      </div>
+
+      <h2>1. 双目 SLAM 在动态场景下到底哪里疼</h2>
+      <p>大多数经典视觉 SLAM 系统（包括 ORB-SLAM2）有一个默认假设：<strong>场景中大多数特征点来自静态物体</strong>。这个假设在空旷道路上勉强成立，但在有行人、车辆穿行的真实场景中，问题就来了：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{动态目标进入视野}
+        \rightarrow
+        \text{特征点提取在动态目标上}
+        \rightarrow
+        \text{错误数据关联}
+        \rightarrow
+        \text{位姿估计被拖偏}
+        \rightarrow
+        \text{地图被污染}
+        \rightarrow
+        \text{后续跟踪越来越差}
+        $$</div>
+      </div>
+      <div class="summary-grid">
+        <div class="mini-card">
+          <h4>特征提取层</h4>
+          <p>ORB 角点只看纹理梯度，不管这个角点是在行人身上还是墙上。只要有足够纹理，它就会被提取，前端没有"动态判断"机制。</p>
+        </div>
+        <div class="mini-card">
+          <h4>匹配层</h4>
+          <p>动态物体上的点在帧间移动不满足 epipolar 约束，导致误匹配率飙升，RANSAC 很难全部滤掉。</p>
+        </div>
+        <div class="mini-card">
+          <h4>优化层</h4>
+          <p>动态点产生的重投影误差被写进 BA / Pose Graph 优化，等价于把假约束当真，把位姿往错误方向拉。</p>
+        </div>
+      </div>
+
+      <h3>双目特有难点</h3>
+      <p>这篇论文用的是<strong>双目</strong>而非单目。双目 SLAM 相比单目多了一层几何约束——左右图像的视差（disparity）——这既是优势也是挑战：</p>
+      <ul>
+        <li><strong>优势</strong>：双目可以直接获得深度，不受尺度漂移影响</li>
+        <li><strong>挑战</strong>：动态物体不仅破坏帧间跟踪，还破坏左右匹配——同一物体在左右图上的投影不一致</li>
+      </ul>
+      <p>这篇论文的核心创新"交叉视差"（Cross Disparity），正是利用了双目特有的这一"双重不一致性"来检测动态。</p>
+    </main>
+
+    <section class="section-card" id="previous-work">
+      <h2>2. 现有的动态 SLAM 方案有什么不足</h2>
+      <p>论文引言把现有动态 SLAM 工作梳理成几条路线，每条都有自己的短板：</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>🚫 暴力删除法</h4>
+          <p>直接删除已知可能动态的区域（如 DynaSLAM 的 segmentation-based 方法）。问题：把"可能动的"当成"正在动的"，错删大量有用的静态特征。</p>
+        </div>
+        <div class="mini-card">
+          <h4>🎯 纯检测法</h4>
+          <p>用 YOLO 等检测器框出物体，去掉框内所有特征。问题：检测框不精确，且静止的物体（如路边停车）也被误删。</p>
+        </div>
+        <div class="mini-card">
+          <h4>📐 纯几何法</h4>
+          <p>只靠几何约束（如极线误差、深度一致性）判断动态。问题：慢速运动、小物体、纯径向运动时几何线索太弱。</p>
+        </div>
+        <div class="mini-card">
+          <h4>🤖 深度学习方法</h4>
+          <p>用光流或语义分割网络端到端判断动态。问题：需要 GPU 推理，训练数据依赖大，实时性受限。</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <h4>这篇论文的定位</h4>
+        <p>OCD SLAM 选择了一条中间路线：<strong>用 3D 检测做物体级粗过滤 + 用交叉视差做像素级精过滤</strong>。既不依赖分割（够轻），也不只看几何（够稳）。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="paper-idea">
+      <h2>3. OCD SLAM 的整体直觉</h2>
+      <p>论文的英文全称揭示了两个关键词：</p>
+      <ul>
+        <li><strong>Object-Level Motion Estimation</strong> — 用 3D 物体检测 + Kalman 滤波判断物体"正在动"还是"静止的"</li>
+        <li><strong>Geometric Filtering Based on Cross Disparity</strong> — 用一个新定义的几何量"交叉视差"来发现物体级检测漏掉的小特征点</li>
+      </ul>
+      <p>两条线索是互补的：3D 检测能认出一整辆车在动，但可能漏掉车上晃动的小部件（后视镜、天线）；交叉视差能发现这些"小动态"，但整车的慢速移动可能测不准。两者结合才能覆盖全场景。</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 800 120" style="width:100%;font-family:Inter,serif;">
+          <rect x="0" y="10" width="180" height="100" rx="10" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="90" y="45" text-anchor="middle" font-size="13" fill="#4a342c" font-weight="600">双目图像输入</text>
+          <text x="90" y="68" text-anchor="middle" font-size="11" fill="#846e65">Stereo Frames</text>
+
+          <line x1="180" y1="60" x2="230" y2="60" stroke="#cc785c" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc785c"/></marker></defs>
+
+          <rect x="230" y="10" width="140" height="45" rx="8" fill="rgba(90,158,111,0.12)" stroke="#5a9e6f" stroke-width="1.5"/>
+          <text x="300" y="38" text-anchor="middle" font-size="12" fill="#2d2623">SMOKE 3D 检测</text>
+          <rect x="230" y="65" width="140" height="45" rx="8" fill="rgba(66,133,244,0.12)" stroke="#1a5fb4" stroke-width="1.5"/>
+          <text x="300" y="93" text-anchor="middle" font-size="12" fill="#2d2623">交叉视差几何</text>
+
+          <line x1="370" y1="35" x2="420" y2="35" stroke="#5a9e6f" stroke-width="1.5"/>
+          <line x1="370" y1="88" x2="420" y2="88" stroke="#1a5fb4" stroke-width="1.5"/>
+
+          <rect x="420" y="10" width="160" height="45" rx="8" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="500" y="38" text-anchor="middle" font-size="12" fill="#2d2623">Kalman 滤波跟踪</text>
+          <rect x="420" y="65" width="160" height="45" rx="8" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="500" y="93" text-anchor="middle" font-size="12" fill="#2d2623">动态特征点检测</text>
+
+          <line x1="580" y1="60" x2="630" y2="60" stroke="#cc785c" stroke-width="1.5"/>
+
+          <rect x="630" y="10" width="160" height="100" rx="10" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="710" y="45" text-anchor="middle" font-size="12" fill="#4a342c" font-weight="600">ORB-SLAM2</text>
+          <text x="710" y="65" text-anchor="middle" font-size="11" fill="#846e65">+ 动态点剔除</text>
+          <text x="710" y="85" text-anchor="middle" font-size="11" fill="#846e65">→ 鲁棒位姿估计</text>
+        </svg>
+        <figcaption>图 1：OCD SLAM 的整体框架。左侧双目输入分两条路径处理，最终共同服务于 ORB-SLAM2 的位姿估计与建图。</figcaption>
+      </div>
+
+      <h3>三条贡献</h3>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>贡献一：交叉视差</h4>
+          <p>提出交叉视差（Cross Disparity）新几何量，同时利用时间不一致性和立体不一致性检测动态特征点，不依赖语义先验。</p>
+        </div>
+        <div class="mini-card">
+          <h4>贡献二：双层动态过滤</h4>
+          <p>SMOKE 3D 检测做物体级运动分类 + 交叉视差做像素级精过滤，两层互补，覆盖从整车到小部件的全范围动态。</p>
+        </div>
+        <div class="mini-card">
+          <h4>贡献三：消融验证互补性</h4>
+          <p>在 KITTI 上的消融实验显示，单独用 SMOKE 会漏掉未训练类别上的特征点，单独用交叉视差在慢速场景中精度下降，两者结合在所有序列上最佳。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card" id="roadmap">
+      <h2>4. 接下来六节课的安排</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>课次</th>
+            <th>主题</th>
+            <th>你会解决什么疑问</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0083</td>
+            <td>论文全景与问题动机</td>
+            <td>为什么要做动态双目 SLAM？交叉视差直觉是什么？</td>
+          </tr>
+          <tr>
+            <td>0084</td>
+            <td>ORB-SLAM2 基础与系统框架</td>
+            <td>OCD SLAM 在 ORB-SLAM2 上加了哪些模块？3D 检测 + Kalman 滤波怎么工作？</td>
+          </tr>
+          <tr>
+            <td>0085</td>
+            <td>交叉视差核心方法</td>
+            <td>公式怎么推导的？为什么交叉视差能比普通视差更好地检测动态？</td>
+          </tr>
+          <tr>
+            <td>0086</td>
+            <td>双层动态过滤系统</td>
+            <td>SMOKE 检测和交叉视差怎么协作？速度估计和地图点剔除怎么写进优化？</td>
+          </tr>
+          <tr>
+            <td>0087</td>
+            <td>实验设计与结果分析</td>
+            <td>KITTI Odometry 和 KITTI Raw 上各序列表现如何？ATE / RPE 改善了多少？</td>
+          </tr>
+          <tr>
+            <td>0088</td>
+            <td>消融研究与总结</td>
+            <td>两个模块各自贡献多少？论文还有什么局限和可改进之处？</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            为什么说"把动态物体上的特征点删掉"不等于"做好动态 SLAM"？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>因为删掉特征点只是解决了"前端输入"的问题，但动态物体的检测本身可能漏检或误检——删太多（丢失静态特征）或删太少（动态点仍进入优化）都会影响效果。好的动态 SLAM 需要在"删"和"留"之间做精细判断，这也是 OCD SLAM 用双层过滤的原因。</div>
+            </details>
+          </li>
+          <li>
+            双目 SLAM 相比单目 SLAM 在处理动态场景时有什么独特优势？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>双目可以直接利用左右视图之间的立体约束。动态物体不仅在时间上（帧间）产生不一致，在立体上（左右图）也会产生不一致。OCD SLAM 的"交叉视差"正是利用了这种"双重不一致性"——比单目多了一维判断信息。</div>
+            </details>
+          </li>
+          <li>
+            用你自己的话解释，"交叉视差"直觉上大概是什么回事？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>普通视差是同一时刻左右图中间一特征点的 x 坐标差。交叉视差则是：把当前帧左图的一个特征点反向投影到前一帧右图位置，再算这个投影位置和前一帧右图实际特征位置的 x 坐标差。如果物体是静态的，这两个位置应该重合；如果物体在动，它们就不重合。所以交叉视差本质上是一种"基于立体几何的运动检测"。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a class="disabled" href="#">← 返回</a>
+        <a class="next" href="0084-ORB-SLAM2基础与系统框架.html">ORB-SLAM2 基础与系统框架 →</a>
+      </div>
+      <p class="foot-note">理解了大问题和论文直觉，接下来我们一步步拆解它的系统架构 🤖</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

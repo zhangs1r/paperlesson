@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCD SLAM · 消融研究与总结</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">OCD SLAM / Lesson 6</div>
+      <h1>消融研究与总结展望</h1>
+      <p class="subtitle">最后一节解答最关键的问题：交叉视差和 SMOKE 各自贡献了多少？两者加起来是否 1+1 > 2？论文还有哪些值得改进的地方？🔬</p>
+      <div class="hero-meta">
+        <span>🎯 主题：消融实验 + 批判性总结</span>
+        <span>🧭 入口：Section IV-C + V</span>
+        <span>🔗 论文：<a href="https://arxiv.org/abs/2607.02005v1" target="_blank">arXiv 2607.02005</a></span>
+      </div>
+      <div class="toc">
+        <a href="#ablation-setup">消融实验设置</a>
+        <a href="#ablation-results">消融结果分析</a>
+        <a href="#failure">失败场景与局限</a>
+        <a href="#summary">全文总结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="ablation-setup">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>通过消融实验验证论文的核心主张——SMOKE 和交叉视差确实互补。同时批判性地审视论文的局限性，不要把结论当成绝对真理。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>消融实验是评估"每个模块有没有用"的标准方法，与<strong>DFusion-SLAM</strong>第 0080 课（消融研究）的做法类似。学完后你可以对比两篇论文的消融结论。</p>
+        </div>
+      </div>
+
+      <h2>1. 消融实验设置</h2>
+      <p>论文设置了四种消融变体来评估每个模块的贡献：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>变体</th>
+            <th>SMOKE 检测 + Kalman 滤波</th>
+            <th>交叉视差 + 加权 BA</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>基线</strong> (ORB-SLAM2)</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>原始 ORB-SLAM2，无任何动态处理</td>
+          </tr>
+          <tr>
+            <td><strong>仅 SMOKE</strong></td>
+            <td>✓</td>
+            <td>✗</td>
+            <td>只删掉被检测为动态的物体上的特征点</td>
+          </tr>
+          <tr>
+            <td><strong>仅交叉视差</strong></td>
+            <td>✗</td>
+            <td>✓</td>
+            <td>只靠交叉视差检测动态特征点</td>
+          </tr>
+          <tr>
+            <td><strong>OCD SLAM (完整)</strong></td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>两者都用</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+
+    <section class="section-card" id="ablation-results">
+      <h2>2. 消融结果分析</h2>
+
+      <p>消融实验在 KITTI Odometry 和 KITTI Raw 的动态序列上进行。下图展示了两种典型的消融结果模式：</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 680 180" style="width:100%;font-family:Inter,sans-serif;">
+          <rect x="0" y="0" width="320" height="180" rx="10" fill="rgba(255,255,255,0.6)" stroke="#e4d8ca" stroke-width="1"/>
+          <text x="160" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#4a342c">场景 A：已知类别动态物体为主</text>
+
+          <rect x="40" y="35" width="40" height="80" fill="#b15d44" rx="3"/>
+          <text x="60" y="130" text-anchor="middle" font-size="9" fill="#4a342c">基线</text>
+          <text x="60" y="145" text-anchor="middle" font-size="9" fill="#b15d44">0.120</text>
+
+          <rect x="120" y="55" width="40" height="60" fill="#5a9e6f" rx="3"/>
+          <text x="140" y="130" text-anchor="middle" font-size="9" fill="#4a342c">仅SMOKE</text>
+          <text x="140" y="145" text-anchor="middle" font-size="9" fill="#5a9e6f">0.072</text>
+
+          <rect x="200" y="50" width="40" height="65" fill="#cc785c" rx="3"/>
+          <text x="220" y="130" text-anchor="middle" font-size="9" fill="#4a342c">仅交叉</text>
+          <text x="220" y="145" text-anchor="middle" font-size="9" fill="#cc785c">0.088</text>
+
+          <rect x="280" y="62" width="40" height="53" fill="#1a5fb4" rx="3"/>
+          <text x="300" y="130" text-anchor="middle" font-size="9" fill="#4a342c">完整</text>
+          <text x="300" y="145" text-anchor="middle" font-size="9" fill="#1a5fb4">0.051</text>
+
+          <text x="160" y="168" text-anchor="middle" font-size="9" fill="#846e65" font-style="italic">ATE (m) — 柱子越低越好</text>
+
+          <rect x="340" y="0" width="340" height="180" rx="10" fill="rgba(255,255,255,0.6)" stroke="#e4d8ca" stroke-width="1"/>
+          <text x="510" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#4a342c">场景 B：未知类别动态物体为主</text>
+
+          <rect x="380" y="35" width="40" height="80" fill="#b15d44" rx="3"/>
+          <text x="400" y="130" text-anchor="middle" font-size="9" fill="#4a342c">基线</text>
+          <text x="400" y="145" text-anchor="middle" font-size="9" fill="#b15d44">0.178</text>
+
+          <rect x="460" y="45" width="40" height="70" fill="#5a9e6f" rx="3"/>
+          <text x="480" y="130" text-anchor="middle" font-size="9" fill="#4a342c">仅SMOKE</text>
+          <text x="480" y="145" text-anchor="middle" font-size="9" fill="#5a9e6f">0.145</text>
+
+          <rect x="540" y="65" width="40" height="50" fill="#cc785c" rx="3"/>
+          <text x="560" y="130" text-anchor="middle" font-size="9" fill="#4a342c">仅交叉</text>
+          <text x="560" y="145" text-anchor="middle" font-size="9" fill="#cc785c">0.062</text>
+
+          <rect x="620" y="68" width="40" height="47" fill="#1a5fb4" rx="3"/>
+          <text x="640" y="130" text-anchor="middle" font-size="9" fill="#4a342c">完整</text>
+          <text x="640" y="145" text-anchor="middle" font-size="9" fill="#1a5fb4">0.042</text>
+        </svg>
+        <figcaption>图 4：两种典型场景的消融结果。左：已知类别为主时，SMOKE 贡献大；右：未知类别为主时，交叉视差贡献大。完整版在所有场景上均最优。</figcaption>
+      </div>
+
+      <p><strong>消融实验的关键发现：</strong></p>
+      <ol>
+        <li><strong>仅 SMOKE 在已知类别动态场景中效果显著</strong>（如 KITTI Odometry），但在 KITTI Raw 的未知类别场景中提升有限</li>
+        <li><strong>仅交叉视差在慢速动态场景中效果下降</strong>（如 1003-0047 序列），但在未知类别场景中表现优异</li>
+        <li><strong>完整版在所有序列上一致最优</strong>——交叉视差和 SMOKE 联合后的 ATE 总是低于各自单独使用，证明了两者的互补性</li>
+        <li><strong>交叉视差 + 加权 BA 比交叉视差 + 硬剔除更好</strong>，说明软加权策略确实优于硬决策</li>
+      </ol>
+
+      <div class="interactive-card">
+        <h3>理解消融</h3>
+        <p>在场景 A 中（已知类别为主），"仅交叉视差"的表现不如"仅 SMOKE"。最可能的原因是什么？</p>
+        <div class="quiz-options">
+          <button data-correct="yes" data-explanation="对。已知类别的动态物体（车、人）通常有明显的速度，SMOKE + Kalman 滤波能直接检测到这些大物体的运动。而交叉视差在慢速运动中的检测能力较弱，所以如果场景中主要是此类物体，交叉视差单独工作的效果就不如 SMOKE。" onclick="lessonKit.answer(this, 'quiz-0088')">因为已知类别的动态物体通常运动明显，SMOKE 能直接检测并过滤，而交叉视差对慢速运动不敏感</button>
+          <button data-correct="no" data-explanation="交叉视差不依赖类别信息，所以不存在"识别错误"的问题。它的问题在于几何检测的灵敏度。" onclick="lessonKit.answer(this, 'quiz-0088')">因为 SMOKE 的检测框更精确，交叉视差容易把静态物体识别为动态</button>
+          <button data-correct="no" data-explanation="不是，SMOKE 推理是在 GPU 上运行的，和 CPU 上的 ORB-SLAM2 是并行的。" onclick="lessonKit.answer(this, 'quiz-0088')">因为 SMOKE 的计算开销比交叉视差小，所以能处理更多特征点</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0088"></div>
+      </div>
+    </section>
+
+    <section class="section-card" id="failure">
+      <h2>3. 失败场景与局限性</h2>
+      <p>论文在结论部分诚实地提到了几个局限性，我们在精读时应该特别注意：</p>
+
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>⚠️ 同时出现大量未知动态物体</h4>
+          <p>KITTI Raw 中有一些场景包含训练类别之外的多种动态物体。虽然交叉视差能检测到这些物体上的动态特征点，但如果它们同时出现在视野中太多，交叉视差可能因为"孤立点太多"而难以提供有效约束。</p>
+        </div>
+        <div class="mini-card">
+          <h4>⚠️ 慢速运动场景</h4>
+          <p>1003-0047 序列显示了 OCD SLAM 在慢速场景中的不足。这本质上是交叉视差几何方法的固有局限——帧间位移太小时，任何几何方法都难以区分"噪声"和"真实运动"。</p>
+        </div>
+        <div class="mini-card">
+          <h4>⚠️ SMOKE 的类别局限</h4>
+          <p>SMOKE 只在 KITTI 的三类上训练。应用到其他场景（如室内机器人、校园环境）时，需要重新训练检测器或换用更通用的检测模型。</p>
+        </div>
+        <div class="mini-card">
+          <h4>⚠️ 计算资源需求</h4>
+          <p>虽然比全分割方案轻量，但 SMOKE 推理仍需要 GPU。对于纯 CPU 平台（如部分嵌入式系统），OCD SLAM 的实时性可能受限。</p>
+        </div>
+      </div>
+
+      <h3>未来工作方向</h3>
+      <p>论文在结论中提出了几个未来方向：</p>
+      <ul>
+        <li><strong>扩展可检测类别</strong>：在更多数据集上训练或使用开放词汇检测器</li>
+        <li><strong>语义 + 几何的更深度融合</strong>：不只是"两个模块各自判断再合并"，而是让语义信息和几何信息在特征层面融合</li>
+        <li><strong>应对更多复杂场景</strong>：如夜间、恶劣天气等条件下的动态 SLAM</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="summary">
+      <h2>4. 全文总结</h2>
+
+      <h3>六节课的知识地图</h3>
+      <p>回顾这六节课的主线：</p>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{0083: 问题提出}
+        \rightarrow
+        \text{0084: 系统框架}
+        \rightarrow
+        \text{0085: 交叉视差核心}
+        \\
+        \rightarrow
+        \text{0086: 双层过滤}
+        \rightarrow
+        \text{0087: 实验验证}
+        \rightarrow
+        \text{0088: 消融 + 总结}
+        $$</div>
+      </div>
+
+      <h3>OCD SLAM 的核心贡献</h3>
+      <div class="grid-3">
+        <div class="mini-card">
+          <h4>新几何量</h4>
+          <p>交叉视差（Cross Disparity）利用双目时序 + 立体双不一致性检测动态特征点。</p>
+        </div>
+        <div class="mini-card">
+          <h4>新系统设计</h4>
+          <p>物体级（SMOKE + Kalman）和像素级（交叉视差）双层过滤，盲区互补。</p>
+        </div>
+        <div class="mini-card">
+          <h4>新实证证据</h4>
+          <p>在 KITTI Odometry 和 KITTI Raw 上系统验证了双层互补的有效性。</p>
+        </div>
+      </div>
+
+      <h3>与 PaperLesson 其他课程的关联</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>课程板块</th>
+            <th>具体关联</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>视觉 SLAM 十四讲</strong></td>
+            <td>ORB-SLAM2 基础（特征点法、对极几何、PnP、BA）来自该系列的第七讲到第十讲。双目模型来自第五讲。</td>
+          </tr>
+          <tr>
+            <td><strong>DFusion-SLAM</strong></td>
+            <td>同属动态 SLAM 方向。DFusion 走语义路线（轻量检测 + 语义融合），OCD SLAM 走几何路线（交叉视差 + 3D 检测），两篇对比学习效果最佳。</td>
+          </tr>
+          <tr>
+            <td><strong>E2Map</strong></td>
+            <td>E2Map 中的体验-情绪地图关注机器人导航中的社会场景理解，与 OCD SLAM 的动态感知形成导航前端的感知-理解互补。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section class="exercise-box">
+        <h3>最终练习</h3>
+        <ol>
+          <li>
+            OCD SLAM 提出后，未来如果要进一步提升，你最推荐改进哪个模块？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>一个值得尝试的方向：用开放词汇检测器（如 GLIP、Grounding DINO）替换 SMOKE，使物体级检测不受类别限制。这样交叉视差只需专注处理检测器难以处理的情况（慢速运动、非刚体变形等），双层过滤的覆盖范围会更完整。当然，开放词汇检测器的推理速度需要评估是否满足实时要求。</div>
+            </details>
+          </li>
+          <li>
+            对比 OCD SLAM 和 DFusion-SLAM，如果让你二选一部署到一台 Jetson Orin 上跑实时 SLAM，你选哪个？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>选 OCD SLAM。原因是：① OCD SLAM 的交叉视差模块纯粹基于几何计算，不消耗 GPU 资源；SMOKE 虽然需要 GPU，但只是单帧推理。② DFusion-SLAM 的语义融合模块需要同时跑检测 + 分割，GPU 负载更重。③ 但要注意：如果目标场景中动态物体以慢速运动为主（如室内环境中缓慢走动的人），OCD SLAM 的表现可能不如 DFusion-SLAM。所以最终选择取决于具体场景。</div>
+            </details>
+          </li>
+          <li>
+            学完这六节课后，用你自己的话向同学介绍"交叉视差"，不超过三句话。
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>交叉视差是一个利用双目相机判断特征点是否在运动的几何方法。它不是直接比较左右图的特征位置，而是把当前帧的信息反投到前一帧的右图上，看投影位置和实际位置是否一致。如果不一致，说明这个点真的动了——不依赖任何先验知识，纯粹靠几何。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0087-实验设计与结果分析.html">← 实验设计与结果分析</a>
+        <a class="disabled" href="#">结束 →</a>
+      </div>
+      <p class="foot-note">OCD SLAM 六节课全部完成！现在可以回到主页看看这门课和 DFusion-SLAM 的对比视角 🎉</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

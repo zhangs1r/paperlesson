@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCD SLAM · 双层动态过滤系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">OCD SLAM / Lesson 4</div>
+      <h1>双层动态过滤系统</h1>
+      <p class="subtitle">SMOKE 做"物体级"过滤，交叉视差做"像素级"精过滤——两层互补，覆盖从整车到小部件的动态检测。这一节看它们怎么协作，以及运动标签和地图点剔除如何写进 SLAM 流程。🛡️</p>
+      <div class="hero-meta">
+        <span>🎯 主题：双层过滤机制 + 系统集成</span>
+        <span>🧭 入口：Section III（续）+ Section IV</span>
+        <span>🔗 论文：<a href="https://arxiv.org/abs/2607.02005v1" target="_blank">arXiv 2607.02005</a></span>
+      </div>
+      <div class="toc">
+        <a href="#two-layer">双层过滤设计思路</a>
+        <a href="#object-pixel">物体级 vs 像素级</a>
+        <a href="#motion-labeling">运动标签与地图点剔除</a>
+        <a href="#collaboration">两层如何协作</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="two-layer">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解 OCD SLAM 最巧妙的设计之一：两个动态检测模块如何协同工作。单一的几何或语义方法都有盲区，两层配合才能覆盖全场景。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>SMOKE 检测器在第 0084 课介绍过，交叉视差在第 0085 课推导过。这一节把它们"拼在一起"看怎么形成完整系统。与 <strong>DFusion-SLAM</strong> 的课程对比：DFusion 用的是语义分割 + 检测头，OCD SLAM 用的是检测 + 几何，两种双层策略各有特色。</p>
+        </div>
+      </div>
+
+      <h2>1. 为什么需要双层过滤</h2>
+      <p>回顾前面两节课，单独使用 SMOKE 或单独使用交叉视差都有各自的盲区：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>优势</th>
+            <th>盲区</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SMOKE 3D 检测（物体级）</td>
+            <td>能可靠识别已知类别的动态物体（车、人、自行车）</td>
+            <td>① 漏检未训练类别 ② 检测框不精确 ③ 单帧无法判断运动状态</td>
+          </tr>
+          <tr>
+            <td>交叉视差（像素级）</td>
+            <td>不依赖语义先验，能检测任意动态特征点</td>
+            <td>① 慢速运动不敏感 ② 纯水平运动不敏感 ③ 依赖立体匹配质量</td>
+          </tr>
+          <tr>
+            <td><strong>OCD SLAM（双层）</strong></td>
+            <td>物体级粗筛 + 像素级精筛，两两互补</td>
+            <td>计算量略有增加</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>这两个盲区几乎是"正交"的——SMOKE 的盲区不是交叉视差的盲区，反之亦然。这正是它们能有效互补的根本原因。</p>
+    </main>
+
+    <section class="section-card" id="object-pixel">
+      <h2>2. 物体级过滤 vs 像素级过滤</h2>
+
+      <h3>物体级过滤：SMOKE + Kalman 滤波</h3>
+      <p>物体级过滤的输出是"这个物体在运动"的二分类（或三分类）判断。论文中以物体为单位进行跟踪，每个物体有一个 Kalman 滤波器维护运动状态。</p>
+      <div class="formula-box">
+        <p><strong>物体级过滤流程：</strong></p>
+        <p>① SMOKE 检测 $\rightarrow$ ② 与已有轨迹关联（Hungarian 算法）<br>
+        ③ Kalman 滤波更新速度估计 $\mathbf{v} = (\dot{x}, \dot{y}, \dot{z})$<br>
+        ④ 速度阈值判断 $\|\mathbf{v}\| > v_{\text{th}}$ → 动态；否则 → 静态</p>
+      </div>
+
+      <h3>像素级过滤：交叉视差</h3>
+      <p>像素级过滤是对每个特征点独立判断。对于没有被任何检测框覆盖的特征点（或者在框内但 SMOKE 没有判断为动态的特征点），交叉视差提供"第二道防线"。</p>
+      <div class="formula-box">
+        <p><strong>像素级过滤流程：</strong></p>
+        <p>① 对每个特征点计算交叉视差 $D^{\text{cross}}$<br>
+        ② 计算与普通视差的差异 $\Delta D = |D^{\text{cross}} - D|$<br>
+        ③ $\Delta D > \tau_2$ → 标记为动态，剔除<br>
+        ④ $\tau_1 < \Delta D < \tau_2$ → 降低权重，用于加权 BA</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="motion-labeling">
+      <h2>3. 运动标签与地图点剔除</h2>
+      <p>两个模块检测到的动态信息被汇聚成统一的<strong>运动标签系统</strong>，最终用于地图点管理和 BA 优化。</p>
+
+      <h3>标签传播链</h3>
+      <div class="formula-box">
+        <div class="flow-formula">$$
+        \text{SMOKE 检测框}
+        \rightarrow
+        \text{物体级运动分类}
+        \rightarrow
+        \boxed{\text{物体运动标签}}
+        \rightarrow
+        \text{框内所有特征点标记}
+        $$</div>
+        <div class="flow-formula">$$
+        \text{交叉视差检测}
+        \rightarrow
+        \boxed{\text{特征点级运动标签}}
+        \rightarrow
+        \text{对应 MapPoint 标记}
+        $$</div>
+      </div>
+
+      <p>具体来说，一个特征点 p 的最终标签由以下规则决定：</p>
+      <ol>
+        <li>如果 p 落在某个被标记为"动态"的 3D 检测框内 → p 直接标记为动态</li>
+        <li>如果 p 没有落在任何检测框内，但交叉视差 $\Delta D > \tau_2$ → p 标记为动态</li>
+        <li>如果 p 没有落在任何检测框内，但 $\tau_1 < \Delta D < \tau_2$ → p 在 BA 中被降权</li>
+        <li>其他情况 → p 标记为静态，正常参与优化</li>
+      </ol>
+
+      <h3>地图点剔除策略</h3>
+      <p>运动标签不仅用于当前帧，还被传播到地图点（MapPoint）：</p>
+      <ul>
+        <li>如果一个 MapPoint 被连续多帧标记为动态，它会被从地图中删除</li>
+        <li>如果一个 MapPoint 偶尔被标记为动态，它会被暂时冻结（不参与跟踪，但保留在地图中）</li>
+        <li>如果一个 MapPoint 长期被标记为静态，它会在 BA 中被给予更高权重</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="collaboration">
+      <h2>4. 两层协作的互补性验证</h2>
+      <p>论文通过一个具体的实验结果说明了为什么两层都是必要的（论文 Table I）：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>物体</th>
+            <th>出现帧数</th>
+            <th>纯特征跟踪正确帧数</th>
+            <th>OCD SLAM 正确帧数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Car A</td>
+            <td>9</td>
+            <td>8</td>
+            <td>9</td>
+          </tr>
+          <tr>
+            <td>Car B</td>
+            <td>26</td>
+            <td>22</td>
+            <td>26</td>
+          </tr>
+          <tr>
+            <td>Car C</td>
+            <td>38</td>
+            <td>25</td>
+            <td>38</td>
+          </tr>
+          <tr>
+            <td>Car D</td>
+            <td>25</td>
+            <td>16</td>
+            <td>25</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>怎么读这个表</h4>
+        <p>"纯特征跟踪"只靠 ORB 特征匹配来跟踪物体，容易因为遮挡或误匹配而丢帧。OCD SLAM 加上了 Kalman 滤波跟踪，利用运动模型的预测能力来弥补特征匹配失败时的空缺，所以跟踪持续帧数更多、一致性更好。</p>
+      </div>
+
+      <p>另外值得注意"ID 不一致"次数——纯特征方法中物体 C 出现了 15 次 ID 切换，而 OCD SLAM 只有 2 次。这意味着纯特征方法经常把同一辆车误认为是"新车"，导致运动轨迹断裂。Kalman 滤波提供的 ID 一致性是物体级跟踪质量的关键。</p>
+
+      <div class="interactive-card">
+        <h3>设计思考</h3>
+        <p>如果让你在"只用物体级过滤"和"只用像素级过滤"中二选一，你选哪个？</p>
+        <div class="quiz-options">
+          <button data-correct="no" data-explanation="虽然物体级过滤效率高，但它的盲区（未训练类别）在开放世界场景中很致命。在自动驾驶中遇到一只鹿或一个施工牌，物体级过滤完全无法处理。" onclick="lessonKit.answer(this, 'quiz-0086')">物体级过滤（SMOKE）就够了，像素级太麻烦</button>
+          <button data-correct="no" data-explanation="像素级过滤虽然通用，但对慢速运动和纯旋转运动不敏感。一辆缓慢从你旁边驶过的车，在交叉视差中可能几乎检测不到。" onclick="lessonKit.answer(this, 'quiz-0086')">像素级过滤（交叉视差）就够了，不需要检测器</button>
+          <button data-correct="yes" data-explanation="对。两者盲区正交——SMOKE 怕没见过的物体，交叉视差怕慢速运动。只有两层配合才能在真实复杂场景中达到稳定效果。" onclick="lessonKit.answer(this, 'quiz-0086')">两个都需要，它们的盲区各不相同</button>
+        </div>
+        <div class="quiz-feedback" id="quiz-0086"></div>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            交叉视差对于"径向运动"（物体沿着相机光轴方向移动）的检测效果如何？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>效果较差。因为径向运动导致的视差变化是全局性的（整幅图像上的点深度都在变化），交叉视差计算的是单个点的差异，难以区分"深度变化导致的视差变化"和"运动导致的视差变化"。相比之下，SMOKE 检测器通过 3D 边界框的位置变化来检测径向运动会更准确。</div>
+            </details>
+          </li>
+          <li>
+            OCD SLAM 的双层过滤和 DFusion-SLAM 的语义融合方案有哪些本质区别？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>本质区别在于"动态判断的依据"不同。OCD SLAM 依靠<strong>几何 + 检测</strong>：SMOKE 提供语义先验（这是什么物体），交叉视差提供几何证据（这个点在动）。DFusion-SLAM 依靠<strong>语义融合</strong>：用轻量分割 + 检测头 + 注意力机制来识别动态区域。OCD SLAM 对未知物体更鲁棒（交叉视差不依赖类别），DFusion-SLAM 对慢速物体更鲁棒（语义信息能区分"静止的车"和"移动的车"）。</div>
+            </details>
+          </li>
+          <li>
+            如果一个场景中同时有超过 20 个动态物体，Kalman 滤波跟踪的计算量是否会成为瓶颈？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>Kalman 滤波本身的单步更新计算量极低（$O(n)$ 每个物体），即使 20 个物体也不会成为瓶颈。真正的瓶颈是 SMOKE 检测器的推理速度（单帧检测时间）和数据关联（Hungarian 算法）的计算量，后者在物体数量多时接近 $O(n^3)$。不过 KITTI 场景通常不超过 10-15 个动态物体，这个复杂度可以接受。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0085-交叉视差核心方法.html">← 交叉视差核心方法</a>
+        <a class="next" href="0087-实验设计与结果分析.html">实验设计与结果分析 →</a>
+      </div>
+      <p class="foot-note">系统架构清楚了，下一节看实验数据到底支不支持这些设计 📊</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

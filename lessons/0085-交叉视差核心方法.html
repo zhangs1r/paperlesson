@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCD SLAM · 交叉视差核心方法</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">OCD SLAM / Lesson 3</div>
+      <h1>交叉视差：核心几何方法</h1>
+      <p class="subtitle">这是本篇论文最核心的技术贡献。我们将从普通视差出发，一步一步推导"交叉视差"的定义，理解它为什么能检测动态特征点，以及它如何与 SMOKE 检测器互补。📐</p>
+      <div class="hero-meta">
+        <span>🎯 主题：Cross Disparity 数学推导</span>
+        <span>🧭 入口：Section III 方法部分</span>
+        <span>🔗 论文：<a href="https://arxiv.org/abs/2607.02005v1" target="_blank">arXiv 2607.02005</a></span>
+      </div>
+      <div class="toc">
+        <a href="#disparity-basics">普通视差回顾</a>
+        <a href="#cross-disparity-def">交叉视差定义</a>
+        <a href="#intuition">为什么能检测动态</a>
+        <a href="#integration">如何集成进 SLAM</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="disparity-basics">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解论文最核心的创新点——交叉视差的数学定义和几何直觉，以及它如何在 SLAM 流水线中被用来检测动态特征点。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>视差的概念来自<strong>视觉 SLAM 十四讲</strong>第 0034 课（双目相机）。如果你对双目立体视觉的基本原理还不熟，建议先复习那节课再往下看。</p>
+        </div>
+      </div>
+
+      <h2>1. 普通视差 (Disparity) 回顾</h2>
+      <p>在双目视觉中，一个三维空间点 $P$ 同时被左右两个相机观测到。由于左右相机位置不同，$P$ 在左右图像上的投影位置 $p^L$ 和 $p^R$ 会有一个水平偏移，这个偏移量就是<strong>视差</strong>（disparity）。</p>
+
+      <div class="formula-box">
+        <p><strong>普通视差定义：</strong></p>
+        $$D_t = (p_t^L)_x - (p_t^R)_x$$
+        <p>其中 $p_t^L$ 和 $p_t^R$ 是时刻 $t$ 时，同一空间点在左右图像上的对应特征点的水平（$x$）坐标。</p>
+      </div>
+
+      <p>视差 $D$ 和深度 $Z$ 满足反比关系：</p>
+      <div class="formula-box">
+        $$Z = \frac{f \cdot b}{D}$$
+        <p>其中 $f$ 是焦距，$b$ 是基线距离（两个相机光心之间的距离）。</p>
+      </div>
+
+      <p>在 ORB-SLAM2 的双目模式中，每对匹配的左右特征点都会计算视差，通过视差三角化出 3D 地图点。这个视差的计算有一个关键前提：<strong>$p^L$ 和 $p^R$ 必须来自同一个三维空间点</strong>，通过立体匹配算法确保对应关系正确。</p>
+
+      <div class="callout">
+        <h4>关键直觉</h4>
+        <p>普通视差假设：<strong>同一个空间点在左右图上的投影，是通过立体匹配算法正确关联的</strong>。对于静态物体，这个假设成立；但对于动态物体，帧间的运动加上立体匹配的误差，会导致视差值"不干净"。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="cross-disparity-def">
+      <h2>2. 交叉视差的定义</h2>
+      <p>交叉视差（Cross Disparity）是本文的核心创新。它与普通视差的关键区别在于：<strong>交叉视差比较的是"预测位置"和"实际位置"，而不是直接比较左右图像上的观测位置</strong>。</p>
+
+      <h3>符号准备</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>符号</th>
+            <th>含义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>$p_t^L$</td><td>时刻 $t$ 左图上检测到的特征点位置</td></tr>
+          <tr><td>$p_t^R$</td><td>时刻 $t$ 右图上与 $p_t^L$ 匹配的特征点位置</td></tr>
+          <tr><td>$q_t^L$</td><td>前一帧的特征点 $p_{t-1}^L$ 在时刻 $t$ 左图上的跟踪位置（通过特征匹配或光流）</td></tr>
+          <tr><td>$Q_t$</td><td>$q_t^L$ 对应的三维空间点</td></tr>
+          <tr><td>$q_{t-1}^R$</td><td>$Q_t$ 投影到前一帧右图上的位置</td></tr>
+        </tbody>
+      </table>
+
+      <h3>交叉视差公式</h3>
+      <div class="formula-box">
+        <p><strong>普通视差（时刻 $t-1$）：</strong></p>
+        $$D_{t-1} = (p_{t-1}^L)_x - (p_{t-1}^R)_x$$
+
+        <p><strong>交叉视差（Cross Disparity）：</strong></p>
+        $$D_{t-1}^{\text{cross}} = (p_{t-1}^L)_x - (q_{t-1}^R)_x$$
+
+        <p>其中 $q_{t-1}^R$ 是当前帧的特征点投影到前一帧右图上的位置。</p>
+      </div>
+
+      <p>可以看到，普通视差和交叉视差的唯一区别是减数不同：</p>
+      <ul>
+        <li>普通视差：减数是<strong>实际观测到的</strong>右图特征点位置 $p_{t-1}^R$</li>
+        <li>交叉视差：减数是<strong>投影计算得到的</strong>右图位置 $q_{t-1}^R$（通过当前帧信息反向投影）</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="intuition">
+      <h2>3. 交叉视差为什么能检测动态</h2>
+
+      <h3>静态点的情况</h3>
+      <p>对于一个真正<strong>静态</strong>的空间点：</p>
+      <ul>
+        <li>它在 $t-1$ 时刻被左右相机观测到，位置为 $p_{t-1}^L$ 和 $p_{t-1}^R$</li>
+        <li>它在 $t$ 时刻被左图再次观测到，位置为 $q_t^L$</li>
+        <li>将 $Q_t$（由 $q_t^L$ 重构得到）投影到 $t-1$ 时刻的右图，得到 $q_{t-1}^R$</li>
+        <li><strong>对于静态点</strong>，$q_{t-1}^R$ 应该与 $p_{t-1}^R$ 重合（或者说非常接近）</li>
+      </ul>
+
+      <div class="formula-box">
+        <p><strong>静态点：</strong> $q_{t-1}^R \approx p_{t-1}^R \quad\Rightarrow\quad D_{t-1}^{\text{cross}} \approx D_{t-1}$</p>
+      </div>
+
+      <h3>动态点的情况</h3>
+      <p>对于一个<strong>运动中的</strong>空间点：</p>
+      <ul>
+        <li>该点在 $t-1$ 到 $t$ 之间发生了真实的位移</li>
+        <li>$Q_t$（由 $t$ 时刻观测重构）已经"移动"到了新位置</li>
+        <li>将 $Q_t$ 投影到 $t-1$ 时刻的右图，得到 $q_{t-1}^R$</li>
+        <li><strong>对于动态点</strong>，$q_{t-1}^R$ 与 $p_{t-1}^R$ 不再重合——因为点真的动了</li>
+      </ul>
+
+      <div class="formula-box">
+        <p><strong>动态点：</strong> $q_{t-1}^R \neq p_{t-1}^R \quad\Rightarrow\quad D_{t-1}^{\text{cross}} \neq D_{t-1}$</p>
+      </div>
+
+      <p>因此，交叉视差与普通视差的差异（$\Delta D = |D_{t-1}^{\text{cross}} - D_{t-1}|$）就是一个<strong>运动检测信号</strong>。$\Delta D$ 越大，说明该点越可能是动态的。</p>
+
+      <div class="figure">
+        <svg viewBox="0 0 700 200" style="width:100%;">
+          <text x="350" y="25" text-anchor="middle" font-size="14" fill="#4a342c" font-weight="600">交叉视差检测原理</text>
+
+          <!-- 左相机 -->
+          <rect x="20" y="60" width="50" height="80" rx="8" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="45" y="105" text-anchor="middle" font-size="11" fill="#4a342c">左相机</text>
+
+          <!-- 右相机 -->
+          <rect x="120" y="60" width="50" height="80" rx="8" fill="rgba(204,120,92,0.12)" stroke="#cc785c" stroke-width="1.5"/>
+          <text x="145" y="105" text-anchor="middle" font-size="11" fill="#4a342c">右相机</text>
+
+          <!-- 前一帧的静态点 -->
+          <circle cx="45" cy="170" r="4" fill="#5a9e6f"/>
+          <text x="60" y="174" font-size="10" fill="#5a9e6f">$p_{t-1}^L$ (左图观测)</text>
+          <circle cx="145" cy="170" r="4" fill="#5a9e6f"/>
+          <text x="160" y="174" font-size="10" fill="#5a9e6f">$p_{t-1}^R$ (右图匹配)</text>
+
+          <!-- 交叉线 -->
+          <line x1="45" y1="140" x2="200" y2="40" stroke="#1a5fb4" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="145" y1="140" x2="200" y2="40" stroke="#1a5fb4" stroke-width="1" stroke-dasharray="4,3"/>
+
+          <!-- 三维点 -->
+          <circle cx="200" cy="40" r="5" fill="#1a5fb4"/>
+          <text x="210" y="44" font-size="10" fill="#1a5fb4">静态 3D 点 $P$</text>
+
+          <!-- 投影位置 -->
+          <circle cx="300" cy="170" r="4" fill="#cc785c"/>
+          <text x="315" y="174" font-size="10" fill="#cc785c">$q_{t-1}^R$ (投影位置)</text>
+
+          <!-- 箭头 -->
+          <line x1="145" y1="170" x2="296" y2="170" stroke="#cc785c" stroke-width="1.5" marker-end="url(#arrow2)"/>
+          <defs><marker id="arrow2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc785c"/></marker></defs>
+          <text x="220" y="165" text-anchor="middle" font-size="10" fill="#cc785c">交叉视差 $D^{\text{cross}}$</text>
+
+          <!-- 标注 -->
+          <text x="350" y="120" font-size="11" fill="#846e65" font-style="italic">静态点 → 投影位置 ≈ 实际观测位置 → 交叉视差 ≈ 普通视差</text>
+          <text x="350" y="140" font-size="11" fill="#b15d44" font-style="italic">动态点 → 投影位置 ≠ 实际观测位置 → 交叉视差 ≠ 普通视差 → 检测为动态</text>
+        </svg>
+        <figcaption>图 2：交叉视差原理示意图。左图中实际观测到的右图位置 $p_{t-1}^R$ 与通过当前帧信息投影得到的 $q_{t-1}^R$ 之间的差异就是运动检测的关键。</figcaption>
+      </div>
+    </section>
+
+    <section class="section-card" id="integration">
+      <h2>4. 交叉视差如何集成进 SLAM</h2>
+      <p>在 OCD SLAM 中，交叉视差不仅仅是一个检测指标，它还被用来优化 Bundle Adjustment：</p>
+
+      <h3>静态点加权机制</h3>
+      <p>论文没有简单地把动态点直接删除，而是引入了一个<strong>加权机制</strong>：</p>
+      <div class="formula-box">
+        <p>BA 优化目标函数：</p>
+        $$\min_{\mathbf{T}} \sum_{i} w_i \cdot \rho\left(\|e_i(\mathbf{T})\|^2\right)$$
+        <p>其中 $w_i$ 是根据交叉视差差异 $\Delta D$ 计算的特征点权重，$e_i$ 是重投影误差，$\rho$ 是鲁棒核函数。</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>$\Delta D$ 范围</th>
+            <th>权重 $w_i$</th>
+            <th>含义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$\Delta D < \tau_1$</td>
+            <td>$w_i = 1.0$</td>
+            <td>几乎肯定是静态点 — 全权重参与优化</td>
+          </tr>
+          <tr>
+            <td>$\tau_1 \leq \Delta D < \tau_2$</td>
+            <td>$0 < w_i < 1.0$</td>
+            <td>疑似动态 — 降低权重</td>
+          </tr>
+          <tr>
+            <td>$\Delta D \geq \tau_2$</td>
+            <td>$w_i = 0$</td>
+            <td>极可能是动态 — 完全排除</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>为什么加权比直接删除好</h4>
+        <p>"直接删"是一个硬决策，一旦判定错误就没有挽回余地。"加权"是一个软决策——对于不确定的点，先降低它的影响，但保留它在优化中的部分贡献。这在交叉视差和 SMOKE 检测结果冲突时尤其有用：如果 SMOKE 说某物体是静态的，但交叉视差发现它上面有些可疑特征点，加权机制可以让优化器自己"斟酌"。</p>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            交叉视差相比于普通视差，多利用了哪一维信息来检测动态？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>交叉视差多利用了"时间维度的信息"。普通视差只用到同一时刻左右图的对应关系（空间维度），而交叉视差将前一帧和当前帧的信息结合起来——把当前帧重构的 3D 点投影到前一帧右图，通过比较投影位置和实际观测位置的差异来判断运动。</div>
+            </details>
+          </li>
+          <li>
+            如果特征点 $\Delta D$ 很小但物体实际上正在运动，可能是什么原因？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>可能的原因包括：① 运动方向平行于成像平面（纯水平运动），此时视差变化很小；② 运动速度极慢，帧间位移小于立体匹配的误差范围；③ 特征点在物体上的位置靠近旋转中心（旋转导致的位移很小）。这些情况下交叉视差的检测能力下降，需要 SMOKE 检测器来补充。</div>
+            </details>
+          </li>
+          <li>
+            加权 BA 和鲁棒核函数（如 Huber Loss）都在处理"异常值"，它们有什么本质区别？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>鲁棒核函数是在优化过程中<strong>被动地</strong>降低大残差的影响——它不知道这个残差为什么大，只是简单地"如果误差太大就不那么相信它"。而加权 BA 中的权重 $w_i$ 是<strong>主动地</strong>根据先验信息（交叉视差的检测结果）设定的——在优化开始前就知道了哪些点可能有问题。前者是"事后处理"，后者是"事先预防"。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0084-ORB-SLAM2基础与系统框架.html">← ORB-SLAM2 基础与系统框架</a>
+        <a class="next" href="0086-双层动态过滤系统.html">双层动态过滤系统 →</a>
+      </div>
+      <p class="foot-note">交叉视差的数学直觉清楚了，下一节看它和 SMOKE 如何组成完整的双层过滤系统 🛡️</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>

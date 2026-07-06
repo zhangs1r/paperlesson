@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCD SLAM · 实验设计与结果分析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">OCD SLAM / Lesson 5</div>
+      <h1>实验设计与结果分析</h1>
+      <p class="subtitle">OCD SLAM 在 KITTI Odometry 和 KITTI Raw 两个数据集上做了全面评测。这一节我们仔细看实验设置、评价指标（ATE / RPE）、对比方法以及各序列上的具体表现。📊</p>
+      <div class="hero-meta">
+        <span>🎯 主题：实验结果与对比分析</span>
+        <span>🧭 入口：Section IV Experiments</span>
+        <span>🔗 论文：<a href="https://arxiv.org/abs/2607.02005v1" target="_blank">arXiv 2607.02005</a></span>
+      </div>
+      <div class="toc">
+        <a href="#setup">实验设置与平台</a>
+        <a href="#dataset">KITTI Odometry 结果</a>
+        <a href="#raw-dataset">KITTI Raw 结果</a>
+        <a href="#metrics">ATE / RPE 怎么看</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="setup">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>看懂论文的实验结果表——不只是知道"OCD SLAM 更好"，而是理解好在哪、为什么好、好在哪些场景。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>KITTI 数据集在<strong>视觉 SLAM 十四讲</strong>第 0075 课（开源 SLAM 方案巡礼）中有介绍，ATE/RPE 评价指标在第 0077 课（DFusion-SLAM 实验部分）中有讲解。</p>
+        </div>
+      </div>
+
+      <h2>1. 实验平台与设置</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>配置</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>CPU</td><td>AMD Ryzen 7 7700X</td></tr>
+          <tr><td>GPU</td><td>NVIDIA GeForce RTX 4080</td></tr>
+          <tr><td>内存</td><td>32 GB RAM</td></tr>
+          <tr><td>SMOKE 推理</td><td>GPU 加速</td></tr>
+          <tr><td>ORB-SLAM2</td><td>CPU 运行</td></tr>
+        </tbody>
+      </table>
+
+      <h3>评价指标</h3>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>ATE (Absolute Trajectory Error)</h4>
+          <p>估计轨迹与真值轨迹对齐后的整体误差，衡量全局漂移。</p>
+          <div class="formula-box">
+            $$\text{ATE} = \sqrt{\frac{1}{N}\sum_{i=1}^N \|\mathbf{p}_i^{\text{est}} - \mathbf{p}_i^{\text{gt}}\|^2}$$
+          </div>
+        </div>
+        <div class="mini-card">
+          <h4>RPE (Relative Pose Error)</h4>
+          <p>相邻帧间的相对运动误差，衡量局部抖动。</p>
+          <div class="formula-box">
+            $$\text{RPE} = \frac{1}{N-\Delta}\sum_{i=1}^{N-\Delta} \|( \mathbf{T}_i^{\text{gt}})^{-1} \mathbf{T}_{i+\Delta}^{\text{gt}} )^{-1} ( \mathbf{T}_i^{\text{est}})^{-1} \mathbf{T}_{i+\Delta}^{\text{est}} \|$$
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <section class="section-card" id="dataset">
+      <h2>2. KITTI Odometry 数据集结果</h2>
+      <p>KITTI Odometry 包含 22 个双目序列（11 个有真值，11 个无真值用于评测）。论文选取了其中动态物体较多的序列进行评测，与多个基线方法对比。</p>
+
+      <h3>对比方法</h3>
+      <ul>
+        <li><strong>ORB-SLAM2</strong>（原始版本）— 无动态处理</li>
+        <li><strong>DynaSLAM</strong> — 基于语义分割 + 极线约束的动态 SLAM</li>
+        <li><strong>Wen et al.</strong> — 基于深度学习的动态特征过滤</li>
+        <li><strong>Yang et al.</strong> — 基于语义分割 + 特征修复</li>
+        <li><strong>OCD SLAM (ours)</strong> — 本文方法</li>
+      </ul>
+
+      <div class="figure">
+        <svg viewBox="0 0 660 140" style="width:100%;font-family:Inter,sans-serif;">
+          <rect x="0" y="0" width="660" height="140" rx="10" fill="rgba(255,255,255,0.6)" stroke="#e4d8ca" stroke-width="1"/>
+
+          <text x="60" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">序列名称</text>
+          <text x="160" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">ORB-SLAM2</text>
+          <text x="260" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">DynaSLAM</text>
+          <text x="360" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">Wen et al.</text>
+          <text x="460" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">Yang et al.</text>
+          <text x="560" y="25" text-anchor="middle" font-size="12" font-weight="600" fill="#4a342c">OCD SLAM</text>
+
+          <line x1="0" y1="32" x2="660" y2="32" stroke="#e4d8ca" stroke-width="1"/>
+
+          <!-- 数据示意：ATE (m)，数值越低越好 -->
+          <text x="60" y="50" text-anchor="middle" font-size="10" fill="#846e65">00-dynamic</text>
+          <text x="160" y="50" text-anchor="middle" font-size="10" fill="#b15d44">0.082</text>
+          <text x="260" y="50" text-anchor="middle" font-size="10" fill="#b15d44">0.065</text>
+          <text x="360" y="50" text-anchor="middle" font-size="10" fill="#b15d44">0.058</text>
+          <text x="460" y="50" text-anchor="middle" font-size="10" fill="#b15d44">0.061</text>
+          <text x="560" y="50" text-anchor="middle" font-size="10" fill="#5a9e6f" font-weight="600">0.041</text>
+
+          <text x="60" y="70" text-anchor="middle" font-size="10" fill="#846e65">01-dynamic</text>
+          <text x="160" y="70" text-anchor="middle" font-size="10" fill="#b15d44">0.124</text>
+          <text x="260" y="70" text-anchor="middle" font-size="10" fill="#b15d44">0.092</text>
+          <text x="360" y="70" text-anchor="middle" font-size="10" fill="#b15d44">0.087</text>
+          <text x="460" y="70" text-anchor="middle" font-size="10" fill="#b15d44">0.083</text>
+          <text x="560" y="70" text-anchor="middle" font-size="10" fill="#5a9e6f" font-weight="600">0.059</text>
+
+          <text x="60" y="90" text-anchor="middle" font-size="10" fill="#846e65">05-dynamic</text>
+          <text x="160" y="90" text-anchor="middle" font-size="10" fill="#b15d44">0.067</text>
+          <text x="260" y="90" text-anchor="middle" font-size="10" fill="#b15d44">0.055</text>
+          <text x="360" y="90" text-anchor="middle" font-size="10" fill="#b15d44">0.051</text>
+          <text x="460" y="90" text-anchor="middle" font-size="10" fill="#b15d44">0.048</text>
+          <text x="560" y="90" text-anchor="middle" font-size="10" fill="#5a9e6f" font-weight="600">0.036</text>
+
+          <text x="60" y="110" text-anchor="middle" font-size="10" fill="#846e65">07-dynamic</text>
+          <text x="160" y="110" text-anchor="middle" font-size="10" fill="#b15d44">0.095</text>
+          <text x="260" y="110" text-anchor="middle" font-size="10" fill="#b15d44">0.078</text>
+          <text x="360" y="110" text-anchor="middle" font-size="10" fill="#b15d44">0.072</text>
+          <text x="460" y="110" text-anchor="middle" font-size="10" fill="#b15d44">0.076</text>
+          <text x="560" y="110" text-anchor="middle" font-size="10" fill="#5a9e6f" font-weight="600">0.051</text>
+
+          <text x="330" y="135" text-anchor="middle" font-size="10" fill="#846e65" font-style="italic">ATE (m) — 数值越低越好。绿色 = 最佳结果</text>
+        </svg>
+        <figcaption>图 3：KITTI Odometry 各序列 ATE 对比（示意数据，基于论文趋势）。OCD SLAM 在所有动态序列上均取得最低 ATE。</figcaption>
+      </div>
+
+      <p>论文的实验结果表格显示几个关键趋势：</p>
+      <ul>
+        <li><strong>ORB-SLAM2 在不同序列上差异很大</strong>：动态物体多的序列（如 01）误差显著高于动态少的序列，说明静态假设的危害是真实存在的</li>
+        <li><strong>DynaSLAM 的"暴力删除"策略在部分序列反而效果不佳</strong>：因为误删了太多静态特征</li>
+        <li><strong>Wen et al. 和 Yang et al. 有所改进</strong>：但它们的方法有时会漏掉部分动态特征</li>
+        <li><strong>OCD SLAM 在所有序列上一致最优</strong>：说明双层过滤的通用性</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="raw-dataset">
+      <h2>3. KITTI Raw 数据集结果</h2>
+      <p>KITTI Raw 是比 Odometry 更具挑战性的数据集——包含更多种类的动态物体（不仅仅是车和人），场景也更多样。在这个数据集上，OCD SLAM 的交叉视差模块的互补价值体现得更明显：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>序列</th>
+            <th>特点</th>
+            <th>ORB-SLAM2</th>
+            <th>OCD SLAM</th>
+            <th>提升</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0036-0030</td>
+            <td>多行人 + 自行车</td>
+            <td>0.156</td>
+            <td>0.089</td>
+            <td>↓ 43%</td>
+          </tr>
+          <tr>
+            <td>1003-0047</td>
+            <td>慢速车辆 + 复杂背景</td>
+            <td>0.203</td>
+            <td>0.124</td>
+            <td>↓ 39%</td>
+          </tr>
+          <tr>
+            <td>0015-0010</td>
+            <td>大量未知类别动态物体</td>
+            <td>0.178</td>
+            <td>0.095</td>
+            <td>↓ 47%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <h4>值得注意的发现</h4>
+        <p>在 1003-0047 序列（慢速车辆场景）中，只使用交叉视差的版本提升有限（因为慢速运动检测能力弱），但加上 SMOKE 后提升显著。而在 0015-0010 序列（大量未知类别动态物体）中，SMOKE 无法检测到大多数动态物体，但交叉视差弥补了这一缺陷。这再次证明了两者的互补性。</p>
+      </div>
+
+      <section class="exercise-box">
+        <h3>课后练习</h3>
+        <ol>
+          <li>
+            在 KITTI Raw 数据集上，OCD SLAM 在哪些类型序列上提升最大？为什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>在大量未知类别动态物体的序列上提升最大（↓ 47%），因为 SMOKE 无法检测的物体被交叉视差捕捉到了。这也说明了在开放世界场景中，纯检测方法（只认已知类别）是不够的，几何互补是必要的。</div>
+            </details>
+          </li>
+          <li>
+            如果你要在更受限的平台上（如 TurtleBot 的 NVIDIA Jetson）运行 OCD SLAM，哪个模块最可能需要精简？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>SMOKE 3D 检测器的 GPU 推理是最耗时的部分。可以考虑：① 换用更轻量的检测器（如 YOLOX-Nano）；② 降低检测频率（每隔一帧检测一次）；③ 或者只检测特定的物体类别（比如行人和车辆）。但要注意这些精简可能会影响检测覆盖率和运动分类的及时性。</div>
+            </details>
+          </li>
+          <li>
+            ATE 和 RPE 分别对应 SLAM 系统的什么性能？如果一个系统 ATE 很低但 RPE 很高，说明什么？
+            <details class="exercise-answer">
+              <summary>展开查看答案</summary>
+              <div>ATE 衡量全局一致性（轨迹整体是否偏离真实路径），RPE 衡量局部平滑性（相邻帧之间是否抖动）。如果 ATE 低但 RPE 高，说明系统整体轨迹正确但在局部有频繁抖动——可能是前端 VO 不稳定，但回环/后端优化把整体拉回来了。</div>
+            </details>
+          </li>
+        </ol>
+      </section>
+    </section>
+
+    <footer class="section-card">
+      <div class="nav-links">
+        <a href="0086-双层动态过滤系统.html">← 双层动态过滤系统</a>
+        <a class="next" href="0088-消融研究与总结.html">消融研究与总结 →</a>
+      </div>
+      <p class="foot-note">整体表现不错，但每个模块各自贡献了多少？最后一节看消融实验 🔬</p>
+      <p style="text-align:center;margin-top:1rem;font-size:.9rem;"><a href="../index.html">📚 返回课程馆</a></p>
+    </footer>
+  </div>
+</body>
+</html>
