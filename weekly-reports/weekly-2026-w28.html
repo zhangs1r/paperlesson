@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W28</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 800px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card h3 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); }
+  .paper-card .score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .excerpt { font-size: var(--text-sm); color: var(--ink-60); }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+
+  .paper-card .connection { margin-top: var(--space-3); padding: var(--space-3); background: rgba(204, 120, 92, 0.06); border-radius: var(--radius-md); border: 1px solid rgba(204, 120, 92, 0.12); }
+  .paper-card .connection .conn-title { font-size: var(--text-xs); font-weight: 600; color: var(--accent-deep); }
+  .paper-card .connection p { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0 0; }
+
+  .trend-box { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 28 周 · 2026.06.29 — 2026.07.06</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周是 PaperLesson 周报的第一期。本期从 arXiv cs.RO / cs.CV / cs.AI / cs.LG 等分类的 <strong>300 篇新论文</strong>中，
+    筛选出与 PaperLesson 现有课程体系（<strong>视觉 SLAM 十四讲</strong>、<strong>DFusion-SLAM</strong>、<strong>E2Map</strong>、<strong>VLMaps</strong>、<strong>LSeg</strong>）
+    密切相关的 <strong>15 篇论文</strong>进行推荐。每篇论文都标注了与 PaperLesson 已有板块的关联，方便你按图索骥深入阅读。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">15</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">5</span><span class="label">arXiv分类</span></div>
+  <div class="stat-card"><span class="num">28</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<div class="paper-card top1">
+  <div class="score">6.8</div>
+  <h3>① OCD SLAM — 动态立体视觉 SLAM</h3>
+  <p class="excerpt">在 ORB-SLAM2 基础上提出「交叉视差」(Cross Disparity) 几何方法，联合检测动态物体和动态特征点，结合 SMOKE 3D 检测 + Kalman 滤波进行物体级运动分类，在 KITTI 上显著提升轨迹精度。</p>
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">ORB-SLAM</span><span class="tag tag-accent">Kalman filter</span><span class="tag tag-accent">动态环境</span><span class="tag tag-accent">立体视觉</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02005v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p><strong>视觉 SLAM 十四讲</strong> — 第 0046~0053 课（特征点法 / 对极几何 / PnP / BA 优化）是该论文的基础。OCD SLAM 的交叉视差思想可以看作是第 0054~0059 课（直接法）与第 0046 课（特征点法）的融合创新。<br>
+    <strong>DFusion-SLAM</strong> — 第 0077~0082 课同属动态环境 SLAM 方向，OCD SLAM 的几何方法与 DFusion 的语义方法形成互补对照。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">5.5</div>
+  <h3>② DL-SLAM — 双层概率 3DGS SLAM</h3>
+  <p class="excerpt">基于 3D Gaussian Splatting 的双层概率框架，结合语义与几何信息计算动态概率图，区分瞬态静止物体与真正动态物体，实现无伪影的静态地图构建。</p>
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">3DGS</span><span class="tag tag-accent">语义分割</span><span class="tag tag-accent">动态环境</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.01860v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p><strong>视觉 SLAM 十四讲</strong> — 第 0063~0065 课（后端优化 / BA 求解）和第 0072~0074 课（建图 / 深度滤波）的 3DGS 升级版。<strong>LSeg</strong> — 第 0007~0013 课的开放词汇语义分割方法可用于 DL-SLAM 的语义分支。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">5.2</div>
+  <h3>③ LiDAR 3D 检测鲁棒性综合分析</h3>
+  <p class="excerpt">系统评估了 LiDAR 3D 物体检测在自动驾驶场景下的鲁棒性，涵盖天气变化、运动模糊、传感器退化等多种退化条件。</p>
+  <div class="keywords"><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">3D检测</span><span class="tag tag-accent">点云</span><span class="tag tag-accent">鲁棒性</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02074v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p><strong>视觉 SLAM 十四讲</strong> — 第 0032~0038 课（相机与图像 / 双目 / RGB-D）的传感器补充视角。LiDAR 作为 SLAM 系统的重要传感器，与课程中讲解的视觉传感器形成互补。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">4.6</div>
+  <h3>④ SPLC — 社交偏好学习人群机器人导航</h3>
+  <p class="excerpt">在 TurtleBot4 上验证的社交导航方法，学习人群环境中的社交偏好进行路径规划，代码开源。</p>
+  <div class="keywords"><span class="tag tag-accent">TurtleBot4</span><span class="tag tag-accent">机器人导航</span><span class="tag tag-accent">社交导航</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.01925v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p><strong>E2Map</strong> — 第 0003 课（导航与实验分析 / 系统流程与评估）的直接扩展版，E2Map 关注导航中的情绪地图，SPLC 关注社交交互，两者都面向机器人导航的场景适应性。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">4.1</div>
+  <h3>⑤ C2E — 多教师对比知识蒸馏的纯视觉 3D 检测</h3>
+  <p class="excerpt">通过多教师对比知识蒸馏，提升纯视觉 3D 物体检测性能，无需 LiDAR 即可实现高精度检测。</p>
+  <div class="keywords"><span class="tag tag-accent">3D检测</span><span class="tag tag-accent">知识蒸馏</span><span class="tag tag-accent">纯视觉</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.01827v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p><strong>视觉 SLAM 十四讲</strong> — 第 0032~0035 课（针孔相机 / 双目 / RGB-D）的感知应用方向。纯视觉 3D 检测是 SLAM 系统中感知层的重要组件。</p>
+  </div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 更多值得关注</h2>
+
+<div class="paper-card">
+  <div class="score">3.9</div>
+  <h3>⑥ DL-VINS-Factory — 可学习视觉前端模块化框架</h3>
+  <p class="excerpt">模块化 VINS 框架，支持可替换的学习型视觉前端（特征点、光流、直接法），便于对比测试不同前端在 VIO 中的表现。</p>
+  <div class="keywords"><span class="tag tag-accent">VINS</span><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">视觉前端</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.01757v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p>与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（VO 框架 / 数据结构 / 局部地图）高度相关，提供了模块化实验平台。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">3.8</div>
+  <h3>⑦ GeoMix — 无描述符视觉定位</h3>
+  <p class="excerpt">无需局部描述符的视觉定位方法，通过全局上下文和多检测器融合实现。</p>
+  <div class="keywords"><span class="tag tag-accent">视觉定位</span><span class="tag tag-accent">全局上下文</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02486v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p>与 <strong>视觉 SLAM 十四讲</strong>第 0046~0049 课（特征点法 / 特征匹配 / 对极几何）形成对比——无描述符方法绕过了传统特征匹配流水线。</p>
+  </div>
+</div>
+
+<div class="paper-card">
+  <div class="score">3.6</div>
+  <h3>⑧ LiZAD — 轻量零样本异常检测</h3>
+  <p class="excerpt">适用于机器人平台的低资源零样本异常检测方法，无需训练即可检测新异常类型。</p>
+  <div class="keywords"><span class="tag tag-accent">异常检测</span><span class="tag tag-accent">零样本</span></div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02336v1" target="_blank">📄 arXiv</a></div>
+  <div class="connection">
+    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
+    <p>对 <strong>E2Map</strong>（情绪地图中的异常事件检测）和<strong>TurtleBot 导航</strong>中的环境异常识别有参考价值。</p>
+  </div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ 动态 SLAM 持续升温</h4>
+  <p>本周 Top 2 均聚焦动态环境 SLAM（OCD SLAM 的几何方法、DL-SLAM 的 3DGS + 概率方法），延续了 DFusion-SLAM 的方向。动态 SLAM 正从单一方案走向「几何 + 语义 + 概率」多模态融合，建议跟进学习。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ TurtleBot4 生态活跃</h4>
+  <p>SPLC 在 TurtleBot4 上实机验证社交导航，加上 DL-VINS-Factory 的模块化 VINS 设计，说明 TurtleBot4 的开源平台正吸引更多研究者在真实机器人上落地算法。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 3DGS SLAM 进入实用化阶段</h4>
+  <p>DL-SLAM 等 3DGS SLAM 工作开始关注动态场景中的建图质量，不再只是炫技式的新视图合成，而是真正为 SLAM 系统产生可用地图。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 纯视觉 + 知识蒸馏降本增效</h4>
+  <p>C2E 和 GeoMix 都展示了减少传感器依赖的趋势——用蒸馏或全局特征替代 LiDAR 或局部描述符，对低成本机器人平台（如 TurtleBot）尤其有意义。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 — 第 28 周</span>
+  <a href="../index.html">← 返回课程馆</a>
+</div>
+
+<div class="report-header" style="margin-top:var(--space-6);">
+  <div class="subtitle">—— 顾清然 · PaperLesson 研究助理</div>
+</div>
+
+</div>
+</body>
+</html>

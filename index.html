@@ -327,6 +327,13 @@
     font-family: var(--font-mono);
     font-size: var(--text-xs);
   }
+  .weekly-report-link {
+    margin-top: var(--space-4);
+    text-align: right;
+  }
+  .weekly-report-link .btn { font-size: var(--text-sm); }
+  @media (max-width: 640px) {
+  }
   .ref-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
@@ -613,7 +620,12 @@ function renderCatalog(data) {
             </div>
             <div class="collection-meta">${collectionMeta}</div>
           </div>
-          <div class="lesson-grid">${lessonCards}</div>
+          <div class="lesson-grid">${lessonCards || ""}</div>
+          ${collection.quickOpen && lessons.length === 0 ? `
+            <div class="weekly-report-link">
+              <a href="${collection.quickOpen.replace(/^start\s+/, '')}" class="btn btn-accent">📡 查看本期周报 →</a>
+            </div>
+          ` : ""}
           <div class="quick-open">
             <span class="howto-cmd">${collection.quickOpen || ""}</span>
           </div>

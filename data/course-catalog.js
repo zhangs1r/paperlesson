@@ -10,6 +10,14 @@ window.PAPERLESSON_DATA = {
       meta: ["适合单篇或小系列论文", "先搭来源块，再拆课程"]
     },
     {
+      id: "weekly",
+      kind: "周报馆",
+      title: "移动机器人·论文周报",
+      emoji: "📡",
+      description: "每周从 arXiv 检索移动机器人 / SLAM / 导航方向的最新论文，结合 PaperLesson 现有课程体系进行推荐。每篇论文标注与课程板块的关联，便于按图索骥。",
+      meta: ["每周更新", "arXiv 检索", "课程关联推荐"]
+    },
+    {
       id: "books",
       kind: "教材馆",
       title: "教材与长期主线课程馆",
@@ -66,8 +74,18 @@ window.PAPERLESSON_DATA = {
       title: "视觉 SLAM 十四讲",
       subtitle: "从理论到实践 · 课程化精读版本",
       description: "第 0014 课之后进入教材主线。这里不是单篇论文，而是一整本书的系统课程，从前言、系统框架、刚体运动、李群李代数，一路走到 VO、后端、回环、建图与未来方向。",
-      quickOpen: "start lessons\\0014-第一讲-前言.html",
+      quickOpen: "start lessons\\\\0014-第一讲-前言.html",
       meta: ["63+ 节课", "14 个原始讲次", "教材主线"]
+    },
+    {
+      id: "robotics-weekly",
+      groupId: "weekly",
+      kind: "移动机器人周报",
+      title: "arXiv 论文周报",
+      subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
+      description: "第 28 周起每周一期。基于 arXiv 检索 + 四维评分筛选，每篇论文标注与 PaperLesson 课程板块的关联。本周推荐了 OCD SLAM、DL-SLAM、SPLC 等与课程内容紧密相关的工作。",
+      quickOpen: "start weekly-reports/weekly-2026-w28.html",
+      meta: ["每周一期", "arXiv 检索", "课程关联"]
     }
   ],
   lessons: [
