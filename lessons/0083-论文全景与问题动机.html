@@ -124,7 +124,7 @@
       <p>两条线索是互补的：3D 检测能认出一整辆车在动，但可能漏掉车上晃动的小部件（后视镜、天线）；交叉视差能发现这些"小动态"，但整车的慢速移动可能测不准。两者结合才能覆盖全场景。</p>
 
       <div class="figure">
-        <img src="assets/ocd-slam-p3-1.png" alt="OCD SLAM 系统框架图" loading="lazy">
+        <img src="assets/ocd-slam-p3-1.jpg" alt="OCD SLAM 系统框架图" loading="lazy">
         <figcaption>图 1：OCD SLAM 系统框架。ORB-SLAM2 基础上新增了五个黄色模块：静态点检测（交叉视差）、3D 物体检测（SMOKE）、物体跟踪（Kalman 滤波）、运动标签（Motion Labeling）和基于速度的地图点剔除（Velocity-based Map Point Culling）。可以看出，新增模块全部插入在 Tracking 线程中，在特征提取后、位姿估计前做动态过滤。</figcaption>
       </div>
 
