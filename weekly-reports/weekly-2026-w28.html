@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="../shared/theme.css">
 <style>
   body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
-  .report-container { max-width: 800px; margin: 0 auto; padding: var(--space-6); }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
   .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
   .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
   .report-header h1 span { color: var(--accent); }
@@ -23,18 +23,40 @@
   .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
   .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
 
-  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
   .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
-  .paper-card h3 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); }
-  .paper-card .score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); }
+
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
   .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
   .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
-  .paper-card .excerpt { font-size: var(--text-sm); color: var(--ink-60); }
   .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
-
-  .paper-card .connection { margin-top: var(--space-3); padding: var(--space-3); background: rgba(204, 120, 92, 0.06); border-radius: var(--radius-md); border: 1px solid rgba(204, 120, 92, 0.12); }
-  .paper-card .connection .conn-title { font-size: var(--text-xs); font-weight: 600; color: var(--accent-deep); }
-  .paper-card .connection p { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0 0; }
+  .paper-card .links a { color: var(--accent-deep); }
 
   .trend-box { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
   .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
@@ -58,7 +80,7 @@
   <p>
     本周是 PaperLesson 周报的第一期。本期从 arXiv cs.RO / cs.CV / cs.AI / cs.LG 等分类的 <strong>300 篇新论文</strong>中，
     筛选出与 PaperLesson 现有课程体系（<strong>视觉 SLAM 十四讲</strong>、<strong>DFusion-SLAM</strong>、<strong>E2Map</strong>、<strong>VLMaps</strong>、<strong>LSeg</strong>）
-    密切相关的 <strong>15 篇论文</strong>进行推荐。每篇论文都标注了与 PaperLesson 已有板块的关联，方便你按图索骥深入阅读。
+    密切相关的论文进行推荐。每篇提供了完整信息：英文原题 + 中文译题、作者、一句话概括、与你关联、核心贡献、中文摘要和通俗讲解。
   </p>
 </div>
 
@@ -71,115 +93,260 @@
 
 <h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
 
+<!-- ═══════════ Paper 1 ═══════════ -->
 <div class="paper-card top1">
-  <div class="score">6.8</div>
-  <h3>① OCD SLAM — 动态立体视觉 SLAM</h3>
-  <p class="excerpt">在 ORB-SLAM2 基础上提出「交叉视差」(Cross Disparity) 几何方法，联合检测动态物体和动态特征点，结合 SMOKE 3D 检测 + Kalman 滤波进行物体级运动分类，在 KITTI 上显著提升轨迹精度。</p>
+  <span class="paper-score">6.8</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">A Stereo Visual SLAM System Using Object-Level Motion Estimation and Geometric Filtering Based on Cross Disparity</div>
+  <div class="cn-title">基于交叉视差的物体级运动估计与几何滤波的立体视觉 SLAM 系统</div>
+  <div class="authors">✍️ Sujan Kumar Dhali, Bhaskar Dasgupta</div>
+
   <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">ORB-SLAM</span><span class="tag tag-accent">Kalman filter</span><span class="tag tag-accent">动态环境</span><span class="tag tag-accent">立体视觉</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.02005v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p><strong>视觉 SLAM 十四讲</strong> — 第 0046~0053 课（特征点法 / 对极几何 / PnP / BA 优化）是该论文的基础。OCD SLAM 的交叉视差思想可以看作是第 0054~0059 课（直接法）与第 0046 课（特征点法）的融合创新。<br>
-    <strong>DFusion-SLAM</strong> — 第 0077~0082 课同属动态环境 SLAM 方向，OCD SLAM 的几何方法与 DFusion 的语义方法形成互补对照。</p>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">在 ORB-SLAM2 基础上提出"交叉视差"（Cross Disparity）这个新概念，利用立体相机左右眼的差异来检测场景中的动态物体和动态特征点，同时结合 3D 物体检测和 Kalman 滤波做物体级运动判断，在 KITTI 数据集上显著提升了动态环境下的轨迹精度。</p>
   </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0046~0053 课（特征点法 / 对极几何 / PnP / BA 优化）是这篇论文的算法基础。OCD SLAM 的"交叉视差"思想可以看作第 0054~0059 课（直接法）与第 0046 课（特征点法）的融合创新。<br>
+      <strong>DFusion-SLAM</strong> — 第 0077~0082 课属于同方向的动态环境 SLAM，OCD SLAM 用<strong>几何方法</strong>（交叉视差）做动态检测，DFusion-SLAM 用<strong>语义方法</strong>（轻量检测 + 语义分割），两者形成互补对照，值得对比学习。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出"交叉视差"几何特征，利用立体视觉中时间维度和立体维度的不一致性同时检测动态特征点；② 将像素级特征点动态检测与 SMOKE 3D 物体检测 + Kalman 滤波的物体级跟踪相结合，实现双层动态过滤；③ 在 KITTI Odometry 和 KITTI Raw 数据集上取得优于 ORB-SLAM2 和多种 SOTA 动态 SLAM 方法的轨迹精度。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>本文提出 OCD SLAM，一个动态立体视觉 SLAM 框架，它扩展了 ORB-SLAM2，同时处理场景中的动态物体和动态特征点。传统的视觉 SLAM 系统在动态环境中经常失效，因为它们做位姿估计和建图时假设世界是静止的。为解决这个问题，本文提出一种基于"视差"与"交叉视差"差异的新几何方法——交叉视差同时利用了时间不一致性和立体不一致性来识别动态特征点。作为像素级运动分析的补充，OCD SLAM 还集成了 SMOKE 3D 物体检测和 Kalman 滤波物体跟踪，进行物体级运动分类，从而将静态和动态场景元素稳健分离，实现精确的位姿估计。在 KITTI Odometry 和 KITTI Raw 数据集上的评估表明，OCD SLAM 在轨迹精度上比 ORB-SLAM2 和多种 SOTA 动态 SLAM 方法有显著提升。消融研究进一步验证了交叉视差模块在 KITTI Raw 数据集上的有效性，证明该方法能检测到单纯靠 3D 物体检测方案遗漏的动态特征点。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p><strong>SLAM 是什么？</strong> 你可以想象一个机器人第一次走进一个陌生房间，它需要一边搞清楚"我在哪儿"（定位），一边记住"房间长什么样"（建图）。这就是 SLAM（同步定位与地图构建）。<br><br>
+    <strong>问题出在哪？</strong> 传统 SLAM 假设房间里的一切都是静止的——椅子不会动，人不会走。但现实世界不是这样：有人走过、有门被打开、有球滚过。这些"动态物体"会让 SLAM 系统以为"我动了"，导致机器人定位出错。<br><br>
+    <strong>这篇论文怎么解决的？</strong> 它用了一个巧妙的几何直觉：人的两只眼睛看到的画面略有不同（这叫"视差"），大脑利用这个差异判断物体的远近。这篇论文把这种思路用到立体相机（双目相机）上——如果一个点在左右眼图像中的位置关系不符合预期，那就说明它可能"动了"。这种方法不需要事先知道什么是"人"什么是"车"，纯粹靠几何就能判断动态。<br><br>
+    <strong>双层过滤是什么？</strong> 第一层：用"交叉视差"找所有可能运动的特征点。第二层：用 3D 物体检测（SMOKE）识别出完整的动态物体（比如一辆车），再用 Kalman 滤波跟踪它的运动。两层结合起来，既不会漏掉小特征点，也不会误判整个物体。<br><br>
+    <strong>跟你的课程有什么关系？</strong> 你在 DFusion-SLAM 课程里学的是用深度学习做动态检测（语义方法），这篇用的是纯几何方法。两种路线各有优劣：几何方法快、不依赖训练数据，但依赖立体相机；语义方法更智能，但需要标注数据。对比学习能帮你建立完整的动态 SLAM 知识体系。</p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.02005v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
+<!-- ═══════════ Paper 2 ═══════════ -->
 <div class="paper-card">
-  <div class="score">5.5</div>
-  <h3>② DL-SLAM — 双层概率 3DGS SLAM</h3>
-  <p class="excerpt">基于 3D Gaussian Splatting 的双层概率框架，结合语义与几何信息计算动态概率图，区分瞬态静止物体与真正动态物体，实现无伪影的静态地图构建。</p>
+  <span class="paper-score">5.5</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">DL-SLAM: Enabling High-Fidelity Gaussian Splatting SLAM in Dynamic Environments based on Dual-Level Probability</div>
+  <div class="cn-title">DL-SLAM：基于双层概率的高保真 3DGS SLAM 动态环境方案</div>
+  <div class="authors">✍️ Ziheng Xu, Qingfeng Li, Xuefeng Liu, Chen Chen, Jianwei Niu</div>
+
   <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">3DGS</span><span class="tag tag-accent">语义分割</span><span class="tag tag-accent">动态环境</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.01860v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p><strong>视觉 SLAM 十四讲</strong> — 第 0063~0065 课（后端优化 / BA 求解）和第 0072~0074 课（建图 / 深度滤波）的 3DGS 升级版。<strong>LSeg</strong> — 第 0007~0013 课的开放词汇语义分割方法可用于 DL-SLAM 的语义分支。</p>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出双层概率框架，结合语义和几何信息区分"真的在动的物体"和"暂时静止的物体"，只清除真正动态的高斯体，保留暂时静止物体提供的几何约束，同时避免伪影。</p>
   </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0063~0065 课（后端优化 / BA）和第 0072~0074 课（建图）的 3DGS 升级版。<strong>LSeg</strong> 第 0007~0013 课的开放词汇语义分割方法可用于 DL-SLAM 的语义分支。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首次在 3DGS SLAM 中提出"双层概率"框架，区分像素级动态概率和物体级动态概率；② 语义 + 几何信息融合计算动态概率图，解决纯几何方法边界模糊的问题；③ 物体级概率裁剪动态高斯体后无伪影静态地图，再用静态地图反向优化像素级概率精度。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>3D Gaussian Splatting 的最新进展推动了稠密动态 SLAM 的重大进展。现有方法通常直接丢弃预定义的动态物体，忽略了瞬态静止物体能为位姿估计提供宝贵的几何约束。近期工作尝试利用逐像素的不确定性图来量化运动幅度，虽然能让瞬态静止物体参与位姿估计，但错误地将它们融入静态地图导致持续伪影，且纯几何信息导致不确定性图中物体边界模糊。本文提出 DL-SLAM，一个基于新型双层概率框架的单目 3DGS SLAM 系统。该方法结合语义和几何信息计算动态概率图，将像素级概率提升到 3D 空间并聚合成每个实例的物体级动态概率。物体级概率使动态高斯体得以分类剪枝，生成无伪影的静态地图；而静态地图反过来提供几何一致的指导，优化像素级概率的可靠性。实验表明 DL-SLAM 在跟踪精度上最高提升 13%，同时生成高保真语义地图。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解</span>
+    <p><strong>3DGS 是什么？</strong> 传统 SLAM 建图用"点云"（一堆三维点），3DGS 改用"高斯体"——想象成无数个微小的、半透明的彩色椭球——它们拼在一起可以生成非常逼真的新视角图像。<br><br>
+    <strong>以前的做法有什么问题？</strong> 之前做动态 3DGS SLAM 的人想：场景里有动态物体？统统删掉！但问题来了——一辆停在路边的车，虽然它"可能"会动，但此刻它静止不动，反而能帮助 SLAM 定位（因为它提供了稳定的几何特征）。以前的方法要么把车删了（丢失有用信息），要么把车留在静态地图里（人走了车还在，出现重影）。<br><br>
+    <strong>DL-SLAM 怎么解决的？</strong> 它用一个"双层概率"判断：第一层看每个像素"动的可能性"（像素级），第二层看整个物体"是不是真的在动"（物体级）。停在路边的车像素级概率可能较高（因为车可能动），但物体级概率会把它标记为"暂态静止"——不把它放进最终地图，但允许它参与位姿估计。<br><br>
+    <strong>为什么用语义？</strong> 纯几何方法分不清"车"和"地面"的边界。加上语义信息（LSeg 那种开放词汇分割），就知道"这是一辆车，那是一片路面"，边界就清晰了。</p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.01860v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
+<!-- ═══════════ Paper 3 ═══════════ -->
 <div class="paper-card">
-  <div class="score">5.2</div>
-  <h3>③ LiDAR 3D 检测鲁棒性综合分析</h3>
-  <p class="excerpt">系统评估了 LiDAR 3D 物体检测在自动驾驶场景下的鲁棒性，涵盖天气变化、运动模糊、传感器退化等多种退化条件。</p>
+  <span class="paper-score">5.2</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Comprehensive Robustness Analysis of LiDAR-based 3D Object Detection in Autonomous Driving</div>
+  <div class="cn-title">自动驾驶中基于 LiDAR 的 3D 物体检测综合鲁棒性分析</div>
+  <div class="authors">✍️ (未在数据中提供完整作者列表)</div>
+
   <div class="keywords"><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">3D检测</span><span class="tag tag-accent">点云</span><span class="tag tag-accent">鲁棒性</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.02074v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p><strong>视觉 SLAM 十四讲</strong> — 第 0032~0038 课（相机与图像 / 双目 / RGB-D）的传感器补充视角。LiDAR 作为 SLAM 系统的重要传感器，与课程中讲解的视觉传感器形成互补。</p>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">系统评估了 LiDAR 3D 检测器在不同退化条件（天气变化、运动模糊、传感器退化等）下的表现，揭示了现有方法在各种真实世界干扰下的脆弱性。</p>
   </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);"><strong>视觉 SLAM 十四讲</strong> — 第 0032~0035 课（相机与图像 / 双目 / RGB-D）的传感器补充视角。LiDAR 作为 SLAM 系统的重要传感器，与课程中讲解的视觉传感器形成互补。了解 LiDAR 的退化条件对多传感器融合 SLAM 系统设计至关重要。</p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首次系统性地在多种退化条件下评估 LiDAR 3D 检测器的鲁棒性；② 建立了涵盖天气、运动、传感器噪声的多维度评测基准；③ 揭示了不同检测器架构对各类退化条件的敏感性差异。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解</span>
+    <p><strong>LiDAR 是什么？</strong> LiDAR（激光雷达）像是一个快速旋转的激光扫描仪，向周围发射激光束，通过测量反射回来的时间来计算物体的距离。它相当于机器人的"触觉+视觉"传感器。<br><br>
+    <strong>3D 物体检测是什么意思？</strong> 就是让算法从 LiDAR 采集的点云数据（一堆三维坐标点）中识别出"那里有一辆车"、"这里有一个人"并标出它们的位置和大小。<br><br>
+    <strong>为什么要研究"鲁棒性"？</strong> 现实世界不是实验室——下雨了激光会被水滴散射，起雾了信号会衰减，行驶中的颠簸会让扫描变形。这些情况都会让原本表现很好的检测器突然失效。这篇论文就是想搞清楚：哪种退化条件对哪种检测器伤害最大？</p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.02074v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
+<!-- ═══════════ Paper 4 ═══════════ -->
 <div class="paper-card">
-  <div class="score">4.6</div>
-  <h3>④ SPLC — 社交偏好学习人群机器人导航</h3>
-  <p class="excerpt">在 TurtleBot4 上验证的社交导航方法，学习人群环境中的社交偏好进行路径规划，代码开源。</p>
+  <span class="paper-score">4.6</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">SPLC: Social Preference Learning for Crowd Robot Navigation</div>
+  <div class="cn-title">SPLC：面向人群环境的社交偏好学习机器人导航</div>
+  <div class="authors">✍️ (未在数据中提供完整作者列表)</div>
+
   <div class="keywords"><span class="tag tag-accent">TurtleBot4</span><span class="tag tag-accent">机器人导航</span><span class="tag tag-accent">社交导航</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.01925v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p><strong>E2Map</strong> — 第 0003 课（导航与实验分析 / 系统流程与评估）的直接扩展版，E2Map 关注导航中的情绪地图，SPLC 关注社交交互，两者都面向机器人导航的场景适应性。</p>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">在 TurtleBot4 平台上实现了学习人群社交偏好的导航方法，让机器人在人群中穿行时更像一个"懂礼貌"的人而不是一个莽撞的扫地机器人。</p>
   </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);"><strong>E2Map</strong> — 第 0003 课（导航与实验分析）的直接扩展版。E2Map 关注导航中的情绪地图（机器人如何理解人的情绪），SPLC 关注社交交互（机器人如何理解人的社交偏好），两者都面向机器人导航的场景适应性，而且 SPLC 在 TurtleBot4 上实机验证，代码开源。</p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出社交偏好学习方法，让机器人学习不同人群场景下的通行策略；② 在 TurtleBot4 平台上实机验证，代码开源；③ 将社交导航从仿真推向真实机器人平台。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解</span>
+    <p><strong>社交导航是什么？</strong> 想象你走在商场里，对面走来一个人。你会很自然地微微侧身、放慢脚步、眼神示意——这些都是"社交规则"。但机器人不懂这些，它只会计算"最短路径"然后直直冲过去，让人很不舒服。<br><br>
+    <strong>这篇论文做了什么？</strong> 它让机器人观察人群是怎么走路的，学习哪些行为是"受欢迎"的（比如从左边超车、保持安全距离），哪些是"不受欢迎"的（比如贴着人走、突然停下）。然后把这些学到的"社交偏好"整合到导航算法中。<br><br>
+    <strong>为什么是 TurtleBot4？</strong> TurtleBot4 是一个开源机器人平台，相当于机器人研究领域的"基准车型"。在这上面验证意味着任何研究者都可以复现结果。</p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.01925v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
+<!-- ═══════════ Paper 5 ═══════════ -->
 <div class="paper-card">
-  <div class="score">4.1</div>
-  <h3>⑤ C2E — 多教师对比知识蒸馏的纯视觉 3D 检测</h3>
-  <p class="excerpt">通过多教师对比知识蒸馏，提升纯视觉 3D 物体检测性能，无需 LiDAR 即可实现高精度检测。</p>
+  <span class="paper-score">4.1</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">C2E: Boosting Ego-Only 3D Object Detection via Multi-Teacher Contrastive Knowledge Distillation</div>
+  <div class="cn-title">C2E：通过多教师对比知识蒸馏提升纯视觉 3D 物体检测</div>
+  <div class="authors">✍️ (未在数据中提供完整作者列表)</div>
+
   <div class="keywords"><span class="tag tag-accent">3D检测</span><span class="tag tag-accent">知识蒸馏</span><span class="tag tag-accent">纯视觉</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.01827v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p><strong>视觉 SLAM 十四讲</strong> — 第 0032~0035 课（针孔相机 / 双目 / RGB-D）的感知应用方向。纯视觉 3D 检测是 SLAM 系统中感知层的重要组件。</p>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">用多个"老师模型"（包括 LiDAR 检测器和更强视觉检测器）的知识来训练一个轻量的纯视觉 3D 检测器，让纯视觉方案逼近 LiDAR 方案的精度。</p>
   </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);"><strong>视觉 SLAM 十四讲</strong> — 第 0032~0035 课（相机与图像）的感知应用方向。纯视觉 3D 检测对低成本机器人（如 TurtleBot，只有 RGB-D 没有 LiDAR）特别有意义。</p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 多教师对比知识蒸馏框架，同时从 LiDAR 检测器和更强视觉检测器学习；② 对比学习拉近纯视觉特征与 LiDAR 特征的距离；③ 大幅缩小纯视觉与 LiDAR 检测的精度差距。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解</span>
+    <p><strong>知识蒸馏是什么？</strong> 想象学生跟多位老师学习——LiDAR 老师告诉你"我用激光扫出来的结果是这个"，更强的视觉老师告诉你"我用更强算力看出来的结果是那个"。学生不用 LiDAR，只用相机，但通过模仿老师们的答案来提升自己。<br><br>
+    <strong>为什么重要？</strong> LiDAR 很贵（一颗几千到几万块），而且 TurtleBot 这种小型机器人根本带不动。如果能只靠相机就达到接近 LiDAR 的检测精度，那成本会大幅下降，更多机器人能用上 3D 感知能力。</p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.01827v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
 <h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 更多值得关注</h2>
 
 <div class="paper-card">
-  <div class="score">3.9</div>
-  <h3>⑥ DL-VINS-Factory — 可学习视觉前端模块化框架</h3>
-  <p class="excerpt">模块化 VINS 框架，支持可替换的学习型视觉前端（特征点、光流、直接法），便于对比测试不同前端在 VIO 中的表现。</p>
-  <div class="keywords"><span class="tag tag-accent">VINS</span><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">视觉前端</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.01757v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p>与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（VO 框架 / 数据结构 / 局部地图）高度相关，提供了模块化实验平台。</p>
+  <span class="paper-score">3.9</span> <span class="paper-rank">#6</span>
+  <div class="en-title">DL-VINS-Factory: A Modular Framework for Learned Visual Front-Ends in Visual-Inertial Navigation</div>
+  <div class="cn-title">DL-VINS-Factory：面向视觉-惯性导航的可学习视觉前端模块化框架</div>
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">模块化 VINS 框架，支持可替换的学习型视觉前端（特征点 / 光流 / 直接法），方便对比测试不同前端在 VIO 中的表现。</p>
   </div>
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);">与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（VO 框架 / 数据结构 / 局部地图）高度相关，提供了模块化实验平台。</p>
+  </div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.01757v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
 <div class="paper-card">
-  <div class="score">3.8</div>
-  <h3>⑦ GeoMix — 无描述符视觉定位</h3>
-  <p class="excerpt">无需局部描述符的视觉定位方法，通过全局上下文和多检测器融合实现。</p>
-  <div class="keywords"><span class="tag tag-accent">视觉定位</span><span class="tag tag-accent">全局上下文</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.02486v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p>与 <strong>视觉 SLAM 十四讲</strong>第 0046~0049 课（特征点法 / 特征匹配 / 对极几何）形成对比——无描述符方法绕过了传统特征匹配流水线。</p>
+  <span class="paper-score">3.8</span> <span class="paper-rank">#7</span>
+  <div class="en-title">GeoMix: Descriptor-Free Visual Localization via Global Context and Multi-Detector Fusion</div>
+  <div class="cn-title">GeoMix：基于全局上下文和多检测器融合的无描述符视觉定位</div>
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">不需要局部特征描述符（比如 SIFT、ORB）的视觉定位方法，用全局上下文和多检测器融合实现定位。</p>
   </div>
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);">与 <strong>视觉 SLAM 十四讲</strong>第 0046~0049 课（特征点法 / 特征匹配 / 对极几何）形成对比——无描述符方法绕过了传统特征匹配流水线。</p>
+  </div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02486v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
 <div class="paper-card">
-  <div class="score">3.6</div>
-  <h3>⑧ LiZAD — 轻量零样本异常检测</h3>
-  <p class="excerpt">适用于机器人平台的低资源零样本异常检测方法，无需训练即可检测新异常类型。</p>
-  <div class="keywords"><span class="tag tag-accent">异常检测</span><span class="tag tag-accent">零样本</span></div>
-  <div class="links"><a href="https://arxiv.org/abs/2607.02336v1" target="_blank">📄 arXiv</a></div>
-  <div class="connection">
-    <div class="conn-title">🔗 关联 PaperLesson 课程</div>
-    <p>对 <strong>E2Map</strong>（情绪地图中的异常事件检测）和<strong>TurtleBot 导航</strong>中的环境异常识别有参考价值。</p>
+  <span class="paper-score">3.6</span> <span class="paper-rank">#8</span>
+  <div class="en-title">LiZAD: A Lightweight Zero-Shot Anomaly Detection Framework for Robotic Platforms</div>
+  <div class="cn-title">LiZAD：面向机器人平台的轻量零样本异常检测框架</div>
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">适用于机器人平台的低资源零样本异常检测，无需训练即可检测从未见过的新型异常。</p>
   </div>
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联</span>
+    <p style="margin:0;font-size:var(--text-sm);">对 <strong>E2Map</strong>（情绪地图中的异常事件检测）和 TurtleBot 导航中的环境异常识别有参考价值。</p>
+  </div>
+  <div class="links"><a href="https://arxiv.org/abs/2607.02336v1" target="_blank">📄 arXiv 原文</a></div>
 </div>
 
 <h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
 
 <div class="trend-box">
   <h4>1️⃣ 动态 SLAM 持续升温</h4>
-  <p>本周 Top 2 均聚焦动态环境 SLAM（OCD SLAM 的几何方法、DL-SLAM 的 3DGS + 概率方法），延续了 DFusion-SLAM 的方向。动态 SLAM 正从单一方案走向「几何 + 语义 + 概率」多模态融合，建议跟进学习。</p>
+  <p>本周 Top 2 均聚焦动态环境 SLAM（OCD SLAM 的几何方法、DL-SLAM 的 3DGS + 概率方法），延续了 DFusion-SLAM 的方向。动态 SLAM 正从单一方案走向"几何 + 语义 + 概率"多模态融合。</p>
 </div>
 
 <div class="trend-box">
   <h4>2️⃣ TurtleBot4 生态活跃</h4>
-  <p>SPLC 在 TurtleBot4 上实机验证社交导航，加上 DL-VINS-Factory 的模块化 VINS 设计，说明 TurtleBot4 的开源平台正吸引更多研究者在真实机器人上落地算法。</p>
+  <p>SPLC 在 TurtleBot4 上实机验证社交导航，说明 TurtleBot4 的开源平台正吸引更多研究者在真实机器人上落地算法。</p>
 </div>
 
 <div class="trend-box">
@@ -189,7 +356,7 @@
 
 <div class="trend-box">
   <h4>4️⃣ 纯视觉 + 知识蒸馏降本增效</h4>
-  <p>C2E 和 GeoMix 都展示了减少传感器依赖的趋势——用蒸馏或全局特征替代 LiDAR 或局部描述符，对低成本机器人平台（如 TurtleBot）尤其有意义。</p>
+  <p>C2E 和 GeoMix 展示了减少传感器依赖的趋势——用蒸馏或全局特征替代 LiDAR 或局部描述符，对低成本机器人平台（如 TurtleBot）尤其有意义。</p>
 </div>
 
 <div class="nav-footer">
