@@ -569,7 +569,7 @@
     </div>
     <aside class="hero-panel">
       <h2>📚 快速跳转</h2>
-      <p>先看分馆，再看具体来源。这样更适合你现在这种“多篇论文 + 一整本书长期连载”的结构。</p>
+      <p>按分馆浏览，快速定位到感兴趣的课程块。</p>
       <div class="jump-links" id="jumpLinks"></div>
     </aside>
   </div>
@@ -586,7 +586,7 @@
     <div class="section-header">
       <h2>📚 课程馆</h2>
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
-      <p>先按“馆”管理来源，再在馆内维护具体论文或书本块。以后加新块时，推荐先建一个 <code>group</code>，再往里面追加 <code>collection</code> 和课程条目。</p>
+      <p>SLAM & 机器人方向的学习记录，按论文和教材分类整理。</p>
     </div>
     <div class="catalog-root" id="catalogRoot"></div>
   </div>
@@ -676,7 +676,7 @@ function renderHero(data) {
     badge.textContent = `当前主线 · ${featured.title}`;
   }
   if (featured && subtitle) {
-    subtitle.textContent = `现在首页已经升级成“分馆 → 来源块 → 课程页”的三层结构。当前主线是《${featured.title}》，但你也可以很快切到其他论文块；以后再加新的书或论文时，直接在数据文件里挂进对应分馆就行。🙂`;
+    subtitle.textContent = `从 SLAM 十四讲到前沿论文，每一课都是精读笔记。当前在学《${featured.title}》。🌿`;
   }
   if (meta) {
     const groupCount = (data.groups || []).length;
