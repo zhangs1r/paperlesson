@@ -537,11 +537,11 @@
 <header class="site-header">
   <div class="inner">
     <a href="index.html" class="logo">Paper<span>Lesson</span></a>
-    <nav>
+    <nav id="mainNav">
       <a href="#catalog">课程馆</a>
       <a href="#references">参考</a>
       <a href="#records">笔记</a>
-      <a href="#" onclick="toggleSearch();return false;" title="搜索课程">🔍</a>
+      <a href="#" onclick="toggleSearch();return false;" title="搜索课程（Ctrl+K）">🔍</a>
     </nav>
   </div>
 </header>
@@ -806,6 +806,7 @@ function renderCards(targetId, items, hrefKey) {
 function initPage() {
   const data = getData();
   window.__pageData = data; // 供搜索/标签功能使用
+  buildNav(data);
   renderHero(data);
   buildJumpLinks(data);
   buildStats(data);
@@ -894,6 +895,24 @@ document.addEventListener("keydown", function(e) {
     closeSearch();
   }
 });
+
+/* ─── 动态导航栏：从数据生成分馆链接 ─── */
+function buildNav(data) {
+  const nav = document.getElementById("mainNav");
+  if (!nav) return;
+  // 保留已有的 课程馆 / 参考 / 笔记 / 🔍
+  // 在它们前面插入分组链接
+  const searchLink = nav.querySelector('a[onclick*="toggleSearch"]');
+  const groups = data.groups || [];
+  const links = groups.map(function(g) {
+    return '<a href="#group-' + g.id + '">' + (g.emoji || "") + " " + g.title + "</a>";
+  }).join("");
+  if (searchLink) {
+    searchLink.insertAdjacentHTML("beforebegin", links);
+  } else {
+    nav.insertAdjacentHTML("afterbegin", links);
+  }
+}
 
 function setLastUpdated() {
   // 优先用页面最后修改时间（GitHub Pages 自动对应最新 commit）
