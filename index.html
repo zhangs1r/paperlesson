@@ -484,6 +484,9 @@
 
 <footer class="site-footer">
   <p>PaperLesson · 先分馆，再挂块，再挂课，更适合长期扩展 🌿</p>
+  <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--ink-40);">
+    最近更新：<span id="last-updated">加载中…</span>
+  </p>
 </footer>
 
 <script>
@@ -661,6 +664,24 @@ function initPage() {
   renderCards("refGrid", data.references || [], "path");
   renderCards("recordsGrid", data.learningRecords || [], "path");
   renderCards("siteLinksGrid", data.siteLinks || [], "url");
+  setLastUpdated();
+}
+
+function setLastUpdated() {
+  // 优先用页面最后修改时间（GitHub Pages 自动对应最新 commit）
+  const el = document.getElementById("last-updated");
+  if (!el) return;
+  try {
+    const mod = new Date(document.lastModified);
+    if (!isNaN(mod.getTime())) {
+      el.textContent = mod.toLocaleString("zh-CN", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+  } catch(e) {
+    el.textContent = "未知";
+  }
 }
 
 if (document.readyState === "loading") {
