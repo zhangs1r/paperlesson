@@ -144,13 +144,13 @@
       <p>论文的实验结果表格显示几个关键趋势：</p>
 
       <div class="figure">
-        <img src="assets/ocd-slam-p7-1.jpg" alt="KITTI Odometry ATE 对比结果" loading="lazy">
-        <figcaption>图 4：KITTI Odometry 序列上的 ATE 对比结果（论文 Table II/III）。OCD SLAM 在所有动态序列上均取得最低 ATE，尤其是在动态物体密集的序列（如 01-dynamic）上提升最为显著。</figcaption>
+        <img src="assets/ocd-slam-fig5a-parked.jpg" alt="KITTI Odometry 静态车辆识别" loading="lazy">
+        <figcaption>图 4a：Sequence 01 上的静态（白色边框）和动态车辆识别。OCD SLAM 成功区分了路边停放的静态车辆（PARKED）和正在行驶的动态车辆（彩色边框）。</figcaption>
       </div>
 
       <div class="figure">
-        <img src="assets/ocd-slam-p7-2.jpg" alt="KITTI Odometry RPE 对比结果" loading="lazy">
-        <figcaption>图 5：KITTI Odometry 序列上的 RPE 对比结果。OCD SLAM 在局部运动精度上也一致优于对比方法，说明动态过滤不仅改善了全局轨迹，也提升了帧间运动的平滑性。</figcaption>
+        <img src="assets/ocd-slam-fig5b-moving.jpg" alt="KITTI Odometry 动态车辆识别" loading="lazy">
+        <figcaption>图 4b：Sequence 07 上的动态场景。静止和运动物体的准确区分是 OCD SLAM 在这些序列上 ATE 大幅改善的关键原因。</figcaption>
       </div>
       <ul>
         <li><strong>ORB-SLAM2 在不同序列上差异很大</strong>：动态物体多的序列（如 01）误差显著高于动态少的序列，说明静态假设的危害是真实存在的</li>
