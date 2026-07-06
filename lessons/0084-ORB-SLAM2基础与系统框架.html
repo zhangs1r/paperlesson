@@ -161,6 +161,11 @@
         <p>其中 $(\delta z, \delta x, \delta y)$ 用于恢复 3D 中心深度和图像投影偏移，$(\delta h, \delta w, \delta l)$ 是尺寸残差，$(\sin\phi, \cos\phi)$ 编码偏航角。</p>
       </div>
 
+      <div class="figure">
+        <img src="assets/ocd-slam-p5-1.png" alt="SMOKE 检测器架构" loading="lazy">
+        <figcaption>图 2：SMOKE 检测器架构。DLA-34 作为骨干网络提取特征，两个并行预测头分别输出关键点 heatmap（用于定位 3D 中心投影）和 8 维回归向量（深度、偏移、尺寸、朝向）。</figcaption>
+      </div>
+
       <p>SMOKE 在 KITTI 数据集上训练，检测类别包括 <strong>car（车辆）、pedestrian（行人）、cyclist（自行车）</strong>——室外驾驶场景中最主要的动态物体类别。</p>
 
       <div class="callout">

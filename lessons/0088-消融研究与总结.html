@@ -136,6 +136,11 @@
       </div>
 
       <p><strong>消融实验的关键发现：</strong></p>
+
+      <div class="figure">
+        <img src="assets/ocd-slam-p9-1.png" alt="消融研究：SMOKE vs 交叉视差效果对比" loading="lazy">
+        <figcaption>图 6：消融研究可视化。论文 Fig. 6 展示了不同模块对动态特征去除的影响。(a–b) 仅使用 SMOKE 模块时，由于物体检测不完整，移动物体上仍残留了许多静态特征（绿色点）；(c–d) 使用交叉视差模块后，动态特征（红色点）被有效检测出来。蓝色点为最终保留在优化中的静态特征。</figcaption>
+      </div>
       <ol>
         <li><strong>仅 SMOKE 在已知类别动态场景中效果显著</strong>（如 KITTI Odometry），但在 KITTI Raw 的未知类别场景中提升有限</li>
         <li><strong>仅交叉视差在慢速动态场景中效果下降</strong>（如 1003-0047 序列），但在未知类别场景中表现优异</li>

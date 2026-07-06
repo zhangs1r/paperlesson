@@ -186,6 +186,11 @@
         <p>"纯特征跟踪"只靠 ORB 特征匹配来跟踪物体，容易因为遮挡或误匹配而丢帧。OCD SLAM 加上了 Kalman 滤波跟踪，利用运动模型的预测能力来弥补特征匹配失败时的空缺，所以跟踪持续帧数更多、一致性更好。</p>
       </div>
 
+      <div class="figure">
+        <img src="assets/ocd-slam-p6-1.png" alt="物体跟踪性能对比" loading="lazy">
+        <figcaption>图 3：物体跟踪性能对比。论文中的 Table I，对比纯特征方法和 OCD SLAM 方法在四个物体上的跟踪持续帧数和 ID 不一致次数。OCD SLAM 在所有物体上均实现了更高的跟踪持续率和更低的 ID 切换率。</figcaption>
+      </div>
+
       <p>另外值得注意"ID 不一致"次数——纯特征方法中物体 C 出现了 15 次 ID 切换，而 OCD SLAM 只有 2 次。这意味着纯特征方法经常把同一辆车误认为是"新车"，导致运动轨迹断裂。Kalman 滤波提供的 ID 一致性是物体级跟踪质量的关键。</p>
 
       <div class="interactive-card">
