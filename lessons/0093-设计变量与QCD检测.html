@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 设计变量与 QCD 检测</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 5</div>
+      <h1>设计变量 μ 与 QCD 检测</h1>
+      <p class="subtitle">噪声发多少才合适？怎么在窃听者入侵后尽快发现它？</p>
+      <div class="hero-meta">
+        <span>🎯 主题：Theorem 6 · 滑动窗口 vs QCD · 贝叶斯检测</span>
+        <span>🧭 入口：Section 6-7</span>
+        <span>📖 前置知识：贝叶斯公式、概率论基础</span>
+      </div>
+      <div class="toc">
+        <a href="#mu">设计变量 μ 与 Theorem 6</a>
+        <a href="#sliding">先看直觉：滑动窗口为什么不好</a>
+        <a href="#bayes">贝叶斯视角：用后验概率检测</a>
+        <a href="#qcd">Shiryaev QCD：最优停时框架</a>
+        <a href="#recursion">递推算后验</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="mu">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解两个核心工程问题：μ 应该选多大？（Theorem 6）如何快速检测窃听者？（QCD）</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们推导了合法用户和窃听者的期望稳态误差（Lemma 2 & 3），这节课用它们来设计 μ 的取值，并设计检测机制让编码只在需要时激活。</p>
+        </div>
+      </div>
+
+      <h2>1. 设计变量 μ 的取值范围（Theorem 6）</h2>
+      <p>定义两个标量性能函数（取迹是为了把矩阵压缩成一个数来比较）：</p>
+      <div class="formula-block">
+        $$J(\mu) = \text{tr} \cdot \lim_{k\to\infty} \mathbb{E}[P_k],\quad J^e(\mu) = \text{tr} \cdot \lim_{k\to\infty} \mathbb{E}[P_k^e]$$
+      </div>
+      <p>我们希望达到的目标：</p>
+      <p style="text-align:center;font-size:1.2em;font-weight:bold;color:#1A2A4A;">$J(\mu) < \text{tr}P^{OP} < J^e(\mu)$</p>
+      <p>翻译成人话：合法用户比开环预测好，窃听者比开环预测差。</p>
+
+      <h3>引理 4（单调性）</h3>
+      <p>$J^e(\mu)$ 随 μ 增大而增大。噪声发得越勤，窃听者越惨。直觉上显然成立，证明基于 $P_n > \bar{P}$。</p>
+
+      <h3>引理 5（上界）</h3>
+      <p>$J(\mu) < \text{tr}P^{OP}$ 只要 $\mu < 1$且$\bar{\gamma} < 1$。因为总有非零概率收到真实数据，Borel-Cantelli 引理保证"总会收到一次"。</p>
+
+      <h3>定理 6</h3>
+      <div class="formula-block">
+        $$\mu^{OP} = \frac{\gamma^e(\text{tr}S^e - \text{tr}W^e) + \text{tr}W^e - \text{tr}P^{OP}}{(\gamma^e - 1)(\text{tr}H^e - \text{tr}W^e)}$$
+      </div>
+      <p>在 $(\mu^{OP}, 1)$ 区间内选 μ，就能保证 $J(\mu) < \text{tr}P^{OP} < J^e(\mu)$。</p>
+
+      <div class="callout highlight">
+        <h4>💡 数值直觉</h4>
+        <p>论文实验的系统 $\mu^{OP} \approx 0.71$。也就是说至少需要 71% 的概率发噪声才能让窃听者比开环预测差。但注意：噪声只在<strong>检测到窃听者后</strong>才发——正常情况下不发噪声，零性能损失。</p>
+      </div>
+    </main>
+
+    <section class="section-card" id="sliding">
+      <h2>2. 先看直觉：滑动窗口为什么不行？</h2>
+
+      <p>现在轮到更棘手的问题：怎么检测窃听者的存在？</p>
+      <p>一个最朴素的想法是看"最近一段时间的平均丢包率"。这就是<strong>滑动窗口法</strong>：</p>
+      <div class="formula-block">$$\text{移动平均}(k) = \frac{1}{100} \sum_{i=k-99}^{k} \lambda_i$$</div>
+      <p>正常情况下均值 ≈ 0.8（丢包率 0.2），被攻击后均值 ≈ 0.7（丢包率 0.3）。</p>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig5-movingavg.jpg" alt="移动平均测试" loading="lazy">
+        <figcaption>图 5：移动平均测试。蓝色线是实时丢包率滑动平均，红色竖线是真正的入侵时间（k=700）。</figcaption>
+      </div>
+
+      <p>你看到了什么问题？</p>
+      <ul>
+        <li><strong>虚警</strong>：在 k=668 处，移动平均就已经跌破了正常范围——但这时窃听者还没入侵！</li>
+        <li><strong>延迟大</strong>：虽然肉眼能看到 k=700 后均值下降了，但要确定"这不是随机波动"需要很多个时间步</li>
+      </ul>
+
+      <p>本质上，滑动窗口的问题是：它没有显式地建模"正常"和"异常"两种统计分布，所以没法在<strong>假阳性（误报）</strong>和<strong>假阴性（漏报）</strong>之间做最优权衡。</p>
+
+      <div class="callout highlight">
+        <h4>💡 警察查车的类比</h4>
+        <p>滑动窗口像是警察在高速路口随机抽查——看到有车开得稍微快了点就拦下来，结果拦下来的大多数是正常司机（误报高）。</p>
+        <p>QCD 则像是一个智能测速系统——它知道正常车速分布和超速车速分布，只有当"这辆车超速的可能性足够大"时才拦。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="bayes">
+      <h2>3. 贝叶斯视角：用后验概率来做决策</h2>
+
+      <p>QCD（Quickest Change Detection）的核心思想就是上面那个"智能测速系统"——它把检测问题变成一个<strong>贝叶斯推断</strong>问题。</p>
+
+      <h3>3.1 问题的概率建模</h3>
+      <p>在时刻 k，合法用户可以观察自己的信道结果 $\lambda_k$（0=丢包，1=收到）。这个 $\lambda_k$ 的来源有两种可能：</p>
+      <ul>
+        <li><strong>正常</strong>：$\lambda_k \sim b^1$，即 $\mathbb{P}(\lambda=1)=1-\gamma,\ \mathbb{P}(\lambda=0)=\gamma$</li>
+        <li><strong>被攻击</strong>：$\lambda_k \sim b^2$，即 $\mathbb{P}(\lambda=1)=1-\bar{\gamma},\ \mathbb{P}(\lambda=0)=\bar{\gamma}$</li>
+      </ul>
+      <p>其中 $\gamma$ 是正常丢包率，$\bar{\gamma} > \gamma$ 是被攻击后的丢包率。</p>
+
+      <h3>3.2 先验分布</h3>
+      <p>入侵时间 $\Lambda$ 服从几何分布：</p>
+      <div class="formula-block">$$\mathbb{P}(\Lambda = k) = (1-\kappa)^{k-1}\kappa$$</div>
+      <p>$\kappa$ 很小（比如 $\kappa = 5\times10^{-6}$），表示"每个时间步窃听者入侵的概率很低"——这符合实际情况，因为入侵是小概率事件。</p>
+
+      <h3>3.3 后验概率：我们想知道什么？</h3>
+      <p>我们想知道：给定到目前为止观察到的所有 $\lambda$ 值，<strong>窃听者还<u>没有</u>入侵的概率</strong>是多少？</p>
+      <div class="formula-block">$$\mathbb{P}(\text{还没有入侵} \mid \text{已观察到的数据}) = \mathbb{P}(k < \Lambda \mid \lambda_0, \lambda_1, \dots, \lambda_k)$$</div>
+
+      <p>如果这个概率很低（比如低于某个阈值 $h$），我们就说"检测到窃听者了"。</p>
+
+      <div class="callout">
+        <h4>💡 直观理解：医生的诊断</h4>
+        <p>这就像医生看病：先了解先验（这个病发病率多高？），再结合检查结果（症状、化验数据），计算病人得这个病的后验概率。如果后验概率超过某个阈值，就下诊断。QCD 做的就是这件事——\"检查结果\"就是每个时刻的 $\lambda_k$，\"诊断\"就是宣告检测到窃听者。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="qcd">
+      <h2>4. Shiryaev 最优停时框架</h2>
+
+      <p>有了上面的概率直觉，现在来看 Shiryaev 给出的最优检测规则。这个规则可以完美地平衡两个矛盾的目标：尽快检测（延迟小）vs 不误报（虚警低）。</p>
+
+      <h3>4.1 最优停时规则</h3>
+      <div class="formula-block">$$\tau^\star = \inf\{k \geq 1 : \mathbb{P}(k < \Lambda \mid \text{历史数据}) \leq h\}$$</div>
+      <p>翻译：一直观察，直到"还没有入侵"的后验概率掉到阈值 $h$ 以下，那一刻就是最优报警时间 $\tau^\star$。</p>
+
+      <p>$h$ 越小，报警门槛越高（越不容易误报），但检测延迟越大。论文用蒙特卡洛方法确定了 $h = 3\times10^{-3}$ 实现零虚警。</p>
+
+      <h3>4.2 Shiryaev 成本准则</h3>
+      <p>为什么说这个规则是"最优"的？因为它最小化了以下成本：</p>
+      <div class="formula-block">$$J(\tau) = c \cdot \mathbb{E}[(\tau - \Lambda)^+] + \mathbb{P}(\tau < \Lambda)$$</div>
+      <p>两项分别对应：</p>
+      <ul>
+        <li>$c \cdot$ <strong>检测延迟</strong>：入侵后每拖延一个时间步的成本</li>
+        <li><strong>虚警概率</strong>：入侵前就报警的成本</li>
+      </ul>
+      <p>Shiryaev 证明，上面那个"后验概率低于阈值就报警"的策略正好最小化这个成本。</p>
+    </section>
+
+    <section class="section-card" id="recursion">
+      <h2>5. 不用测度论：后验概率怎么算？</h2>
+
+      <p>论文中严格的公式用了 $\sigma$-代数等测度论语言，但核心计算非常<strong>简单——只需要一个标量递归</strong>：</p>
+
+      <p>定义 $\hat{M}_k^1 = \mathbb{P}(k < \Lambda \mid \lambda_0, \dots, \lambda_k)$ 为"还没有入侵"的后验概率。它可以这样递推更新：</p>
+
+      <div class="formula-block">
+        $$\hat{M}_k^1 = N_k \cdot (1-\kappa) \cdot b^1(\lambda_k) \cdot \hat{M}_{k-1}^1$$
+      </div>
+      <p>其中 $N_k$ 是一个归一化因子，确保概率加起来等于 1：</p>
+      <div class="formula-block">
+        $$N_k^{-1} = b^2(\lambda_k) + (1-\kappa)(b^1(\lambda_k) - b^2(\lambda_k))\hat{M}_{k-1}^1$$
+      </div>
+      <p>初始条件：$\hat{M}_0^1 = 1$（在还没看到任何数据前，假设没有入侵）。</p>
+
+      <h3>这个递归在做什么？</h3>
+      <ol>
+        <li>看到新的信道结果 $\lambda_k$</li>
+        <li>用 $b^1(\lambda_k)$ 评估"正常"的可能性，用 $b^2(\lambda_k)$ 评估"被攻击"的可能性</li>
+        <li>结合先验衰减 $(1-\kappa)$（每个时间步入侵风险增加一点）</li>
+        <li>更新后验概率 $\hat{M}_k^1$</li>
+      </ol>
+
+      <p>当 $\hat{M}_k^1 \leq h$ 时，设置 $\nu_k = 0$（检测到窃听者），通过反馈信道通知传感器。传感器从下一时刻开始激活编码方案。</p>
+
+      <h3>结果怎么样？</h3>
+      <div class="figure">
+        <img src="assets/remotestate-fig6-qcd.jpg" alt="QCD检测结果" loading="lazy">
+        <figcaption>图 6：QCD 检测结果。蓝线是"没有入侵"的后验概率，在 k=700 入侵后迅速下降，k=779 低于阈值（黑线），成功检测。</figcaption>
+      </div>
+      <p>检测延迟仅 79 步，且<strong>零虚警</strong>——在 k=700 之前一次都没有误报过。对比滑动窗口在 k=668 就误报了，QCD 明显更优。</p>
+
+      <div class="exercise-box">
+        <h3>📝 课后思考</h3>
+        <details>
+          <summary>QCD 能检测被动窃听者吗？</summary>
+          <p>不能。如果窃听者只窃听不干扰，合法用户的信道质量不变（$\gamma = \bar{\gamma}$），那么 $b^1 = b^2$，后验概率更新公式中 $b^1$ 和 $b^2$ 完全一样，后验概率永远不会变化。检测需要信道质量的统计变化——所以 QCD 只能检测<strong>主动</strong>窃听者。这是一个重要的局限性。</p>
+        </details>
+        <details>
+          <summary>这个递归一定收敛吗？</summary>
+          <p>在入侵发生前（$k < \Lambda$），数据来自 $b^1$，后验概率 $\hat{M}_k^1$ 在 1 附近波动但不会骤降（因为 $b^1$ 和 $b^2$ 的差异被 $(1-\kappa)$ 的衰减压制了）。入侵后（$k \geq \Lambda$），数据来自 $b^2$，$b^2$ 和 $b^1$ 的差异开始积累，$\hat{M}_k^1$ 指数级下降。阈值 $h$ 控制了这个下降需要积累到多少才算"检测"。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0092-马尔可夫链与长期性能.html">← 上一课：马尔可夫链与长期性能</a>
+        <a href="0094-实验分析与方法迁移.html">下一课：实验分析与方法迁移 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

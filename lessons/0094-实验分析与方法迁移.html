@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 实验分析与方法迁移</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 6</div>
+      <h1>实验分析与方法迁移</h1>
+      <p class="subtitle">QCD 检测到底多快？和 SOTA 比好在哪？以及——这篇论文的方法能用到你自己的问题上吗？</p>
+      <div class="hero-meta">
+        <span>🎯 主题：仿真验证 · SOTA对比 · 通用模板 · 参数清单</span>
+        <span>🧭 入口：Section 8-9</span>
+      </div>
+      <div class="toc">
+        <a href="#setup">实验设置与结果</a>
+        <a href="#comparison">与 SOTA 对比</a>
+        <a href="#template">方法通用模板</a>
+        <a href="#checklist">参数准备清单</a>
+        <a href="#summary">全文总结</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="setup">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>通过实验数据验证理论、与现有方法对比、并最重要的——把这篇论文的方法抽象成<strong>你可以用到自己领域的通用模板</strong>。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们完成了全部理论工具（Lemma 1-5 + Theorem 6 + QCD），这节课验证这些工具在实际数据上是否有效，然后提炼成可迁移的方法论。</p>
+        </div>
+      </div>
+
+      <h2>1. 实验设置</h2>
+      <p>二阶系统：</p>
+      <div class="formula-block">
+        $$A = \begin{bmatrix} 0.5 & 0.1 \\ 0.4 & 0.6 \end{bmatrix},\ C = I_2,\ Q = R = 10^{-2}I_2,\ \rho(A)=0.7562$$
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>指标</th>
+            <th>值</th>
+            <th>对比关系</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$\text{tr}(\bar{P})$ — 最优估计</td>
+            <td>0.0114</td>
+            <td><strong>最小</strong></td>
+          </tr>
+          <tr>
+            <td>$\text{tr}(P^{OP})$ — 开环预测</td>
+            <td>0.0388</td>
+            <td>分界线</td>
+          </tr>
+          <tr>
+            <td>$\text{tr}(P_n)$ — 窃听者中毒</td>
+            <td>0.0502</td>
+            <td><strong>最大</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>注意：$0.0114 < 0.0388 < 0.0502$，验证了 Lemma 1 的 $\bar{P} < P^{OP} < P_n$。</p>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig7-trace.jpg" alt="QCD前后对比" loading="lazy">
+        <figcaption>图 7：检测前后合法用户（绿线）和窃听者（蓝线）的误差协方差迹。检测后编码激活，窃听者飙升到 $P^{OP}$ 以上。</figcaption>
+      </div>
+    </main>
+
+    <section class="section-card" id="comparison">
+      <h2>2. 与 SOTA 对比</h2>
+      <p>和 Tsiamis et al. (2018) 对比，参数 $\gamma^e = \bar{\gamma} = 0.3, \mu=0.8$：</p>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig8-compare.jpg" alt="SOTA对比" loading="lazy">
+        <figcaption>图 8：本文 vs Tsiamis (2018)。窃听者误差——虚线是 Tsiamis（收敛到 $P^{OP}$），实线是本文（超过 $P^{OP}$）。</figcaption>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>对比维度</th>
+            <th>Tsiamis et al. (2018)</th>
+            <th><strong>本文</strong></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>窃听者上限</td>
+            <td>收敛到 $P^{OP}$</td>
+            <td><strong>超过 $P^{OP}$</strong></td>
+          </tr>
+          <tr>
+            <td>ACK 依赖</td>
+            <td>✅ 是（核心漏洞）</td>
+            <td><strong>❌ 否</strong></td>
+          </tr>
+          <tr>
+            <td>合法用户</td>
+            <td>最优（零损失）</td>
+            <td>适度损失（有界）</td>
+          </tr>
+          <tr>
+            <td>适用攻击</td>
+            <td>被动窃听</td>
+            <td><strong>主动窃听</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ⭐ 核心新增部分 -->
+    <section class="section-card" id="template">
+      <h2>3. 🧩 方法通用模板</h2>
+      <p>下面把这篇论文的方法抽象成<strong>五个核心步骤</strong>。理解这五步后，你就可以把类似的思路用到自己的问题里。</p>
+
+      <div class="callout highlight">
+        <h4>🔑 核心思路一句话</h4>
+        <p><strong>检测异常 → 切换保护模式 → 以概率发假数据 → 合法方拥有"密钥"不受影响 → 攻击方被假数据毒化</strong></p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>步骤</th>
+            <th>论文中的实现</th>
+            <th>关键参数</th>
+            <th>迁移到你的问题时</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1️⃣ 正常通信</strong></td>
+            <td>传感器直接发真实状态估计</td>
+            <td>—</td>
+            <td>定义"什么都正常时"的通信协议是什么样的</td>
+          </tr>
+          <tr>
+            <td><strong>2️⃣ 检测异常</strong></td>
+            <td>QCD 检测合法用户信道丢包率的变化</td>
+            <td>$\gamma \to \bar{\gamma}, h$</td>
+            <td>设什么指标能在攻击时发生统计变化？可以用 QCD，也可以用简单的阈值</td>
+          </tr>
+          <tr>
+            <td><strong>3️⃣ 切换保护</strong></td>
+            <td>通过反馈信道通知传感器：$\nu_k = 0$</td>
+            <td>—</td>
+            <td>需要一个信令机制来"打开保护模式"</td>
+          </tr>
+          <tr>
+            <td><strong>4️⃣ 发送假数据</strong></td>
+            <td>以概率 μ 发噪声，以概率 1−μ 发真数据</td>
+            <td>$\mu$</td>
+            <td>假数据的设计：需要和真数据<strong>统计上不可区分</strong></td>
+          </tr>
+          <tr>
+            <td><strong>5️⃣ 合法方解密</strong></td>
+            <td>提前知道 $u_k$，忽略噪声包</td>
+            <td>$u_k$ 的种子</td>
+            <td>合法方和发送方需要<strong>共享一个秘密</strong>（密钥、伪随机种子等）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.1 可能的迁移场景</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>领域</th>
+            <th>"真数据"是什么</th>
+            <th>"假数据"是什么</th>
+            <th>"统计不可区分"怎么做</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🏥 医疗数据共享</td>
+            <td>真实患者体征</td>
+            <td>伪造的体征（同分布）</td>
+            <td>用历史数据生成合成样本</td>
+          </tr>
+          <tr>
+            <td>💰 金融交易</td>
+            <td>真实交易指令</td>
+            <td>虚拟交易（迷惑对手）</td>
+            <td>伪随机序列决定真假交易</td>
+          </tr>
+          <tr>
+            <td>🤖 多机器人通信</td>
+            <td>真实位姿估计</td>
+            <td>随机位姿数据</td>
+            <td>和真实位姿同协方差的噪声</td>
+          </tr>
+          <tr>
+            <td>🌐 联邦学习</td>
+            <td>真实梯度</td>
+            <td>噪声梯度</td>
+            <td>高斯噪声注入（已有差分隐私技术）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>当然，这些只是启发——每个场景都有自己独特的约束。关键在于理解那<strong>五步思路</strong>，而不是把论文的公式硬套过去。</p>
+    </section>
+
+    <section class="section-card" id="checklist">
+      <h2>4. 📋 参数准备清单</h2>
+      <p>如果想把论文的方法应用到自己的系统，下面是<strong>所有需要确定的参数、从哪里来、怎么用</strong>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>参数</th>
+            <th>含义</th>
+            <th>怎么确定</th>
+            <th>来源</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$A$</td>
+            <td>系统动态矩阵</td>
+            <td>系统建模（连续→离散）或系统辨识</td>
+            <td>需已知</td>
+          </tr>
+          <tr>
+            <td>$Q$</td>
+            <td>过程噪声协方差</td>
+            <td>传感器标定、物理特性、经验估计</td>
+            <td>需已知</td>
+          </tr>
+          <tr>
+            <td>$\gamma$</td>
+            <td>正常时合法用户丢包率</td>
+            <td>历史通信统计数据</td>
+            <td>需已知</td>
+          </tr>
+          <tr>
+            <td>$\bar{\gamma}$</td>
+            <td>被攻击时合法用户丢包率</td>
+            <td>攻击测试或安全评估估计</td>
+            <td>需已知</td>
+          </tr>
+          <tr>
+            <td>$\gamma^e$</td>
+            <td>窃听者丢包率</td>
+            <td>最坏情况假设或经验值</td>
+            <td>需估计</td>
+          </tr>
+          <tr>
+            <td>$\kappa$</td>
+            <td>每个时间步的入侵概率（先验）</td>
+            <td>安全威胁评估</td>
+            <td>需假设</td>
+          </tr>
+          <tr>
+            <td>$h$</td>
+            <td>QCD 检测阈值</td>
+            <td>蒙特卡洛仿真调参（零虚警原则）</td>
+            <td>计算得到</td>
+          </tr>
+          <tr>
+            <td><strong>$\mu$</strong></td>
+            <td>发送噪声的概率（核心设计参数）</td>
+            <td>代入 Theorem 6 公式计算 $\mu^{OP}$</td>
+            <td><strong>计算得到</strong></td>
+          </tr>
+          <tr>
+            <td>$u_k$ 种子</td>
+            <td>伪随机指示器初始化</td>
+            <td>合法方和传感器安全协商</td>
+            <td>需部署</td>
+          </tr>
+          <tr>
+            <td>反馈信道</td>
+            <td>合法用户→传感器：共享 $\nu_k$</td>
+            <td>确保可靠（论文假设无噪）</td>
+            <td>需部署</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout highlight">
+        <h4>💡 如果你要用这个方法</h4>
+        <p>从上面的清单可以看到，真正需要"你自己定"的核心参数是 A, Q, 三个信道参数 $(\gamma, \bar{\gamma}, \gamma^e)$ 和先验 $\kappa$。剩下的 $h$ 和 $\mu$ 都可以通过公式和仿真自动确定。<strong>也就是说——你只需要了解自己系统的动态特性和信道质量</strong>，剩下的论文已经帮你算好了。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="summary">
+      <h2>5. 全文总结</h2>
+
+      <h3>论文的核心成就</h3>
+      <div class="formula-block" style="font-size:1.1em;">
+        $$\text{tr}\!\left(\lim_{k\to\infty}\mathbb{E}[P_k^e]\right) > \text{tr}(P^{OP}) > \text{tr}\!\left(\lim_{k\to\infty}\mathbb{E}[P_k]\right)$$
+      </div>
+      <p>翻译：窃听者收到信号比不收信号更差，合法用户收到信号比不收信号更好。</p>
+
+      <h3>课程体系回顾</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>课程</th>
+            <th>核心收获</th>
+            <th>你可以带走的一句话</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0089 全景与动机</td>
+            <td>知道为什么要关心主动窃听</td>
+            <td>ACK 是现有方案的阿喀琉斯之踵</td>
+          </tr>
+          <tr>
+            <td>0090 系统模型与编码</td>
+            <td>理解编码方案怎么工作</td>
+            <td>用伪随机序列 + 噪声注入代替 ACK</td>
+          </tr>
+          <tr>
+            <td>0091 状态估计对比</td>
+            <td>理解"为什么窃听者会中毒"</td>
+            <td>有密钥的合法用户能过滤噪声</td>
+          </tr>
+          <tr>
+            <td>0092 马尔可夫链分析</td>
+            <td>学会用期望衡量长期性能</td>
+            <td>马尔可夫链 + Lyapunov 方程 = 稳态方差</td>
+          </tr>
+          <tr>
+            <td>0093 设计变量+QCD</td>
+            <td>会选 μ + 会检测窃听者</td>
+            <td>滑动窗口不够好，QCD 是贝叶斯最优的</td>
+          </tr>
+          <tr>
+            <td><strong>0094 实验+迁移</strong></td>
+            <td>能用自己的问题套用模板</td>
+            <td><strong>检测→切换→随机真假→共享密钥</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>局限与开放问题</h3>
+      <ul>
+        <li><strong>仅限主动窃听</strong>：QCD 检测依赖信道质量变化，被动窃听不行</li>
+        <li><strong>离线设计</strong>：μ 是离线算的，在线自适应是开放问题</li>
+        <li><strong>稳定系统假设</strong>：$\rho(A) < 1$ 是推导关键，不稳定系统需要额外处理</li>
+        <li><strong>在线序贯设计</strong>：未来可以根据当前信道状态动态调整 μ</li>
+      </ul>
+
+      <div class="exercise-box">
+        <h3>📝 最终挑战</h3>
+        <details>
+          <summary>如果你在自己的研究里遇到了一个"主动攻击者"，你能用这节课的五步模板设计防御方案吗？试着描述你的场景和每一步的对应方案。</summary>
+          <p>没有标准答案！关键是你能不能把这五个步骤映射到你的问题里。欢迎带着你的具体场景来 PaperLesson 的讨论区或直接问我，我们一起推演。🎯</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0093-设计变量与QCD检测.html">← 上一课：设计变量与 QCD 检测</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

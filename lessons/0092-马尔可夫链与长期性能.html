@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 马尔可夫链与长期性能分析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 4</div>
+      <h1>马尔可夫链与长期性能分析</h1>
+      <p class="subtitle">传感器没有 ACK，怎么知道长期来看谁表现好？用马尔可夫链——概率论里预测"长期平均"的标准工具。</p>
+      <div class="hero-meta">
+        <span>🎯 主题：马尔可夫链 · 稳态分布 · Lyapunov方程</span>
+        <span>🧭 入口：Section 5</span>
+        <span>📖 前置知识：马尔可夫链基础（推荐）、矩阵运算</span>
+      </div>
+      <div class="toc">
+        <a href="#why">为什么需要马尔可夫链？</a>
+        <a href="#mc-primer">马尔可夫链速成</a>
+        <a href="#legit-mc">合法用户的马尔可夫链</a>
+        <a href="#eve-mc">窃听者的马尔可夫链</a>
+        <a href="#lyapunov">李雅普诺夫方程直觉</a>
+        <a href="#results">两个引理的结果</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="why">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解为什么传感器要用马尔可夫链来预测长期性能、两个参与方的链分别长什么样、以及最后得到的稳态期望公式到底在算什么东西。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们知道了每个时刻合法用户和窃听者的误差协方差 $P_k$ 和 $P_k^e$ 怎么算。但传感器发完包后不知道谁收到了（没有 ACK），所以没法知道 $P_k$ 的精确值——只能用<strong>期望</strong>来刻画长期平均性能。这就是马尔可夫链登场的地方。</p>
+        </div>
+      </div>
+
+      <h2>1. 为什么不用 ACK？为什么用期望？</h2>
+      <p>先想一个问题：你在网上买了个东西，快递员把包裹扔在门口就走了（没有回执）。你不知道它被邻居拿走了还是被偷了。那你怎么知道你的"平均收货体验"呢？答案是看长期统计——比如在 100 次网购中，大概有 80 次收到、20 次丢件。</p>
+      <p>传感器面临的困境完全一样。它发出了包，但：</p>
+      <ul>
+        <li>不知道合法用户收到没有（没有 ACK）</li>
+        <li>不知道窃听者收到没有（没法问）</li>
+        <li>只知道信道质量的概率分布（$\bar{\gamma}, \gamma^e$）</li>
+      </ul>
+      <p>所以只能用<strong>概率论的期望</strong>来算"平均来看，合法用户的误差协方差大概是多大"。</p>
+    </main>
+
+    <section class="section-card" id="mc-primer">
+      <h2>2. 马尔可夫链速成（5 分钟）</h2>
+      <p>如果你已经熟悉马尔可夫链，可以跳过这部分。如果你没学过或忘了，花 5 分钟读这段就够了。</p>
+
+      <h3>什么是马尔可夫链？</h3>
+      <p>想象一个系统有若干个"状态"，每次按固定概率在这些状态之间跳转，且下一步的概率<strong>只取决于当前状态</strong>（不依赖历史）。这就是马尔可夫链。</p>
+
+      <div class="callout">
+        <h4>🌤 天气预测的例子</h4>
+        <p>状态 = {☀️晴, 🌧雨}。转移概率：今天晴→明天晴的概率 0.8，今天晴→明天下雨 0.2；今天雨→明天雨 0.6，今天雨→明天晴 0.4。</p>
+        <p>如果你一直跑这个链足够久，最终☀️的比例会收敛到某个固定值——这就是<strong>稳态分布</strong>。</p>
+      </div>
+
+      <h3>两个关键概念</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>概念</th>
+            <th>含义</th>
+            <th>怎么求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>转移矩阵</strong> $P$</td>
+            <td>矩阵的第 $(i,j)$ 项 = 从状态 $j$ 到 $i$ 的概率</td>
+            <td>根据物理模型写出来</td>
+          </tr>
+          <tr>
+            <td><strong>稳态分布</strong> $\pi$</td>
+            <td>长期运行后，处于每个状态的时间比例</td>
+            <td>解 $\pi = \pi P$，且 $\sum \pi_i = 1$</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>有了稳态分布，就能算"长期平均误差协方差"——对每个状态的误差按稳态概率加权求和。</p>
+
+      <div class="formula-block">
+        $$\mathbb{E}[P_\infty] = \sum_{j} \pi_j \cdot (\text{状态 j 的误差协方差})$$
+      </div>
+    </section>
+
+    <section class="section-card" id="legit-mc">
+      <h2>3. 合法用户的马尔可夫链</h2>
+
+      <p>合法用户的链最简单——状态 $G_k = 0$ 表示"刚收到一个真实估计"，$G_k = j$ 表示"已经连续 j 次没收到真实估计了"（可能是丢包，也可能是收到了噪声）。</p>
+
+      <div class="formula-block">
+        $$G_{k+1} = \begin{cases} 0, & \text{以概率 } (1-\bar{\gamma})(1-\mu) \\ j+1, & \text{以概率 } \bar{\gamma} + (1-\bar{\gamma})\mu \end{cases}$$
+      </div>
+
+      <p>这个转移概率怎么来的？</p>
+      <ul>
+        <li>回到状态 0 需要两个条件同时成立：包 <strong>没丢</strong>（概率 $1-\bar{\gamma}$）<strong>且</strong> 发的不是噪声（概率 $1-\mu$）→ 乘积 $(1-\bar{\gamma})(1-\mu)$</li>
+        <li>回不去（继续丢包）有两种可能：包丢了（概率 $\bar{\gamma}$）<strong>或</strong> 包没丢但发的是噪声（概率 $(1-\bar{\gamma})\mu$）→ 两者相加 $\bar{\gamma} + (1-\bar{\gamma})\mu$</li>
+      </ul>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig2-legit-mc.jpg" alt="合法用户马尔可夫链" loading="lazy">
+        <figcaption>图 2：合法用户的马尔可夫链。状态 0 = "收到真实估计"，然后不断向后掉，直到下一次收到真实估计才回到 0。</figcaption>
+      </div>
+
+      <p>稳态分布（长期运行后各状态的比例）：</p>
+      <div class="formula-block">$$\pi_j = (\bar{\gamma} + (1-\bar{\gamma})\mu)^j \cdot (1-\bar{\gamma})(1-\mu)$$</div>
+      <p>这是一个<strong>几何分布</strong>——每次"逃离"状态 j 的概率固定，所以处于 j 的概率随 j 几何衰减。</p>
+    </section>
+
+    <section class="section-card" id="eve-mc">
+      <h2>4. 窃听者的马尔可夫链（稍微复杂一点）</h2>
+
+      <p>窃听者的链多了一个特殊状态——"收到噪声"。状态设计：</p>
+      <ul>
+        <li>$G_k^e = 0$：刚收到真实估计</li>
+        <li>$G_k^e = 1$：刚收到噪声</li>
+        <li>$G_k^e = j\ (j \geq 2)$：连续丢包中，奇偶指示上一次收到的是什么</li>
+      </ul>
+
+      <div class="callout highlight">
+        <h4>💡 为什么搞奇偶交替？</h4>
+        <p>因为窃听者"收到真实估计"和"收到噪声"是两个不同的好状态——它们之后连着的丢包虽然都是"丢包"，但<strong>之前最后一次收到的是啥</strong>会影响当前误差的计算。用奇偶来编码这个信息：偶数状态 = 最后一次收到真实估计后丢包，奇数状态 = 最后一次收到噪声后丢包。</p>
+      </div>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig3-eve-mc.jpg" alt="窃听者马尔可夫链" loading="lazy">
+        <figcaption>图 3：窃听者的马尔可夫链。0 和 1 是两个"好状态"，丢包后按奇偶交替。</figcaption>
+      </div>
+
+      <p>转移概率：</p>
+      <div class="formula-block">
+        $$P(G_{k+1}^e = i | G_k^e = j) = \begin{cases} (1-\gamma^e)(1-\mu), & i=0 \\ (1-\gamma^e)\mu, & i=1 \\ \gamma^e, & i=j+2 \\ 0, & \text{其他} \end{cases}$$
+      </div>
+
+      <p>稳态分布（解法同上，解 $\pi^e = \pi^e P^e$）：</p>
+      <div class="formula-block">
+        $$\pi_0^e = (1-\gamma^e)(1-\mu),\quad \pi_1^e = (1-\gamma^e)\mu,\quad \pi_{j+2}^e = \gamma^e \pi_j^e$$
+      </div>
+    </section>
+
+    <section class="section-card" id="lyapunov">
+      <h2>5. 李雅普诺夫方程——计算"累积误差"的工具</h2>
+
+      <p>现在请出下一位选手：<strong>离散李雅普诺夫方程</strong>。</p>
+
+      <div class="formula-block">$$V = T V T^\top + U$$</div>
+
+      <p>看起来不太友好？它的核心直觉其实很简单：</p>
+
+      <div class="callout">
+        <h4>💡 类比：银行账户的复利</h4>
+        <p>想象你有一个银行账户：每年利息 $T$ = 0.9（每年保留 90% 的本金），每年存入 $U$ = 100 元。问几十年后账户余额稳定在多少？答案就是解 $V = 0.9V + 100$ → $V = 1000$。</p>
+        <p>李雅普诺夫方程做的就是这件事——不过是在矩阵世界里。<br>
+        $T$ = "衰减因子"（类似利息），$U$ = "每年新增的误差"（类似新存款），$V$ = "稳态总误差"。</p>
+      </div>
+
+      <p>当 $\rho(T) < 1$ 时（衰减率 > 0），方程的解可以写成无穷级数：</p>
+      <div class="formula-block">$$V = \sum_{j=0}^\infty T^j U (T^\top)^j$$</div>
+      <p>论文定义了一个简写：$V = L(T, U)$ 表示"以 $T$ 为衰减、$U$ 为注入的李雅普诺夫解"。</p>
+
+      <h3>论文里怎么用的？</h3>
+      <p>在计算稳态期望误差时，需要求这种形式的无穷级数——马尔可夫链给出了 $\pi_j$，每个状态的误差贡献里有 $A^j \bar{P} (A^\top)^j$ 这种项，累加之后正好是一个李雅普诺夫方程的解。</p>
+
+      <p>比如合法用户的 Lemma 2：</p>
+      <div class="formula-block">$$\lim_{k\to\infty} \mathbb{E}[P_k] = (1-\bar{\gamma})(1-\mu) \cdot W + (\bar{\gamma}+(1-\bar{\gamma})\mu) \cdot S$$</div>
+      <p>其中 $W = L(\sqrt{\bar{\gamma}+(1-\bar{\gamma})\mu} \cdot A,\ \bar{P})$，$S = L(\sqrt{\bar{\gamma}+(1-\bar{\gamma})\mu} \cdot A,\ Q)$</p>
+
+      <p>$W$ 和 $S$ 分别代表"从 $\bar{P}$ 开始的误差累积"和"从 $Q$ 开始的过程噪声累积"，$L$ 就是李雅普诺夫求和解。</p>
+    </section>
+
+    <section class="section-card" id="results">
+      <h2>6. 两个引理的结果</h2>
+
+      <h3>Lemma 2：合法用户的稳态期望</h3>
+      <div class="formula-block">
+        $$\lim_{k\to\infty} \mathbb{E}[P_k] = (1-\bar{\gamma})(1-\mu) \cdot W + (\bar{\gamma}+(1-\bar{\gamma})\mu) \cdot S$$
+      </div>
+      <p><strong>口译</strong>：以概率 $(1-\bar{\gamma})(1-\mu)$ 回到最优（$W$ 部分），其余时候在开环增长（$S$ 部分）。</p>
+
+      <h3>Lemma 3：窃听者的稳态期望</h3>
+      <div class="formula-block">
+        $$\lim_{k\to\infty} \mathbb{E}[P_k^e] = (1-\gamma^e)(1-\mu)W^e + \gamma^e S^e + (1-\gamma^e)\mu H^e$$
+      </div>
+      <p>多了一项 $(1-\gamma^e)\mu H^e$——这就是<strong>噪声项</strong>。$H^e = L(\sqrt{\gamma^e} \cdot A,\ P_n)$，其中 $P_n = P^{OP} + \bar{P}$ 是 Lemma 1 里的"中毒协方差"。正是这一项让窃听者的期望性能变差。</p>
+
+      <div class="exercise-box">
+        <h3>📝 课后思考</h3>
+        <details>
+          <summary>如果 $\mu=0$（从不发噪声），Lemma 3 会退化为什么？</summary>
+          <p>代入 $\mu=0$：$(1-\gamma^e)W^e + \gamma^e S^e$。这恰好就是合法用户没有编码方案时的标准远程估计性能——因为没有噪声了，窃听者收到的永远是真数据，它和合法用户之间的差距完全由信道质量的差异决定。</p>
+        </details>
+        <details>
+          <summary>$\sqrt{\bar{\gamma}+(1-\bar{\gamma})\mu} \cdot A$ 这种操作是为什么？</summary>
+          <p>这是李雅普诺夫方程推导中的标准技巧。从马尔可夫链来的项 $(\bar{\gamma}+(1-\bar{\gamma})\mu)^j A^j$ 可以写成 $(\sqrt{\bar{\gamma}+(1-\bar{\gamma})\mu} \cdot A)^j$ 的平方形式，这样就能套用李雅普诺夫级数解 $V = \sum_j T^j U (T^\top)^j$ 的标准形式。它不改变 $A$ 的稳定性（谱半径仍然小于 1）。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0091-状态估计-合法用户vs窃听者.html">← 上一课：状态估计对比</a>
+        <a href="0093-设计变量与QCD检测.html">下一课：设计变量 μ 与 QCD 检测 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 状态估计——合法用户 vs 窃听者</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 3</div>
+      <h1>状态估计——合法用户 vs 窃听者</h1>
+      <p class="subtitle">编码方案激活后，合法用户和窃听者各自怎么估计状态？为什么合法用户毫发无伤，窃听者却会"中毒"？</p>
+      <div class="hero-meta">
+        <span>🎯 主题：远程估计 · Lemma 1 · 噪声中毒机制</span>
+        <span>🧭 入口：Section 4</span>
+        <span>📖 前置知识：概率论（期望、协方差）、矩阵基础</span>
+      </div>
+      <div class="toc">
+        <a href="#legitimate">合法用户的估计</a>
+        <a href="#eavesdropper">窃听者的估计</a>
+        <a href="#lemma1">Lemma 1：噪声中毒</a>
+        <a href="#compare">两张图看懂差距</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="legitimate">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解编码方案激活后，合法用户和窃听者分别怎么处理收到的数据——以及为什么窃听者被噪声"毒化"而合法用户不会。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们设计了编码方案——传感器以概率 μ 发噪声、以概率 1−μ 发真实值。但发出去之后呢？谁收到了、收到后怎么用、效果分别如何？这节课就来回答这些问题。</p>
+        </div>
+      </div>
+
+      <h2>1. 回顾：三个关键事实</h2>
+      <p>在进入估计方程之前，先确认三个你已经知道的事实（来自上一节）：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>事实</th>
+            <th>对谁有利</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>①</td>
+            <td>传感器发什么由 $u_k$ 决定：$u_k=1$ 发真实估计，$u_k=0$ 发噪声</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>②</td>
+            <td>合法用户 <strong>知道</strong> $u_k$ 的值（提前约定的伪随机序列）</td>
+            <td>✅ 合法用户</td>
+          </tr>
+          <tr>
+            <td>③</td>
+            <td>窃听者 <strong>不知道</strong> $u_k$，且无法区分噪声和真实数据</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>这三个事实是一切后续分析的基石——记住它们，后面的公式就只是把这三个事实翻译成数学语言。</p>
+    </main>
+
+    <section class="section-card" id="legitimate">
+      <h2>2. 合法用户的估计：因为有密钥，所以不受骗</h2>
+
+      <p>合法用户知道 $u_k$——就像手里有一张"说明书"，告诉它当前收到的包到底是真是假。所以它的估计策略是：</p>
+
+      <div class="formula-block">
+        $$\hat{x}_k = \begin{cases} \hat{x}_k^s, & \text{若收到且} u_k=1 \\ A\hat{x}_{k-1}, & \text{若丢包或收到噪声} \end{cases}$$
+      </div>
+
+      <p>翻译成人话就是：</p>
+      <ul>
+        <li><strong>如果收到了真实估计</strong> $(\lambda_k=1, u_k=1)$：直接同步传感器的估计值 $\hat{x}_k^s$，这是最优的</li>
+        <li><strong>如果是噪声包或丢包</strong> $(\lambda_k=0$ 或 $u_k=0)$：用系统模型 $A$ 做开环预测，<strong>绝不上当把噪声当真</strong></li>
+      </ul>
+
+      <div class="callout highlight">
+        <h4>💡 类比：你收到一封邮件</h4>
+        <p>合法用户像是一个有"发件人白名单"的人。它知道某个发件地址 $u_k=1$ 是可信的，其他地址都是垃圾邮件。垃圾邮件直接删掉（开环预测），不打开看。所以垃圾邮件对它的伤害为零。</p>
+      </div>
+
+      <p>对应的误差协方差自然也是两段式：</p>
+
+      <div class="formula-block">
+        $$P_k = \begin{cases} \bar{P}, & \text{收到真实估计（回到最优）} \\ AP_{k-1}A^\top + Q, & \text{丢包或噪声（增长）} \end{cases}$$
+      </div>
+
+      <p>两个关键性质：</p>
+      <ul>
+        <li>$\bar{P}$ 是传感器的最优稳态误差——全系统能达到的最小误差</li>
+        <li>每次收到真实估计，误差都会被"重置"到 $\bar{P}$，不会无限累积</li>
+      </ul>
+    </section>
+
+    <section class="section-card" id="eavesdropper">
+      <h2>3. 窃听者的估计：没有密钥，吃啥都香</h2>
+
+      <p>窃听者不知道 $u_k$，它以为每个收到的包都是真实估计。它的估计策略是：</p>
+
+      <div class="formula-block">
+        $$\hat{x}_k^e = \begin{cases} \hat{x}_k^s, & \text{收到且} u_k=1 \\ n_k, & \text{收到且} u_k=0 \\ A\hat{x}_{k-1}^e, & \text{丢包} \end{cases}$$
+      </div>
+
+      <p>翻译成人话：</p>
+      <ul>
+        <li><strong>收到真实估计</strong> $(\lambda_k^e=1, u_k=1)$：同步传感器数据，没问题</li>
+        <li><strong>收到噪声</strong> $(\lambda_k^e=1, u_k=0)$：<span class="highlight">⚠️ 它以为这是真实估计，直接同步进去！</span></li>
+        <li><strong>丢包</strong> $(\lambda_k^e=0)$：开环预测</li>
+      </ul>
+
+      <p>注意第三条有多危险——窃听者把随机噪声 $n_k$ 当作系统状态来用，这会把它的估计值直接带偏。</p>
+
+      <div class="callout highlight">
+        <h4>💡 类比：你收到一封看似正常的邮件</h4>
+        <p>窃听者像是一个没有过滤器的人——每封邮件它都打开看、都当真。垃圾邮件里写的"您中奖了"它也会信，照着操作。这就是噪声中毒的原理。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="lemma1">
+      <h2>4. Lemma 1：噪声中毒的数学证明</h2>
+
+      <p>引理一（Lemma 1）是全文最重要的一个数学结果。它给出了窃听者收到噪声后的误差协方差：</p>
+
+      <div class="formula-block">
+        $$P_k^e = \begin{cases} \bar{P}, & \text{收到真实估计} \\ P_n = P^{OP} + \bar{P}, & \text{收到噪声} \\ AP_{k-1}^e A^\top + Q, & \text{丢包} \end{cases}$$
+      </div>
+
+      <p>中间那行是重点——<strong>$P_n = P^{OP} + \bar{P}$</strong>。来拆解一下这个公式：</p>
+
+      <p>$P^{OP}$ 是"开环预测"的误差协方差——即完全不用任何数据时的稳态误差。<br>
+      $\bar{P}$ 是传感器最优估计的误差（正定矩阵，所有特征值 > 0）。</p>
+
+      <p>因为 $\bar{P}$ 正定，所以 $P_n = P^{OP} + \bar{P}$ 在矩阵意义上 <strong>严格大于</strong> $P^{OP}$。取迹之后：</p>
+
+      <div class="formula-block">$$\text{tr}(P_n) > \text{tr}(P^{OP})$$</div>
+
+      <div class="callout highlight">
+        <h4>💡 直觉</h4>
+        <p>窃听者收到噪声后的估计误差，比<strong>完全不用任何数据（开环预测）</strong>还大。也就是说：窃听者收包越多，它越差。这就像一个人每收到一封诈骗邮件都认真阅读并按指示操作——他收到的邮件越多，他的"状态"就越偏离真相。</p>
+      </div>
+
+      <h3>公式怎么来的？（推导速览）</h3>
+      <p>如果好奇 $P_n = P^{OP} + \bar{P}$ 为什么成立，下面是推导：</p>
+
+      <p>收到噪声后，窃听者以为状态 = 噪声，即 $\hat{x}_k^e = n_k$。真实估计误差是：</p>
+      <div class="formula-block">
+        $$\begin{aligned} P_n &= \mathbb{E}[(x_k - n_k)(x_k - n_k)^\top] \\ &= \mathbb{E}[x_k x_k^\top] - \mathbb{E}[x_k n_k^\top] - \mathbb{E}[n_k x_k^\top] + \mathbb{E}[n_k n_k^\top] \end{aligned}$$
+      </div>
+
+      <p>因为噪声 $n_k$ 和状态 $x_k$ 不相关（$\mathbb{E}[x_k n_k^\top] = 0$），且 $\mathbb{E}[n_k n_k^\top] = \bar{P}$，而 $\mathbb{E}[x_k x_k^\top] = P^{OP}$（开环协方差），所以：</p>
+      <div class="formula-block">$$P_n = P^{OP} + 0 + 0 + \bar{P} = P^{OP} + \bar{P}$$</div>
+    </section>
+
+    <section class="section-card" id="compare">
+      <h2>5. 两张图看懂差距</h2>
+
+      <p>把合法用户和窃听者的估计逻辑放在一起对比：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>场景</th>
+            <th>合法用户怎么做</th>
+            <th>合法用户误差协方差</th>
+            <th>窃听者怎么做</th>
+            <th>窃听者误差协方差</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>收到真实估计</td>
+            <td>✅ 同步传感器</td>
+            <td>$\bar{P}$（最优）</td>
+            <td>✅ 同步传感器</td>
+            <td>$\bar{P}$（最优）</td>
+          </tr>
+          <tr>
+            <td><strong>收到噪声</strong></td>
+            <td>✅ <strong>开环预测（忽略噪声）</strong></td>
+            <td>$AP_{k-1}A^\top+Q$</td>
+            <td>❌ <strong>把噪声当估计值！</strong></td>
+            <td>$P_n = P^{OP} + \bar{P}$</td>
+          </tr>
+          <tr>
+            <td>丢包</td>
+            <td>✅ 开环预测</td>
+            <td>$AP_{k-1}A^\top+Q$</td>
+            <td>✅ 开环预测</td>
+            <td>$AP_{k-1}^e A^\top+Q$</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>核心差异只有一行——<strong>收到噪声时</strong>。合法用户有 $u_k$ 这把密钥，噪声对它无效；窃听者没有密钥，噪声直接毒化它的滤波器。</p>
+
+      <div class="exercise-box">
+        <h3>📝 课后思考</h3>
+        <details>
+          <summary>如果窃听者也知道 $u_k$，这个方案还安全吗？</summary>
+          <p>不安全。$u_k$ 是整套方案的"阿喀琉斯之踵"。如果窃听者知道了伪随机序列，它会像合法用户一样忽略噪声、只取真实值。所以 $u_k$ 必须以安全的种子初始化，且尽可能复杂到不可预测。论文的假设是"窃听者不知道编码方案"，这比"窃听者不知道密钥"更弱一些——现实中可以通过加密手段共享 $u_k$ 的种子。</p>
+        </details>
+        <details>
+          <summary>$\bar{P}$ 正定为什么能推出 $P_n > P^{OP}$？</summary>
+          <p>矩阵意义下的"大于"：$A > B$ 表示 $A - B$ 是正定矩阵。这里 $P_n - P^{OP} = \bar{P}$，而 $\bar{P}$ 作为卡尔曼滤波的稳态误差协方差，在任何可观测系统中都是正定的（因为过程噪声 $Q$ 正定）。所以 $P_n - P^{OP} > 0$，即 $P_n > P^{OP}$。取迹后当然也是 $\text{tr}(P_n) > \text{tr}(P^{OP})$。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0090-系统模型与编码方案.html">← 上一课：系统模型与编码</a>
+        <a href="0092-马尔可夫链与长期性能.html">下一课：马尔可夫链与长期性能 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>
