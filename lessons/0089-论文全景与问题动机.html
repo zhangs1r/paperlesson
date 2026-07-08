@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 论文全景与问题动机</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 1</div>
+      <h1>论文全景与问题动机</h1>
+      <p class="subtitle">主动窃听者为什么是 CPS 远程状态估计的心腹大患？为什么现有加密方法和保密码都挡不住它？这篇 Automatica 2024 的论文想解决什么问题？📖</p>
+      <div class="hero-meta">
+        <span>🎯 主题：CPS 安全 · 主动窃听 · 状态估计隐私</span>
+        <span>🧭 入口：Section 1</span>
+        <span>🔗 论文：<a href="https://doi.org/10.1016/j.automatica.2024.111882" target="_blank">Automatica, 2024</a></span>
+      </div>
+      <div class="toc">
+        <a href="#cps-security">CPS 安全背景</a>
+        <a href="#existing">现有方法的局限</a>
+        <a href="#active">主动窃听攻击</a>
+        <a href="#contributions">本文贡献</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="cps-security">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解 CPS（信息物理系统）在远程状态估计场景下面临的安全挑战，特别是为什么"窃听+干扰"的主动攻击模式比单纯的窃听或 DoS 更有威胁。</p>
+        </div>
+        <div class="callout">
+          <h4>和前面课程怎么接</h4>
+          <p>这是全新的论文系列，和前面的 SLAM 课程没有直接关系。但如果你学过 <strong>DFusion-SLAM</strong> 或 <strong>OCD SLAM</strong> 中对攻击/干扰的讨论，可以横向对比——那些工作处理的是攻击后的鲁棒估计，而这篇文章处理的是攻击中的隐私保护。</p>
+        </div>
+      </div>
+
+      <h2>1. 信息物理系统的安全三要素</h2>
+      <p>CPS 将网络基础设施和物理系统深度集成，覆盖智能电网、智能交通、关键基础设施、可穿戴医疗设备等大规模地理分散系统。这些系统的安全由三个目标定义：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>安全目标</th>
+            <th>含义</th>
+            <th>对应攻击类型</th>
+            <th>举例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>可用性</strong> (Availability)</td>
+            <td>系统功能在需要时可用</td>
+            <td>拒绝服务 (DoS)</td>
+            <td>阻塞传感器到控制器的通信</td>
+          </tr>
+          <tr>
+            <td><strong>完整性</strong> (Integrity)</td>
+            <td>数据未被篡改</td>
+            <td>欺骗攻击</td>
+            <td>注入虚假测量值</td>
+          </tr>
+          <tr>
+            <td><strong>机密性</strong> (Confidentiality)</td>
+            <td>信息对未授权者保密</td>
+            <td><strong>窃听攻击</strong></td>
+            <td>拦截传感器状态估计</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>本文聚焦第三个目标——<strong>机密性</strong>。无线信道天然是共享介质，很难屏蔽非预期的接收者。窃听者可以通过拦截传感器到合法用户之间的通信，获取系统状态的私密信息。</p>
+
+      <div class="figure">
+        <img src="assets/remotestate-fig1-architecture.jpg" alt="远程状态估计系统架构" loading="lazy">
+        <figcaption>图 1：远程状态估计系统架构。传感器发送编码包 z_k，合法用户和窃听者各自接收并估计系统状态。</figcaption>
+      </div>
+
+      <h2>2. 为什么窃听有实际威胁？</h2>
+      <p>窃听不仅仅是被动偷听。一个典型的例子是智能电网：智能电表通过无线网络分享用电信息，窃听者可以根据用电数据推断居民的生活规律，从而在住户不在时入室盗窃。更严重的威胁是，窃听者了解系统运行方式后，可以发动更精密的攻击——Stuxnet 病毒就是先监听离心机在正常工况下的运行状态，然后向监控设备重放测量数据以保持隐身，同时注入破坏性的控制信号。</p>
+      <blockquote>Stuxnet (2010)：先窃听 + 重放正常状态 → 同时注入破坏信号 → 物理摧毁离心机</blockquote>
+    </main>
+
+    <section class="section-card" id="existing">
+      <h2>3. 现有方法的局限</h2>
+
+      <h3>3.1 传统加密方法</h3>
+      <p>密码学工具（如公钥加密）是实践中常用的隐私保护手段，但在远程状态估计场景中有两个根本问题：</p>
+      <ul>
+        <li><strong>计算能力假设</strong>：保密性保证依赖窃听者计算能力有限的假设，量子计算时代这种假设越来越脆弱</li>
+        <li><strong>通信开销</strong>：加密引入额外的时延和带宽消耗，实时远程估计系统很难承受</li>
+      </ul>
+      <p>因此，传统网络安全方法无法完全为 CPS 提供安全保障，需要利用系统动力学特性来设计轻量级的隐私保护方案。</p>
+
+      <h3>3.2 基于 ACK 的保密码</h3>
+      <p>Tsiamis 等人（2018, 2020）提出了"状态保密码"（State-Secrecy Codes），通过对传输包做线性时变变换来实现隐私保护。其核心思想是：当窃听者漏掉一个包而合法用户收到时（称为<strong>关键事件</strong>），窃听者的估计误差协方差会增长到开环预测的水平。</p>
+      <p>但这种方案依赖<strong>确认包（ACK）</strong>来检测关键事件是否发生。问题是——如果窃听者同时具备干扰能力呢？</p>
+    </section>
+
+    <section class="section-card" id="active">
+      <h2>4. 主动窃听攻击</h2>
+      <p>本文考虑的对手不是被动的窃听者，而是<strong>主动窃听者</strong>。它能同时做两件事：</p>
+      <ol>
+        <li><strong>窃听</strong>：拦截传感器发出的数据包，获取系统状态信息</li>
+        <li><strong>干扰</strong>：阻塞传感器到合法用户的信道，阻止 ACK 传输</li>
+      </ol>
+      <p>这种攻击和 DoS 不同：DoS 只追求破坏合法用户的性能，不管自己的包接收情况；而主动窃听者干扰 ACK 是为了<strong>提升自己的估计精度</strong>——通过防止关键事件发生，让自己始终保持在最佳估计状态。</p>
+      <p>Ding 等人（2021）的实验已经证明，利用商用硬件就可以实现对 ACK 的干扰。因此，<strong>设计不依赖 ACK 的编码方案</strong>是本文的核心技术挑战。</p>
+    </section>
+
+    <section class="section-card" id="contributions">
+      <h2>5. 本文贡献</h2>
+      <p>本文提出了一种<strong>检测触发式编码方案</strong>：正常情况下传感器正常发送状态估计值；一旦 QCD（Quickest Change Detection）检测到窃听者的存在，就激活一个不依赖 ACK 的噪声注入编码。</p>
+      <div class="callout highlight">
+        <h4>三个核心贡献</h4>
+        <ol>
+          <li><strong>标量→向量推广</strong>：将 Crimson et al. (2023) 的标量方案推广到一般向量系统，并加入窃听者检测</li>
+          <li><strong>解析表达式</strong>：推导了合法用户和窃听者稳态期望估计误差协方差的闭式解</li>
+          <li><strong>离线设计</strong>：提出 μ 的选取范围（定理 6），使窃听者的误差 <strong>超过开环预测</strong>——收包比不收包更差</li>
+        </ol>
+      </div>
+      <div class="exercise-box">
+        <h3>📝 课后思考</h3>
+        <details>
+          <summary>为什么说"收包比不收包更差"是更强的隐私保证？</summary>
+          <p>直观理解：如果窃听者收到数据后反而估计得更差，那它就没有动机去窃听了。你可以想象"数据毒药"——你故意让它以为收到的是有用信息，实际上这些信息在毒化它的滤波器。对比 Tsiamis 的方案，窃听者在关键事件后最多退回到"不用数据"的水平（开环预测），而本文它比不用数据还差。</p>
+        </details>
+        <details>
+          <summary>为什么 ACK 会成为漏洞？</summary>
+          <p>ACK 是从合法用户发回传感器的确认信号，告诉传感器"我收到了你的包"。Tsiamis 的方案中，传感器需要根据 ACK 来决定下一次发送什么编码。主动窃听者同时干扰 ACK，让传感器误以为合法用户没收到包，从而发送错误的信息。但窃听者自己却可以正常收包，这样它就获得了信息优势。这正是本文要修复的漏洞——取消 ACK 依赖。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0089-论文全景与问题动机.html">← 本课</a>
+        <a href="0090-系统模型与编码方案.html">下一课：系统模型与编码方案 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

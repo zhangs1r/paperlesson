@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 设计变量与QCD检测</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 4</div>
+      <h1>设计变量 μ 与 QCD 窃听者检测</h1>
+      <p class="subtitle">噪声发多少才合适？怎么快速检测到窃听者的存在？</p>
+      <div class="hero-meta">
+        <span>🎯 主题：定理 6 · 单调性 · 最优停时</span>
+        <span>🧭 入口：Section 6-7</span>
+      </div>
+      <div class="toc">
+        <a href="#mu">设计变量 μ</a>
+        <a href="#theorem6">定理 6</a>
+        <a href="#qcd">QCD 检测</a>
+        <a href="#detection">检测变量</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="mu">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解两个"最后一公里"问题：如何在理论上确定 μ 的取值范围？（Theorem 6）如何快速检测窃听者入侵？（QCD）</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们得到了期望稳态误差的解析表达式，这节课用这些表达式来设计 μ 的选取范围，并设计检测机制让编码只在需要时激活。</p>
+        </div>
+      </div>
+
+      <h2>1. 性能指标</h2>
+      <p>定义两个标量性能函数（取迹）：</p>
+      <div class="formula-block">
+        $$J(\mu) = \text{tr} \cdot \lim_{k\to\infty} \mathbb{E}[P_k] \quad (\text{合法用户})$$
+        $$J^e(\mu) = \text{tr} \cdot \lim_{k\to\infty} \mathbb{E}[P_k^e] \quad (\text{窃听者})$$
+      </div>
+
+      <h2>2. 引理 4：单调性</h2>
+      <p>$J^e(\mu)$ 关于 $\mu$ 单调递增。这意味着：噪声发得越勤，窃听者性能越差。证明基于 $P_n > \bar{P}$，所以 $H^e > W^e$。</p>
+
+      <h2>3. 引理 5：上界</h2>
+      <p>只要 $\mu < 1$ 且 $\bar{\gamma} < 1$，合法用户的期望稳态误差就<strong>小于</strong>开环预测：$J(\mu) < \text{tr} P^{OP}$。</p>
+      <p>直观理解：因为总有非零概率收到真实状态估计，Borel-Cantelli 引理保证几乎必然有一次会收到。</p>
+    </main>
+
+    <section class="section-card" id="theorem6">
+      <h2>4. 定理 6：μ 的设计范围</h2>
+      <p>这是全文的核心定理。它给出了 μ 的可行区间，使得：</p>
+      <div class="formula-block">
+        $$J(\mu) < \text{tr} P^{OP} < J^e(\mu)$$
+      </div>
+      <p>即合法用户性能优于开环预测，窃听者性能劣于开环预测。μ 的上界是 1，下界由下式给出：</p>
+      <div class="formula-block">
+        $$\mu^{OP} = \frac{\gamma^e(\text{tr} S^e - \text{tr} W^e) + \text{tr} W^e - \text{tr} P^{OP}}{(\gamma^e - 1)(\text{tr} H^e - \text{tr} W^e)}$$
+      </div>
+      <p>设计流程：</p>
+      <ol>
+        <li>根据系统参数 $(A,Q)$ 和信道品质 $(\bar{\gamma}, \gamma^e)$ 计算 $\mu^{OP}$</li>
+        <li>在 $(\mu^{OP}, 1)$ 区间内选取 μ</li>
+        <li>μ 越大，保密性越强，但合法用户性能损失越大——这是固有的权衡</li>
+      </ol>
+
+      <div class="callout highlight">
+        <h4>💡 数值直觉</h4>
+        <p>论文的实验采用二阶系统 $A = [[0.5, 0.1], [0.4, 0.6]]$，谱半径 0.7562。三种信道场景下 $\mu^{OP} \approx 0.71$。也就是说，至少需要 71% 的概率发噪声才能保证窃听者比开环预测差。这看起来很高，但注意：噪声只在<strong>检测到窃听者后</strong>才发，所以正常运行时没有性能损失。</p>
+      </div>
+    </section>
+
+    <section class="section-card" id="qcd">
+      <h2>5. QCD 快速变化检测</h2>
+      <p>为了激活编码方案，首先需要检测窃听者的存在。利用合法用户信道丢包率从 $\gamma$ 变化到 $\bar{\gamma}$ 这一统计特性，论文使用<strong>Shiryaev 最优停时</strong>框架设计检测器。</p>
+
+      <h3>5.1 问题建模</h3>
+      <ul>
+        <li>入侵时间 $\Lambda$：几何先验 $P[\Lambda = k] = (1-\kappa)^{k-1}\kappa$</li>
+        <li>无入侵时信道 PMF：$b^1(\lambda_k) = \lambda_k(1-\gamma) + (1-\lambda_k)\gamma$</li>
+        <li>入侵时信道 PMF：$b^2(\lambda_k) = \lambda_k(1-\bar{\gamma}) + (1-\lambda_k)\bar{\gamma}$</li>
+      </ul>
+
+      <h3>5.2 最优停时规则</h3>
+      <div class="formula-block">
+        $$\tau^\star = \inf\{k \geq 1: \mathbb{P}_\epsilon(k < \Lambda | \mathcal{F}_k) \leq h\}$$
+      </div>
+      <p>其中 $h \in (0,1)$ 是用于控制虚警率的阈值。计算"无变化后验概率"可以通过一个高效的标量递归实现：</p>
+      <div class="formula-block">
+        $$\hat{M}_k^1 = N_k(1-\kappa)b^1(\lambda_k)\hat{M}_{k-1}^1$$
+        $$N_k^{-1} = b^2(\lambda_k) + (1-\kappa)(b^1(\lambda_k) - b^2(\lambda_k))\hat{M}_{k-1}^1$$
+      </div>
+    </section>
+
+    <section class="section-card" id="detection">
+      <h2>6. 检测变量与编码激活</h2>
+      <p>一旦 $\tau^\star$ 被触发，合法用户设置 $\nu_k = 0$，通过反馈信道告知传感器。传感器从下一个时间步开始激活编码方案（按概率 $\mu$ 发噪声）。</p>
+      <p>注意：这个 QCD 方案对<strong>被动窃听者</strong>无效——如果窃听者只窃听不干扰，合法用户的信道概率不变，$b^1 = b^2$，后验概率没有变化可检测。对于被动窃听需要更复杂的主动检测方法。</p>
+
+      <div class="exercise-box">
+        <h3>📝 课后思考</h3>
+        <details>
+          <summary>为什么 $\mu^{OP}$ 的表达式中分子和分母都有$(\gamma^e-1)$？这个值不是负的吗？</summary>
+          <p>是的，$\gamma^e-1$ 是负数。但分母中另一因子 $(\text{tr}H^e - \text{tr}W^e)$ 是正数（因为 $P_n > \bar{P}$），所以分母整体为负。分子中 $\gamma^e(\text{tr}S^e - \text{tr}W^e) + \text{tr}W^e - \text{tr}P^{OP}$ 也是负的（取决于具体参数）。负负得正，$\mu^{OP}$ 是正数。不需要手动算这个——交给计算机就好，重要的是理解设计逻辑。</p>
+        </details>
+        <details>
+          <summary>如果实际系统的信道质量和论文假设不同，公式还能用吗？</summary>
+          <p>推导是通用的。只要知道 $\bar{\gamma}$（攻击下的丢包率）、$\gamma^e$（窃听者丢包率）和系统参数 $A, Q$，就能算出 $\mu^{OP}$。实际中 $\bar{\gamma}$ 和 $\gamma^e$ 需要离线估计或在线学习，但这不影响公式本身的有效性。论文的公式适用于任何稳定的线性系统。</p>
+        </details>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0091-状态估计与期望性能.html">← 上一课：状态估计与期望性能</a>
+        <a href="0093-实验分析与全文总结.html">下一课：实验分析与总结 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

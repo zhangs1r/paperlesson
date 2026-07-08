@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remote State Estimation · 系统模型与编码方案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="assets/slam-course.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script defer src="assets/slam-course.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Remote State Estimation / Lesson 2</div>
+      <h1>系统模型与编码方案</h1>
+      <p class="subtitle">线性系统、三个参与者和一个伪随机指示器——这套编码方案凭什么让窃听者吃亏？</p>
+      <div class="hero-meta">
+        <span>🎯 主题：系统建模 · 编码设计 · 噪声注入</span>
+        <span>🧭 入口：Section 2-3</span>
+      </div>
+      <div class="toc">
+        <a href="#system">系统模型</a>
+        <a href="#channel">信道与攻击模型</a>
+        <a href="#encoding">编码方案</a>
+        <a href="#noise">噪声设计</a>
+      </div>
+    </header>
+
+    <main class="section-card" id="system">
+      <div class="lead-grid">
+        <div class="callout">
+          <h4>本节目标</h4>
+          <p>理解远程状态估计的系统架构、线性离散系统的数学描述、以及三个参与方（传感器、合法用户、窃听者）各自的角色和信道模型。</p>
+        </div>
+        <div class="callout">
+          <h4>和上一节怎么接</h4>
+          <p>上节课我们建立了"为什么要做这件事"的直觉，这节课开始搭建做这件事的数学框架。所有符号都来自论文 Section 2-3，学完这节能直接读懂论文的问题描述部分。</p>
+        </div>
+      </div>
+
+      <h2>1. 线性动态系统</h2>
+      <p>考虑一个线性离散时不变系统，由一个传感器负责观测：</p>
+      <div class="formula-block">
+        $$x_{k+1} = A x_k + w_k, \quad y_k = C x_k + v_k$$
+      </div>
+      <p>其中 $x_k \in \mathbb{R}^n$ 是系统状态，$y_k \in \mathbb{R}^m$ 是传感器测量值。系统是<strong>稳定</strong>的——$\rho(A) < 1$，即 A 的谱半径小于 1。过程噪声 $w_k$ 和测量噪声 $v_k$ 是零均值的独立同分布高斯随机过程，协方差分别为 $Q$ 和 $R$。</p>
+      <p>传感器本地用卡尔曼滤波做最优状态估计（MMSE），稳态误差协方差 $\bar{P}$ 由离散代数黎卡提方程的解给出：</p>
+      <div class="formula-block">
+        $$\bar{P} = A\bar{P}A^\top + Q - (A\bar{P}A^\top + Q)C^\top (CA\bar{P}A^\top C + CQC^\top + R)^{-1}C(A\bar{P}A^\top + Q)$$
+      </div>
+      <p>所有系统参数 $(A, C, Q, R, \Sigma_0)$ 都是公开信息，传感器、合法用户和窃听者都知道。</p>
+    </main>
+
+    <section class="section-card" id="channel">
+      <h2>2. 信道与攻击模型</h2>
+      <p>传感器通过不可靠的无线网络发送编码包 $z_k$，合法用户和窃听者都可能收到。信道模型是 i.i.d. 伯努利丢包过程：</p>
+      <ul>
+        <li>$\lambda_k \in \{0,1\}$：合法用户的包接收指示（1=收到，0=丢包）</li>
+        <li>$\lambda_k^e \in \{0,1\}$：窃听者的包接收指示</li>
+      </ul>
+
+      <table>
+        <thead>
+          <tr>
+            <th>状态</th>
+            <th>合法用户丢包概率</th>
+            <th>窃听者丢包概率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>无攻击（$k < \Lambda$）</td>
+            <td>$\gamma$</td>
+            <td>不窃听（收不到）</td>
+          </tr>
+          <tr>
+            <td>攻击中（$k \geq \Lambda$）</td>
+            <td>$\bar{\gamma}$（$\bar{\gamma} > \gamma$）</td>
+            <td>$\gamma^e$</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>关键假设：窃听者入侵后，合法用户的信道质量会变差（$\gamma < \bar{\gamma}$），这也是后续 QCD 检测能工作的物理基础。</p>
+
+      <h3>2.1 控制目标</h3>
+      <p>设计一个<strong>不依赖 ACK</strong> 的编码方案，在检测到窃听者后激活，使得：</p>
+      <ul>
+        <li>合法用户的误差协方差迹 <strong>小于</strong> 开环预测的迹</li>
+        <li>窃听者的误差协方差迹 <strong>大于</strong> 开环预测的迹</li>
+      </ul>
+      <p>其中开环预测 $P^{OP}$ 是窃听者/合法用户完全不用任何数据包时的稳态协方差：$P^{OP} = L(A, Q)$，即李雅普诺夫方程的解。</p>
+    </section>
+
+    <section class="section-card" id="encoding">
+      <h2>3. 编码方案设计</h2>
+      <p>核心思想：正常情况（无窃听者）→ 直接发真实估计值；检测到窃听者 → 随机发噪声或真实值。关键设计要素有三个：</p>
+
+      <h3>3.1 检测变量 $\nu_k$</h3>
+      <p>在合法用户处生成，通过无噪反馈信道传给传感器：</p>
+      <div class="formula-block">
+        $$\nu_k = \begin{cases} 0, & \text{检测到窃听者} \\ 1, & \text{未检测到} \end{cases}$$
+      </div>
+
+      <h3>3.2 伪随机指示器 $u_k$</h3>
+      <p>这是方案的核心——传感器和合法用户事先约定一个伪随机序列 $u_k \in \{0,1\}$，窃听者不知道。它消除了对 ACK 的需求：合法用户本地自己就知道下一次会收到什么。</p>
+
+      <h3>3.3 发送包 $z_k$</h3>
+      <div class="formula-block">
+        $$z_k = \begin{cases} \hat{x}_k^s, & \text{若 } \nu_k = 1 \text{ 或 } (\nu_k, u_k) = (0, 1) \\ n_k, & \text{若 } (\nu_k, u_k) = (0, 0) \end{cases}$$
+      </div>
+      <p>核心设计参数：$\mu \triangleq \mathbb{P}(u_k = 0)$ —— 传感器发送噪声的概率。</p>
+    </section>
+
+    <section class="section-card" id="noise">
+      <h2>4. 噪声设计——欺骗的关键</h2>
+      <p>噪声 $n_k$ 被设计成和传感器状态估计 $\hat{x}_k^s$ 具有<strong>相同的边缘分布</strong>：</p>
+      <ul>
+        <li>$n_k \sim \mathcal{N}(0, \bar{P})$——零均值，协方差等于传感器稳态误差 $\bar{P}$</li>
+        <li>$n_k$ 与状态 $x_k$ 不相关：$\mathbb{E}[x_k n_k^\top] = 0$</li>
+      </ul>
+      <p>这意味着窃听者只靠一阶矩（均值）或二阶矩（协方差）统计检验，<strong>无法区分收到的数据包是真的状态估计还是噪声</strong>。窃听者会被迫把噪声当真实估计值用进自己的滤波器，从而毒化自己的估计。</p>
+
+      <div class="callout highlight">
+        <h4>💡 直观理解</h4>
+        <p>想象你在玩一个猜数字游戏。对方每次都给你一个数字，有时是真答案，有时是假答案但你分不出来。如果你想尽可能猜对，你会把每个数字都当真——但假答案就会让你越来越偏。这就是窃听者的困境。</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="nav-links">
+        <a href="0089-论文全景与问题动机.html">← 上一课：论文全景与动机</a>
+        <a href="0091-状态估计与期望性能.html">下一课：状态估计与期望性能 →</a>
+      </div>
+      <a href="../index.html" class="back-home">← 返回主页</a>
+    </footer>
+  </div>
+</body>
+</html>

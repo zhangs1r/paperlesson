@@ -96,7 +96,17 @@ window.PAPERLESSON_DATA = {
       description: "第 28 周起每周一期。基于 arXiv 检索 + 四维评分筛选，每篇论文标注与 PaperLesson 课程板块的关联。本周推荐了 OCD SLAM、DL-SLAM、SPLC 等与课程内容紧密相关的工作。",
       quickOpen: "start weekly-reports/weekly-2026-w28.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
-    }
+    },
+    {
+      id: "remote-state-privacy",
+      groupId: "papers",
+      kind: "论文精读",
+      title: "Remote State Estimation",
+      subtitle: "Privacy Against Active Eavesdroppers · Automatica 2024",
+      description: "第 0089 到 0093 课。围绕主动窃听攻击下的远程状态估计隐私保护问题，涵盖 CPS 安全挑战、系统建模与编码方案、马尔可夫链性能分析、QCD 快速检测设计、实验对比与批判性总结。",
+      quickOpen: "start lessons\\0089-论文全景与问题动机.html",
+      meta: ["5 节课", "~120 分钟", "CPS 安全 / 状态估计隐私"]
+    },
   ],
   lessons: [
     { id:"0001", path:"lessons/0001-论文全景概览.html", paper:"e2map", title:"论文全景概览", subtitle:"背景、动机与贡献", emoji:"📖", duration:"15 分钟", tags:["背景","动机"], description:"先把 E2Map 这篇论文的大问题和核心贡献摸清楚。" },
@@ -124,6 +134,11 @@ window.PAPERLESSON_DATA = {
     { id:"0086", path:"lessons/0086-双层动态过滤系统.html", paper:"ocd-slam", title:"双层动态过滤系统", subtitle:"物体级 + 像素级协同工作", emoji:"🛡️", duration:"22 分钟", tags:["双层过滤","运动标签","地图点剔除"], description:"SMOKE 做物体级过滤，交叉视差做像素级精过滤，理解两层如何互补。" },
     { id:"0087", path:"lessons/0087-实验设计与结果分析.html", paper:"ocd-slam", title:"实验设计与结果分析", subtitle:"KITTI Odometry / Raw 全面评测", emoji:"📊", duration:"24 分钟", tags:["ATE","RPE","KITTI"], description:"系统评测 OCD SLAM 在 KITTI 双目序列上的表现，对比多种动态 SLAM 方法。" },
     { id:"0088", path:"lessons/0088-消融研究与总结.html", paper:"ocd-slam", title:"消融研究与总结展望", subtitle:"交叉视差 vs SMOKE，各自的贡献有多大？", emoji:"🔬", duration:"20 分钟", tags:["消融","总结","局限"], description:"消融实验验证双层互补性，诚实讨论论文局限，与 PaperLesson 其他课程关联总结。" },
+    { id:"0089", path:"lessons/0089-论文全景与问题动机.html", paper:"remote-state-privacy", title:"论文全景与问题动机", subtitle:"CPS安全、主动窃听与贡献概览", emoji:"📖", duration:"22 分钟", tags:["CPS","安全","窃听"], description:"先把远程状态估计的隐私问题全景立住——为什么窃听+干扰比纯窃听更有威胁？" },
+    { id:"0090", path:"lessons/0090-系统模型与编码方案.html", paper:"remote-state-privacy", title:"系统模型与编码方案", subtitle:"线性系统建模、信道模型与伪随机噪声注入", emoji:"⚙️", duration:"25 分钟", tags:["系统模型","编码","噪声"], description:"理解线性离散系统建模、三参与方信道模型和核心编码方案设计。" },
+    { id:"0091", path:"lessons/0091-状态估计与期望性能.html", paper:"remote-state-privacy", title:"状态估计与期望性能分析", subtitle:"合法用户 vs 窃听者估计 + 马尔可夫链模型", emoji:"📈", duration:"28 分钟", tags:["马尔可夫链","稳态分析","Lemma 1"], description:"理解两个参与方的估计方程差异，以及如何用马尔可夫链推导期望稳态性能。" },
+    { id:"0092", path:"lessons/0092-设计变量与QCD检测.html", paper:"remote-state-privacy", title:"设计变量 μ 与 QCD 检测", subtitle:"Theorem 6 设计范围 + 最优停时检测", emoji:"🎯", duration:"25 分钟", tags:["定理6","QCD","最优停时"], description:"理解 μ 的理论选取范围（Theorem 6）和基于 Shiryaev 最优停时的窃听者检测方法。" },
+    { id:"0093", path:"lessons/0093-实验分析与全文总结.html", paper:"remote-state-privacy", title:"实验分析与全文总结", subtitle:"仿真验证、SOTA对比与批判性评价", emoji:"🔬", duration:"25 分钟", tags:["实验","对比","局限"], description:"看四组信道场景和QCD检测的实际表现，与 Tsiamis 对比，并进行诚实的局限性讨论。" },
     { id:"0014", path:"lessons/0014-第一讲-前言.html", paper:"slambook", title:"第一讲：前言", subtitle:"整本书的任务、节奏与学习地图", emoji:"📖", duration:"15 分钟", tags:["前言","总览"], description:"先把整本《视觉 SLAM 十四讲》的问题意识和学习路线建立起来。" },
     { id:"0015", path:"lessons/0015-第二讲-SLAM系统框架与核心模块.html", paper:"slambook", title:"第二讲：SLAM 系统框架与核心模块", subtitle:"先把系统骨架立住", emoji:"🏗️", duration:"18 分钟", tags:["系统框架","前端后端"], description:"理解经典视觉 SLAM 的五大模块、累计漂移与地图类型。" },
     { id:"0016", path:"lessons/0016-第二讲-SLAM的数学表述.html", paper:"slambook", title:"第二讲：SLAM 的数学表述", subtitle:"状态估计视角下的 SLAM", emoji:"📐", duration:"18 分钟", tags:["状态估计","数学表述"], description:"把 SLAM 上升为带噪声的运动方程与观测方程问题。" },
@@ -203,6 +218,7 @@ window.PAPERLESSON_DATA = {
     { title: "DFusion-SLAM 论文页", url: "https://ieeexplore.ieee.org/document/11218208/", emoji: "🧾", description: "DFusion-SLAM 在 IEEE Xplore 的论文主页，可查看摘要、出版信息与 PDF 入口。" },
     { title: "D-FINE 论文", url: "https://arxiv.org/abs/2410.13842", emoji: "🧠", description: "DFusion-SLAM 前端检测器改造所基于的 D-FINE 原始论文。" },
     { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" },
-    { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" }
+    { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" },
+    { title: "Remote State Estimation Automatica", url: "https://doi.org/10.1016/j.automatica.2024.111882", emoji: "🧾", description: "本文论文原文 — Remote State Estimation with Privacy Against Active Eavesdroppers。" }
   ]
 };
