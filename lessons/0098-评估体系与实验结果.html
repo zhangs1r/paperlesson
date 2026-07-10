@@ -126,6 +126,12 @@
 
     <h2>📈 模型对比：为什么 Moonshot 最好？</h2>
     <p>论文用 SCoPE 框架测试了 4 个模型（Fig. 3 雷达图），结果：</p>
+
+    <figure style="margin:var(--space-4) 0;text-align:center;">
+      <img src="assets/scope/36ece03caec6330eea55a48fe3a7a859ff5b8db845e4b48e7ec96d4b3b8c9214.jpg" alt="4 模型在 6 个字段上的雷达图对比" style="max-width:100%;border-radius:6px;border:1px solid var(--border);" loading="lazy">
+      <figcaption style="font-size:var(--text-sm);color:var(--ink-60);margin-top:var(--space-2);">Fig. 3：4 个基座模型在 6 个核心字段上的多维性能对比——Moonshot-v1-8k 的综合包络面积最大</figcaption>
+    </figure>
+
     <table>
       <tr><th>模型</th><th>S<sub>global</sub></th><th>强项</th><th>弱项</th></tr>
       <tr><td><strong>Moonshot-v1-8k</strong></td><td><strong>77.56%</strong></td><td>Name 字段 (81%)、Category (51%)</td><td>/</td></tr>
@@ -138,6 +144,11 @@
     <h2>🔬 消融实验：每个模块贡献多少？</h2>
     <p>为了验证 SCoPE 框架的 4 个模块是否真的有用，论文做了 <strong>Ablation Study（消融研究）</strong>。</p>
     <p>消融研究的思路很简单：<strong>把框架的一部分去掉，看性能掉多少。</strong> 掉的越多，说明那部分越重要。</p>
+
+    <figure style="margin:var(--space-4) 0;text-align:center;">
+      <img src="assets/scope/4179b3ba5e041b3e2565c25d9ac6b9d12abce8957360b7f4d764affcba719c73.jpg" alt="Table II: 消融实验结果" style="max-width:100%;border-radius:6px;border:1px solid var(--border);" loading="lazy">
+      <figcaption style="font-size:var(--text-sm);color:var(--ink-60);margin-top:var(--space-2);">Table II：消融实验结果——Baseline → Partial → Full 三阶段性能提升对比</figcaption>
+    </figure>
 
     <table>
       <tr><th>Prompt 版本</th><th>S<sub>global</sub></th><th>相比上一个提升</th></tr>
