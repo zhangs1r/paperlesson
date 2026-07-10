@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0098 课：评估体系与实验结果 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-4xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); }
+  .lesson .content h2 { font-family: var(--font-serif); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
+  .lesson .content h3 { font-family: var(--font-serif); margin: var(--space-6) 0 var(--space-3); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .tip-box { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; }
+  .tip-box strong { color: var(--accent-deep); }
+  .callout { background: #F0F4F8; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: #2C5B7A; }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+  .footer-nav a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  .formula-box { background: #F8F6F0; border: 1px solid var(--border); border-radius: 6px; padding: var(--space-4); margin: var(--space-3) 0; font-family: var(--font-mono); font-size: var(--text-sm); }
+  .result-good { background: #E8F5E9; border-left: 4px solid #4CAF50; padding: var(--space-3); border-radius: 0 6px 6px 0; margin: var(--space-2) 0; font-size: var(--text-sm); }
+  .result-bad { background: #FFF3E0; border-left: 4px solid #FF9800; padding: var(--space-3); border-radius: 0 6px 6px 0; margin: var(--space-2) 0; font-size: var(--text-sm); }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>📊 评估体系与实验结果</h1>
+  <div class="subtitle">怎么证明 SCoPE 有效？结果到底怎么样？</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 SCoPE · 第 4 课 / 共 5 课</span>
+    <span>🏷️ 评估 · 实验结果 · 消融</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      上节课讲了 SCoPE 框架和 Exact Match 指标。本节课需要理解 <strong>ROUGE-L</strong> 这个新指标。<br>
+      它基于一个叫 LCS（最长公共子序列）的算法——下面会从零开始，带大家手算一次。
+    </div>
+
+    <h2>⚡ 先修：5 分钟搞懂 LCS 和 ROUGE-L</h2>
+
+    <h3>LCS（最长公共子序列）是什么？</h3>
+    <p>看两个句子，找出它们 <strong>顺序相同的最长片段</strong>：</p>
+
+    <div class="formula-box">
+      句子 A：I love eating apples<br>
+      句子 B：I love apples<br>
+      LCS = "I love apples"（4 个词）
+    </div>
+
+    <p>LCS 跟"最长公共子串"的区别：LCS 不要求连续——只要顺序一致就行。</p>
+    <div class="formula-box">
+      句子 A：The cat sat on the mat<br>
+      句子 B：The dog sat on the rug<br>
+      LCS = "The sat on the"（4 个词）——"sat on the" 这 3 个词是连续的，加上前面的 "The"，一共 4 个
+    </div>
+
+    <h3>从 LCS 到 ROUGE-L</h3>
+    <p>ROUGE-L 用 LCS 来算三个量：</p>
+
+    <div class="tip-box">
+      <strong>公式 3-5：ROUGE-L 三步走</strong><br>
+      <strong>① 精确率（Precision）</strong> = LCS 长度 ÷ 模型输出长度<br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">"模型输出的内容里，有多少是靠谱的？"</span><br><br>
+      <strong>② 召回率（Recall）</strong> = LCS 长度 ÷ 正确答案长度<br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">"正确答案里，模型找出了多少？"</span><br><br>
+      <strong>③ ROUGE-L F1</strong> = 2 × (P × R) / (P + R)<br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">"综合平衡精确率和召回率"</span>
+    </div>
+
+    <h3>手算一次就懂了</h3>
+    <table>
+      <tr><th>项</th><th>内容</th></tr>
+      <tr><td>正确答案（人工标注）</td><td>"Nicotinic acid derivative"</td></tr>
+      <tr><td>模型输出</td><td>"Nicotinic acid derivative drug"</td></tr>
+      <tr><td>LCS</td><td>"Nicotinic acid derivative" = 3 个词</td></tr>
+      <tr><td>Precision</td><td>3/4 = 75%（模型输出 4 个词，3 个对了）</td></tr>
+      <tr><td>Recall</td><td>3/3 = 100%（正确答案 3 个词全部找出来了）</td></tr>
+      <tr><td><strong>ROUGE-L F1</strong></td><td>2 × (0.75 × 1) / (0.75 + 1) = <strong>85.7%</strong></td></tr>
+    </table>
+    <p>相比之下，Exact Match 会给 0 分（因为模型多了一个词 "drug"）。</p>
+    <p>ROUGE-L 更宽容，适合评估<strong>描述性字段</strong>——即使措辞不完全一样，只要核心语义一致，就能给高分。</p>
+
+    <h2>📐 综合评分：把所有字段的分数加起来</h2>
+    <p>评估时，每个样本要提取 6 个字段。论文定义了<strong>全局综合评分 S<sub>global</sub></strong>：</p>
+    <div class="tip-box">
+      <strong>公式 6：S<sub>global</sub></strong><br>
+      <code>S_global = (所有样本在 6 个字段上的得分总和) ÷ (样本数 × 6)</code><br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">简单说就是：把所有分数加起来求平均，得到一个数字来衡量模型整体表现。</span>
+    </div>
+
+    <h2>🧪 单样本测试：看看模型输出长什么样</h2>
+    <p>用一个真实案例来感受。输入文本是关于 <strong>Acipimox（阿昔莫司）</strong>的一段描述：</p>
+    <div class="formula-box" style="font-size:var(--text-sm);">
+      "Acipimox is a nicotinic acid derivative with fewer side effects than nicotinic acid. Its chemical name is 5-methylpyrazine-2-carboxylic acid 4-oxide, and it is a new hypolipidemic drug that inhibits the release of free fatty acids from adipose tissue."
+    </div>
+
+    <p>模型输出对比人工标注（Table I）：</p>
+    <table>
+      <tr><th>字段</th><th>人工标注（标准答案）</th><th>模型输出</th><th>结果</th></tr>
+      <tr><td>Name</td><td>阿昔莫司</td><td>["阿昔莫司"]</td><td class="result-good">✅ Exact Match</td></tr>
+      <tr><td>English Name</td><td>None</td><td>["None"]</td><td class="result-good">✅ 正确识别缺失</td></tr>
+      <tr><td>Chemical Formula</td><td>5-methylpyrazine-2-carboxylic acid 4-oxide</td><td>["5-methylpyrazine-2-carboxylic acid 4-oxide"]</td><td class="result-good">✅ Exact Match</td></tr>
+      <tr><td>Category or Function</td><td>Nicotinic acid derivative; Inhibits free fatty acid release</td><td>["Nicotinic acid derivative", "Inhibit free fatty acid release", "Hypolipidemic drug"]</td><td class="result-good">✅ ROUGE-L（提取了核心语义，还额外识别了"降脂药"）</td></tr>
+      <tr><td>CAS</td><td>None</td><td>["None"]</td><td class="result-good">✅ 正确识别缺失</td></tr>
+      <tr><td>Relative Molecular Mass</td><td>None</td><td>["None"]</td><td class="result-good">✅ 正确识别缺失</td></tr>
+    </table>
+    <p>注意：Category or Function 字段，模型不仅准确提取了标准答案中的信息，还额外识别出了 "Hypolipidemic drug"（降脂药）这个功能——这在人工标注时被漏掉了。</p>
+
+    <h2>📈 模型对比：为什么 Moonshot 最好？</h2>
+    <p>论文用 SCoPE 框架测试了 4 个模型（Fig. 3 雷达图），结果：</p>
+    <table>
+      <tr><th>模型</th><th>S<sub>global</sub></th><th>强项</th><th>弱项</th></tr>
+      <tr><td><strong>Moonshot-v1-8k</strong></td><td><strong>77.56%</strong></td><td>Name 字段 (81%)、Category (51%)</td><td>/</td></tr>
+      <tr><td>DeepSeek-V3.2</td><td>76.85%</td><td>Chemical Formula (62%)、English Name (77%)</td><td>整体略低</td></tr>
+      <tr><td>GLM-4-Flash</td><td>73.01%</td><td>均衡但都不突出</td><td>无特别优势</td></tr>
+      <tr><td>Qwen-Plus</td><td>67.89%</td><td>/</td><td>整体最低</td></tr>
+    </table>
+    <p>在 CAS 和 Molecular Mass 这类简单字段上，所有模型都接近满分（94%-100%）。但在复杂字段上，差距就拉开了——Moonshot 的优势体现在<strong>深度理解上下文</strong>和<strong>严格遵循输出格式</strong>。</p>
+
+    <h2>🔬 消融实验：每个模块贡献多少？</h2>
+    <p>为了验证 SCoPE 框架的 4 个模块是否真的有用，论文做了 <strong>Ablation Study（消融研究）</strong>。</p>
+    <p>消融研究的思路很简单：<strong>把框架的一部分去掉，看性能掉多少。</strong> 掉的越多，说明那部分越重要。</p>
+
+    <table>
+      <tr><th>Prompt 版本</th><th>S<sub>global</sub></th><th>相比上一个提升</th></tr>
+      <tr><td>Baseline（只有基础指令）</td><td><strong>51.41%</strong></td><td>—</td></tr>
+      <tr><td>Partial（+字段定义 + 处理规则）</td><td><strong>74.86%</strong></td><td>🚀 +23.45%</td></tr>
+      <tr><td><strong>Full / SCoPE（+ 输出示例）</strong></td><td><strong>77.56%</strong></td><td>📈 +2.70%</td></tr>
+    </table>
+
+    <p>几个关键发现：</p>
+    <ul>
+      <li><strong>最大的飞跃</strong>来自 Baseline → Partial（+23.45%），说明<strong>明确字段定义和处理规则</strong>是最关键的</li>
+      <li>从 Partial → Full（+2.70%），说明 One-shot 示例<strong>锦上添花</strong>但不是核心</li>
+      <li><strong>有趣的反常</strong>：在 Chemical Formula 字段上，Partial 反而比 Baseline 低了（51.77% vs 58.53%），因为规则太严格把化学式里的标点符号也切错了。但 Full Prompt 用 One-shot 示例把这个错误纠正回来了（59.13%）</li>
+      <li><strong>稳定性</strong>：Full Prompt 的标准差只有 0.13%（5 次独立实验），Partial 是 0.24%——说明加了示例后输出更稳定</li>
+    </ul>
+
+    <div class="tip-box">
+      <strong>💡 一句话总结消融实验：</strong><br>
+      规则（字段定义 + 处理规则）是框架的骨架，贡献了 23.45% 的提升。示例（One-shot）是调节精度的小工具，在前者的基础上再加 2.70%。
+    </div>
+
+    <h2>📌 这节课的核心</h2>
+    <table>
+      <tr><th>问题</th><th>答案</th></tr>
+      <tr><td>为什么需要两种指标？</td><td>客观字段（唯一答案）用 Exact Match，描述性字段用 ROUGE-L</td></tr>
+      <tr><td>ROUGE-L 怎么算？</td><td>基于 LCS 算精确率和召回率的 F1 值</td></tr>
+      <tr><td>SCoPE 最终得分？</td><td>77.56%（Moonshot-v1-8k）</td></tr>
+      <tr><td>哪个模块贡献最大？</td><td>字段定义 + 处理规则（+23.45%）</td></tr>
+      <tr><td>One-shot 有用吗？</td><td>锦上添花（+2.70%），还能修正规则过严的问题</td></tr>
+    </table>
+
+    <h2>✏️ 课后练习</h2>
+
+    <details class="exercise-box">
+      <summary>🧮 练习 1：手算一次 ROUGE-L</summary>
+      <div class="answer">
+        <p>正确答案："Inhibits fatty acid release"</p>
+        <p>模型输出："Inhibits release of fatty acid"</p>
+        <p>步骤：</p>
+        <ol>
+          <li>LCS 长度 = ？</li>
+          <li>Precision = ？</li>
+          <li>Recall = ？</li>
+          <li>ROUGE-L F1 = ？</li>
+        </ol>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 解析</summary>
+          <p>正确答案 3 个词，模型输出 4 个词。<br>
+          LCS = "Inhibits fatty acid"（注意：虽然模型输出是 "release of fatty acid"，但顺序不同。"fatty acid" 在两边都是连续的，再加上 "Inhibits"，所以 LCS = "Inhibits fatty acid" = 3 个词）<br>
+          等等——让我重新看：正确答案 = ["Inhibits", "fatty", "acid", "release"]（4 个词），模型输出 = ["Inhibits", "release", "of", "fatty", "acid"]（5 个词）。<br>
+          LCS = "Inhibits fatty acid" = 3？还是 "Inhibits release" = 2？<br>
+          正确答案顺序：Inhibits → fatty → acid → release<br>
+          模型输出顺序：Inhibits → release → of → fatty → acid<br>
+          最长公共子序列 = "Inhibits fatty acid"（3 个词，在两边顺序一致：Inhibits 在 fatty 和 acid 之前）<br>
+          Precision = 3/5 = 60%，Recall = 3/4 = 75%<br>
+          ROUGE-L = 2×(0.6×0.75)/(0.6+0.75) = 0.9/1.35 = <strong>66.7%</strong></p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>📊 练习 2：消融实验解读</summary>
+      <div class="answer">
+        <p>消融实验中，Baseline → Partial 提升了 23.45%，但 Partial → Full 只提升了 2.70%。</p>
+        <p>这说明什么？能不能说"One-shot 不重要"？</p>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 参考答案</summary>
+          <p>不能说 One-shot 不重要。两点原因：① 它在 Chemical Formula 字段上修正了规则过严的问题，把分数从 51.77% 提升到 59.13%；② 它降低了输出的标准差（0.24% → 0.13%），提高了稳定性。但确实，最核心的贡献来自明确的规则（字段定义 + 处理规则）。</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🤔 练习 3：想一想</summary>
+      <div class="answer">
+        <p>论文用了 Exact Match 和 ROUGE-L 两种指标。你觉得这两种指标各自的缺点是什么？</p>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 参考答案</summary>
+          <p>Exact Match 太严格——一个字不同就 0 分，对于同义词（如 "drug" vs "medicine"）不公平。ROUGE-L 只关心词序不关心语义——比如 "hot dog" 和 "dog is hot" 有相同的词但意思完全不同，ROUGE-L 可能给高分。所以两套指标配合使用是合理的。</p>
+        </details>
+      </div>
+    </details>
+
+    <div style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:var(--space-4);margin:var(--space-6) 0;text-align:center;font-size:var(--text-sm);color:var(--ink-60);">
+      ✅ 学完这节课，你应该能回答：<strong>怎么评估提取效果？SCoPE 效果怎么样？</strong>
+    </div>
+
+  </div>
+
+  <div class="footer-nav">
+    <a href="0097-SCoPE框架设计.html">← 上一课：SCoPE 框架核心设计</a>
+    <a href="../index.html">返回 PaperLesson 主页</a>
+    <a href="0099-总结与批判性思考.html">下一课：总结与批判性思考 →</a>
+  </div>
+</div>
+</body>
+</html>

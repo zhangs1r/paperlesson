@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0099 课：总结与批判性思考 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-4xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); }
+  .lesson .content h2 { font-family: var(--font-serif); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
+  .lesson .content h3 { font-family: var(--font-serif); margin: var(--space-6) 0 var(--space-3); }
+  .lesson .content h4 { font-family: var(--font-serif); margin: var(--space-4) 0 var(--space-2); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .tip-box { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; }
+  .tip-box strong { color: var(--accent-deep); }
+  .callout { background: #F0F4F8; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: #2C5B7A; }
+  .critical-box { background: #FFF8E1; border-left: 4px solid #F9A825; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  .critical-box strong { color: #E65100; }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+  .footer-nav a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  .template-box { background: var(--paper); border: 2px solid var(--accent-light); border-radius: 8px; padding: var(--space-5); margin: var(--space-5) 0; }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>🎯 总结与批判性思考</h1>
+  <div class="subtitle">这篇论文好在哪里？不好在哪里？对我有什么用？</div>
+  <div class="meta">
+    <span>⏱ 20 分钟</span>
+    <span>📄 SCoPE · 第 5 课 / 共 5 课 ✅</span>
+    <span>🏷️ 总结 · 批判 · 迁移</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      这是 SCoPE 系列课程的最后一课。建议先学完前 4 课再来。<br>
+      本节课不涉及新公式，重点是<strong>从全局角度审视这篇论文</strong>。
+    </div>
+
+    <h2>📋 全系列回顾</h2>
+    <table>
+      <tr><th>课</th><th>核心问题</th><th>答案一句话</th></tr>
+      <tr><td>0001</td><td>论文在解决什么问题？</td><td>用 LLM 从非结构化化学文本中提取结构化数据</td></tr>
+      <tr><td>0002</td><td>用什么数据和模型？</td><td>299 条 CNKI 标注数据 + Moonshot-v1-8k</td></tr>
+      <tr><td>0003</td><td>SCoPE 框架怎么工作的？</td><td>4 个模块：角色锚定 + 字段定义 + 处理规则 + 输出示例</td></tr>
+      <tr><td>0004</td><td>怎么评估？效果如何？</td><td>Exact Match + ROUGE-L，最终得分 77.56%</td></tr>
+      <tr><td><strong>0005</strong></td><td><strong>整体怎么评价？</strong></td><td><strong>本节课</strong></td></tr>
+    </table>
+
+    <h2>✅ 三个核心贡献</h2>
+    <ol>
+      <li><strong>系统化的 Prompt 设计方法论</strong>：不是拍脑袋写 prompt，而是把 prompt 拆成 4 个有明确功能的设计模块。这套方法论可以复制到其他领域。</li>
+      <li><strong>Zero-Inference 策略</strong>：简单但有效的反幻觉机制——"不知道就说不知道"。在需要高可靠性的场景（海关、医疗、金融）里很实用。</li>
+      <li><strong>Verb-Noun 引导结构</strong>：通过控制输出格式，解决了描述性字段"怎么说都行"的问题，让输出更结构化。</li>
+    </ol>
+
+    <h2>🔍 批判性看：论文的局限</h2>
+    <p>好的论文阅读，不只是背结论，还要会<strong>提问</strong>。</p>
+
+    <div class="critical-box">
+      <strong>⚠️ 局限 1：只有 299 条数据，够吗？</strong><br>
+      论文的评估只用了 299 条人工标注样本。对于信息提取任务来说，这个规模偏小。<br>
+      如果数据量更大、覆盖的化学品种类更多，模型的分数可能会变化。
+    </div>
+
+    <div class="critical-box">
+      <strong>⚠️ 局限 2：只有 6 个字段，够吗？</strong><br>
+      现实中海关需要的字段远不止 6 个（还有毒性、储存条件、运输要求……）。<br>
+      扩展到更多字段后，字段之间可能出现重叠或冲突，框架还能不能保持稳定？
+    </div>
+
+    <div class="critical-box">
+      <strong>⚠️ 局限 3：Moonshot-v1-8k 是最好的选择吗？</strong><br>
+      论文只比较了 2026 年初的 4 个模型。但 LLM 领域更新极快——今天最好的模型下个月可能就被超越了。<br>
+      不过这也说明了框架的兼容性：理论上 SCoPE 框架可以适配任何 LLM。
+    </div>
+
+    <div class="critical-box">
+      <strong>⚠️ 局限 4：77.56% 到底好不好？</strong><br>
+      论文说 77.56% 是"最好的结果"，但严格来说这个分数还有很大提升空间。<br>
+      特别要注意的是，Category or Function 字段只有 50.99%——说明描述性字段的提取仍然是难点。<br>
+      在实际应用中，5 个字段正确率超过 80%、但 1 个字段只有 50%，这能不能用？取决于业务场景：如果那个 50% 的字段是关键的，就还需要优化。
+    </div>
+
+    <div class="critical-box">
+      <strong>⚠️ 局限 5：没有跟传统方法对比</strong><br>
+      论文比较了不同 LLM + 不同 prompt 的效果，但没有跟传统的正则表达式或 BERT 方法对比。<br>
+      也许在某些特定场景下，一个精心设计的正则表达式比 LLM 更简单、更准确。
+    </div>
+
+    <h2>🔧 迁移工坊：SCoPE 的方法能用到你的问题上吗？</h2>
+
+    <p>这是系列课程最有价值的部分——把一个论文的方法<strong>抽象成通用模板</strong>。</p>
+
+    <div class="template-box">
+      <h4>📋 SCoPE 方法的 5 步迁移模板</h4>
+      <ol>
+        <li><strong>定义角色</strong>：你的任务需要什么领域的专家？（"你是一个 X 信息提取专家"）</li>
+        <li><strong>定义字段</strong>：需要提取哪些信息？每个字段的语义范围和优先级是什么？</li>
+        <li><strong>制定规则</strong>：有什么约束？未提及的信息怎么处理？输出格式怎么限制？</li>
+        <li><strong>准备示例</strong>：给 1-2 个完整的输入-输出样例</li>
+        <li><strong>选择模型 + 设参数</strong>：根据你的上下文长度和精度需求选模型，Temperature 锁在 0.1-0.2</li>
+      </ol>
+    </div>
+
+    <h4>场景 1：法律文书提取</h4>
+    <p>从法院判决书中提取关键信息：案号、当事人、案由、判决结果、日期。</p>
+    <ul>
+      <li><strong>角色</strong>："你是一个法律文书分析专家"</li>
+      <li><strong>规则</strong>：如果当事人信息不完整，输出 None 而不是推断</li>
+      <li><strong>示例</strong>：给一份判决书和对应的提取结果</li>
+    </ul>
+
+    <h4>场景 2：病历信息提取</h4>
+    <p>从医生写的门诊记录中提取：患者症状、诊断结果、用药方案、检查指标。</p>
+    <ul>
+      <li><strong>角色</strong>："你是一个临床医学信息提取专家"</li>
+      <li><strong>规则</strong>：Verb-Noun 结构描述用药方案（"口服+阿莫西林"）</li>
+      <li><strong>要点</strong>：病历中缩写很多（如 T=体温、P=脉搏），需要在字段定义中说明</li>
+    </ul>
+
+    <h4>场景 3：产品说明书信息提取</h4>
+    <p>从产品说明书中提取：产品名称、规格、用途、使用方法、注意事项。</p>
+
+    <h2>🧠 开放讨论题</h2>
+    <p>以下问题没有标准答案，适合跟同学或导师讨论：</p>
+
+    <ol>
+      <li>如果 SCoPE 要扩展到 <strong>20 个字段</strong>，prompt 会变得很长，模型会不会"记不住"前面的指令？有什么解决办法？</li>
+      <li>Zero-Inference 策略说"不知道就写 None"，但有些场景下模型确实可以合理推断——比如文本说"该药服用后 30 分钟起效"，没写明吸收方式，但可以推断是口服。<strong>宁缺毋滥和合理推断之间的边界在哪？</strong></li>
+      <li>论文用了 4 个国产闭源模型。如果换成 <strong>DeepSeek-R1 或 GPT-4</strong>，结果会不一样吗？</li>
+    </ol>
+
+    <h2>📚 相关论文推荐</h2>
+    <p>如果你对 SCoPE 的方向感兴趣，可以进一步读这些：</p>
+    <ul>
+      <li><strong>ChemDataExtractor</strong>（Swain & Cole, 2016）— 早期化学品信息提取工具，传统方法路线</li>
+      <li><strong>StructGPT</strong>（Jiang et al., 2023）— 让 LLM 在结构化数据上推理的框架</li>
+      <li><strong>LLMs are Few-Shot Clinical Information Extractors</strong>（Agrawal et al., 2022）— LLM 在医学领域的类似工作</li>
+    </ul>
+
+    <h2>📌 全系列总结</h2>
+    <table>
+      <tr><th>问题</th><th>答案</th></tr>
+      <tr><td>SCoPE 的核心创新是什么？</td><td>一套系统化、模块化的 prompt 设计方案，解决了 LLM 在信息提取中的幻觉和格式问题</td></tr>
+      <tr><td>效果怎么样？</td><td>综合 77.56%，字段定义+规则贡献最大（+23.45%）</td></tr>
+      <tr><td>局限在哪？</td><td>数据量小（299 条）、字段少（6 个）、描述性字段准确率偏低（51%）</td></tr>
+      <tr><td>对我有什么用？</td><td>这套 prompt 设计方法论可以迁移到任何文本提取场景</td></tr>
+    </table>
+
+    <div style="background:var(--paper);border:2px solid var(--accent);border-radius:8px;padding:var(--space-5);margin:var(--space-6) 0;text-align:center;">
+      <strong>🎉 恭喜学完 SCoPE 论文精读全系列（5 节课）</strong><br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">你现在已经比大多数读者更深入地理解了这篇论文。下次组会分享 SCoPE 的时候，你可以自信地讲出它的核心思想、实验设计和潜在局限。</span>
+    </div>
+
+    <h2>✏️ 最终练习</h2>
+
+    <details class="exercise-box">
+      <summary>🎤 练习 1：用 60 秒向别人介绍 SCoPE</summary>
+      <div class="answer">
+        <p>假设你在电梯里遇到导师，他问"听说你在看 SCoPE，这篇论文讲什么？"</p>
+        <p>用 60 秒说清楚：问题 → 方法 → 结果。</p>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 参考回答</summary>
+          <p>"SCoPE 是一篇关于用 LLM 做化学信息提取的论文。海关需要从大量非结构化文本中提取化学品的关键信息，但直接用 LLM 会有幻觉和格式问题。论文设计了一套 4 模块的 prompt 框架，包括角色定义、字段定义、处理规则和示例注入。最终在 6 个字段上取得了 77.6% 的综合准确率，其中字段定义和规则的贡献最大，提升了 23 个百分点。"</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🤔 练习 2：写一条自己的批判</summary>
+      <div class="answer">
+        <p>除了这节课提到的 5 个局限，你还能想到什么？</p>
+        <p>提示方向：数据来源只用了 CNKI、没有跨语言测试、只做了英文提取没做中文提取……</p>
+        <p>（没有标准答案，训练批判性思维）</p>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🚀 练习 3：规划你的迁移项目</summary>
+      <div class="answer">
+        <p>选一个你感兴趣的领域（法律、医疗、金融、教育……），用上面的 5 步模板设计一个 SCoPE 适配方案。</p>
+        <p>写下来包含：</p>
+        <ul>
+          <li>角色定义</li>
+          <li>要提取的 5-8 个字段</li>
+          <li>2 条处理规则</li>
+          <li>1 个输入-输出示例</li>
+        </ul>
+      </div>
+    </details>
+
+    <h2>🔗 延伸阅读</h2>
+    <ul>
+      <li>论文原文：<a href="https://iai.neu.edu.cn/" target="_blank" style="color:var(--accent);">IAI 2026 会议网站</a></li>
+      <li>SpeakScope 口语备战项目：<a href="https://zhangs1r.github.io/speakscope/" target="_blank" style="color:var(--accent);">zhangs1r.github.io/speakscope/</a></li>
+    </ul>
+
+  </div>
+
+  <div class="footer-nav">
+    <a href="0098-评估体系与实验结果.html">← 上一课：评估体系与实验结果</a>
+    <a href="../index.html">返回 PaperLesson 主页</a>
+    <span></span>
+  </div>
+</div>
+</body>
+</html>

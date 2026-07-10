@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0097 课：SCoPE 框架核心设计 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-4xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); }
+  .lesson .content h2 { font-family: var(--font-serif); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
+  .lesson .content h3 { font-family: var(--font-serif); margin: var(--space-6) 0 var(--space-3); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .tip-box { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; }
+  .tip-box strong { color: var(--accent-deep); }
+  .callout { background: #F0F4F8; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: #2C5B7A; }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+  .footer-nav a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  .module-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-5) 0; }
+  .module-card h4 { margin: 0 0 var(--space-2); font-family: var(--font-serif); }
+  .formula-box { background: #F8F6F0; border: 1px solid var(--border); border-radius: 6px; padding: var(--space-4); margin: var(--space-3) 0; font-family: var(--font-mono); font-size: var(--text-sm); }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>⚙️ SCoPE 框架核心设计</h1>
+  <div class="subtitle">SCoPE 具体怎么工作的？四个模块拆开看</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 SCoPE · 第 3 课 / 共 5 课</span>
+    <span>🏷️ 方法 · 框架设计</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      上节课讲到了 ICL（上下文内学习）：给模型看一个例子，它就能照着做。这节课讲的 SCoPE 框架就用到了这个技术。<br>
+      另外需要知道 <strong>JSON</strong> 是什么——就是一种结构化的数据格式，长这样：<br>
+      <code>{"名称": "阿昔莫司", "CAS号": "None"}</code>
+    </div>
+
+    <h2>🔧 SCoPE 框架概览</h2>
+
+    <p>SCoPE = <strong>S</strong>tructured and <strong>C</strong>onstrained <strong>P</strong>rompting <strong>E</strong>xtractor</p>
+    <p>它不是一个新的模型，而是一套<strong>精心设计的 Prompt（提示词）模板</strong>。你把这段 prompt 发给任何 LLM，它就能按照你想要的格式从文本中提取信息。</p>
+
+    <p>框架由 <strong>4 个模块</strong> 组成，每个模块解决一个具体问题：</p>
+
+    <!-- Module 1 -->
+    <div class="module-card">
+      <h4>模块 1：Task Description（任务描述）</h4>
+      <p><strong>解决的问题：</strong>LLM 不知道自己是来干嘛的，容易跑偏。</p>
+      <p>给 LLM 分配一个<strong>专属角色</strong>：<em>"你是一个化学信息提取专家"</em>。</p>
+      <p>这叫作 <strong>角色锚定（Role Anchoring）</strong>。就像对一个人说"你现在是法官"——他的思维方式会自动切换到法官模式。</p>
+      <p>激活了模型的生化领域先验知识后，它处理化学文本时会更专注，不会去关注无关信息。</p>
+    </div>
+
+    <!-- Module 2 -->
+    <div class="module-card">
+      <h4>模块 2：Field Definitions（字段定义）</h4>
+      <p><strong>解决的问题：</strong>不告诉 LLM 要提取什么，它就会自由发挥。</p>
+      <p>精确定义 <strong>6 个核心字段</strong>，告诉模型每个字段的含义、提取优先级、语义范围：</p>
+      <table>
+        <tr><th>字段</th><th>告诉模型的话（大意）</th></tr>
+        <tr><td>Name</td><td>"提取物质的中文名称，优先选择最常见名称"</td></tr>
+        <tr><td>English Name</td><td>"提取英文名称，如果没有则标为 None"</td></tr>
+        <tr><td>Chemical Formula</td><td>"提取化学式或组成描述"</td></tr>
+        <tr><td>Category or Function</td><td>"提取类别或功能，用动词-名词结构描述"</td></tr>
+        <tr><td>CAS Number</td><td>"提取 CAS 登记号（格式为 XXX-XX-X）"</td></tr>
+        <tr><td>Relative Molecular Mass</td><td>"提取相对分子质量（数值）"</td></tr>
+      </table>
+      <p>这相当于给了模型一个<strong>标准化的填空模板</strong>——不管你从哪儿来的文本，提取出来的数据格式都是一样的。</p>
+    </div>
+
+    <!-- Module 3 -->
+    <div class="module-card">
+      <h4>模块 3：Processing Rules（处理规则）</h4>
+      <p><strong>解决的问题：</strong>模型会自己胡编乱造（幻觉）。</p>
+      <p>这里有两把"锁"：</p>
+      <p><strong>🔒 锁一：Zero-Inference 策略</strong></p>
+      <p>规定：如果文本中<strong>没有提到</strong>某个字段的值，就直接输出 <code>"None"</code>，不准自己推断。</p>
+      <p>很多人会问："但是模型明明可以推理出来啊，为什么不让它推理？"</p>
+      <p>答案是：在海关检验这种场景下，<strong>宁缺毋滥</strong>。你编造一个 CAS 号比不写更可怕——可能导致错误的检测判断。</p>
+
+      <p><strong>🔒 锁二：Verb-Noun（动词-名词）引导结构</strong></p>
+      <p>对于"Category or Function"这类描述性字段，要求输出格式必须以 <strong>"动词 + 名词"</strong> 的形式：</p>
+      <p>✅ <code>"Inhibit fatty acid release"</code>（抑制脂肪酸释放）—— 动词 Inhibit + 名词 fatty acid release</p>
+      <p>❌ <code>"It is a drug that can inhibit the release of fatty acids"</code>—— 太长太随意</p>
+    </div>
+
+    <!-- Module 4 -->
+    <div class="module-card">
+      <h4>模块 4：Output Example（输出示例）</h4>
+      <p><strong>解决的问题：</strong>光讲规则，模型可能还是不知道怎么具体做。</p>
+      <p>给一个完整的 <strong>输入-输出示例（One-shot）</strong>：</p>
+      <div class="formula-box">
+        输入原文："Acipimox is a nicotinic acid derivative..."<br>
+        → 期望输出 JSON：{<br>
+        &nbsp;&nbsp;"Name": ["阿昔莫司"],<br>
+        &nbsp;&nbsp;"English Name": ["None"],<br>
+        &nbsp;&nbsp;"Chemical Formula": ["5-methylpyrazine-2-carboxylic acid 4-oxide"],<br>
+        &nbsp;&nbsp;"Category or Function": ["Nicotinic acid derivative", "Inhibit free fatty acid release"],<br>
+        &nbsp;&nbsp;"CAS": ["None"],<br>
+        &nbsp;&nbsp;"Relative Molecular Mass": ["None"]<br>
+        }
+      </div>
+      <p>这利用了上一课讲的 <strong>ICL</strong>——模型看了这个例子，就明白了格式和风格要求。这比写 10 条规则都管用。</p>
+    </div>
+
+    <h2>🧩 三个版本的对比</h2>
+    <p>论文设计了 <strong>3 种 prompt</strong> 来做消融实验（下节课详细讲），让你看到每个模块到底贡献了多少：</p>
+    <table>
+      <tr><th>版本</th><th>包含什么</th><th>可以理解为</th></tr>
+      <tr><td><strong>Baseline</strong></td><td>只有基础指令</td><td>"给我提取信息"——极其模糊</td></tr>
+      <tr><td><strong>Partial</strong></td><td>Baseline + 字段定义 + 处理规则</td><td>明确了"提取什么"和"规则是什么"</td></tr>
+      <tr><td><strong>Full（SCoPE）</strong></td><td>Partial + 输出示例（One-shot）</td><td>再加一个"照着做"的例子</td></tr>
+    </table>
+
+    <h2>📐 先预热：怎么判断提取得对不对？</h2>
+    <p>讲完框架，有一个问题自然浮现：<strong>"怎么知道模型提取对了？"</strong></p>
+    <p>这就是评估要做的事。论文用的最简单直观的指标叫 <strong>Exact Match（精确匹配）</strong>：</p>
+    <p>对于那些"答案唯一"的字段（Name、English Name、Chemical Formula、CAS、Molecular Mass）：</p>
+    <div class="tip-box">
+      <strong>公式 2：Exact Match</strong><br>
+      <code>得分 = 1（如果预测值 = 正确答案），否则 = 0</code><br>
+      <span style="font-size:var(--text-sm);color:var(--ink-60);">对就是对，错就是错，没有中间地带。</span>
+    </div>
+    <p>比如 CAS 号正确答案是 "7732-18-5"，模型输出 "7732-18-6" → 得 0 分，就是一个字都不能差。</p>
+    <p><strong>特别规则：</strong>如果模型和人工标注都写了 "None"，也算对——说明模型正确识别出"这个字段没有信息"。</p>
+    <p>但对于"Category or Function"这种描述性字段，Exact Match 就不太适用了（同一功能可能有不同的表述方式）。怎么评估它？——下节课讲。</p>
+
+    <div class="callout">
+      <strong>🔗 衔接下一课：</strong> 框架设计好了 → 怎么证明它有效？→ 下节课讲评估体系和实验结果。
+    </div>
+
+    <h2>📌 这节课的核心</h2>
+    <table>
+      <tr><th>问题</th><th>答案</th></tr>
+      <tr><td>SCoPE 是什么？</td><td>一套 4 模块的 prompt 框架，不是新模型</td></tr>
+      <tr><td>四大模块是什么？</td><td>任务描述、字段定义、处理规则、输出示例</td></tr>
+      <tr><td>Zero-Inference 是什么？</td><td>文本没提到的字段不准编，直接输出 None</td></tr>
+      <tr><td>Verb-Noun 是什么？</td><td>功能描述必须用"动词+名词"格式</td></tr>
+      <tr><td>One-shot 有什么用？</td><td>给一个完整示例，模型看了就会照做（ICL）</td></tr>
+      <tr><td>Exact Match 怎么打分？</td><td>预测值=正确答案得 1 分，否则 0 分</td></tr>
+    </table>
+
+    <h2>✏️ 课后练习</h2>
+
+    <details class="exercise-box">
+      <summary>📝 练习 1：四大模块连线</summary>
+      <div class="answer">
+        <p>把模块和对应的核心作用连起来：</p>
+        <table>
+          <tr><th>模块</th><th>作用</th></tr>
+          <tr><td>① Task Description</td><td>A. 告诉模型不能瞎编</td></tr>
+          <tr><td>② Field Definitions</td><td>B. 给一个"照着写"的样例</td></tr>
+          <tr><td>③ Processing Rules</td><td>C. 给模型分配专家角色</td></tr>
+          <tr><td>④ Output Example</td><td>D. 明确要提取的 6 个字段</td></tr>
+        </table>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 答案</summary>
+          <p>①→C, ②→D, ③→A, ④→B</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🧪 练习 2：Zero-Inference 判断</summary>
+      <div class="answer">
+        <p>一段文本说 "XX 物质是一种新型降脂药，属于烟酸衍生物。" 文本没有提到 CAS 号和分子质量。</p>
+        <p>按照 Zero-Inference 策略，模型应该怎么输出 CAS 号和 Relative Molecular Mass 字段？</p>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 答案</summary>
+          <p>两个字段都输出 <code>"None"</code>。虽然模型可以推断（降脂药通常分子量在 200-500 之间），但不能让它推断——宁缺毋滥。</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🤔 练习 3：想一想</summary>
+      <div class="answer">
+        <p>如果让你把 SCoPE 框架用到<strong>另外一个领域</strong>（比如从法院判决书中提取案件关键信息），你需要改哪些部分？</p>
+        <ul>
+          <li>Task Description 要改成什么角色？</li>
+          <li>Field Definitions 要定义哪些字段？</li>
+          <li>Processing Rules 需要什么特殊规则？</li>
+        </ul>
+        <p>这是训练"可迁移思维"——SCoPE 的方法论可以套用到很多场景。</p>
+      </div>
+    </details>
+
+    <div style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:var(--space-4);margin:var(--space-6) 0;text-align:center;font-size:var(--text-sm);color:var(--ink-60);">
+      ✅ 学完这节课，你应该能说清楚：<strong>SCoPE 的四大模块分别解决什么问题、怎么协同工作。</strong>
+    </div>
+
+  </div>
+
+  <div class="footer-nav">
+    <a href="0096-数据集与基座模型.html">← 上一课：数据集与基座模型</a>
+    <a href="../index.html">返回 PaperLesson 主页</a>
+    <a href="0098-评估体系与实验结果.html">下一课：评估体系与实验结果 →</a>
+  </div>
+</div>
+</body>
+</html>

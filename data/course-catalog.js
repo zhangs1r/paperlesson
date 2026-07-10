@@ -107,6 +107,16 @@ window.PAPERLESSON_DATA = {
       quickOpen: "start lessons\\0089-论文全景与问题动机.html",
       meta: ["6 节课", "~150 分钟", "CPS 安全 / 状态估计隐私"]
     },
+    {
+      id: "scope",
+      groupId: "papers",
+      kind: "论文精读",
+      title: "SCoPE",
+      subtitle: "A Prompting Framework for Chemical Information Extraction · IAI 2026",
+      description: "第 0095 到 0099 课。围绕 SCoPE 框架的问题动机、数据集构建、四大模块设计、混合评估体系与实验结果、总结与批判性思考展开。适合没读过论文的初学者。",
+      quickOpen: "start lessons\\\\0095-论文全景与问题动机.html",
+      meta: ["5 节课", "~130 分钟", "信息提取 / Prompt Engineering"]
+    },
   ],
   lessons: [
     { id:"0001", path:"lessons/0001-论文全景概览.html", paper:"e2map", title:"论文全景概览", subtitle:"背景、动机与贡献", emoji:"📖", duration:"15 分钟", tags:["背景","动机"], description:"先把 E2Map 这篇论文的大问题和核心贡献摸清楚。" },
@@ -140,6 +150,11 @@ window.PAPERLESSON_DATA = {
     { id:"0092", path:"lessons/0092-马尔可夫链与长期性能.html", paper:"remote-state-privacy", title:"马尔可夫链与长期性能分析", subtitle:"马尔可夫链速成 · Lyapunov方程 · Lemma 2&3", emoji:"📈", duration:"25 分钟", tags:["马尔可夫链","Lyapunov","稳态"], description:"传感器没有ACK，如何用马尔可夫链预测长期平均误差？含5分钟马尔可夫链速成教程。" },
     { id:"0093", path:"lessons/0093-设计变量与QCD检测.html", paper:"remote-state-privacy", title:"设计变量 μ 与 QCD 检测", subtitle:"滑动窗口为什么不行 · 贝叶斯直觉 · Theorem 6", emoji:"🎯", duration:"28 分钟", tags:["定理6","QCD","贝叶斯检测"], description:"为什么滑动窗口会误报？贝叶斯视角的QCD检测怎么做？一步一步从直觉推到公式。" },
     { id:"0094", path:"lessons/0094-实验分析与方法迁移.html", paper:"remote-state-privacy", title:"实验分析与方法迁移", subtitle:"SOTA对比 · 通用模板 · 参数准备清单", emoji:"🔬", duration:"25 分钟", tags:["实验","方法迁移","参数清单"], description:"怎么把这篇论文的方法用到你自己的问题上？附5步通用模板+11个参数的准备清单。" },
+    { id:"0095", path:"lessons/0095-论文全景与问题动机.html", paper:"scope", title:"论文全景与问题动机", subtitle:"SCoPE 在解决什么问题？", emoji:"📖", duration:"25 分钟", tags:["背景","动机"], description:"从海关检测痛点出发，理解论文要解决的问题和 SCoPE 的高层思路。" },
+    { id:"0096", path:"lessons/0096-数据集与基座模型.html", paper:"scope", title:"数据集与基座模型", subtitle:"用什么数据、为什么选 Moonshot？", emoji:"📊", duration:"25 分钟", tags:["数据","模型"], description:"爬虫获取 CNKI 数据、299 条人工标注、实体密度分析、模型选型理由。" },
+    { id:"0097", path:"lessons/0097-SCoPE框架设计.html", paper:"scope", title:"SCoPE 框架核心设计", subtitle:"四大模块逐块拆解", emoji:"⚙️", duration:"30 分钟", tags:["方法","框架"], description:"任务描述、字段定义、处理规则、输出示例——核心方法论。" },
+    { id:"0098", path:"lessons/0098-评估体系与实验结果.html", paper:"scope", title:"评估体系与实验结果", subtitle:"怎么证明有效？效果如何？", emoji:"📈", duration:"30 分钟", tags:["实验","消融"], description:"Exact Match + ROUGE-L 手算教程、4 模型对比、消融实验解读。" },
+    { id:"0099", path:"lessons/0099-总结与批判性思考.html", paper:"scope", title:"总结与批判性思考", subtitle:"好在哪、不好在哪、怎么迁移使用？", emoji:"🎯", duration:"20 分钟", tags:["总结","批判"], description:"5 项局限分析 + 5 步迁移模板 + 3 个跨领域应用场景。" },
     { id:"0014", path:"lessons/0014-第一讲-前言.html", paper:"slambook", title:"第一讲：前言", subtitle:"整本书的任务、节奏与学习地图", emoji:"📖", duration:"15 分钟", tags:["前言","总览"], description:"先把整本《视觉 SLAM 十四讲》的问题意识和学习路线建立起来。" },
     { id:"0015", path:"lessons/0015-第二讲-SLAM系统框架与核心模块.html", paper:"slambook", title:"第二讲：SLAM 系统框架与核心模块", subtitle:"先把系统骨架立住", emoji:"🏗️", duration:"18 分钟", tags:["系统框架","前端后端"], description:"理解经典视觉 SLAM 的五大模块、累计漂移与地图类型。" },
     { id:"0016", path:"lessons/0016-第二讲-SLAM的数学表述.html", paper:"slambook", title:"第二讲：SLAM 的数学表述", subtitle:"状态估计视角下的 SLAM", emoji:"📐", duration:"18 分钟", tags:["状态估计","数学表述"], description:"把 SLAM 上升为带噪声的运动方程与观测方程问题。" },
@@ -220,6 +235,7 @@ window.PAPERLESSON_DATA = {
     { title: "D-FINE 论文", url: "https://arxiv.org/abs/2410.13842", emoji: "🧠", description: "DFusion-SLAM 前端检测器改造所基于的 D-FINE 原始论文。" },
     { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" },
     { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" },
-    { title: "Remote State Estimation Automatica", url: "https://doi.org/10.1016/j.automatica.2024.111882", emoji: "🧾", description: "本文论文原文 — Remote State Estimation with Privacy Against Active Eavesdroppers。" }
+    { title: "Remote State Estimation Automatica", url: "https://doi.org/10.1016/j.automatica.2024.111882", emoji: "🧾", description: "本文论文原文 — Remote State Estimation with Privacy Against Active Eavesdroppers。" },
+    { title: "SCoPE 论文 (IAI 2026)", url: "http://iai.neu.edu.cn/", emoji: "🧾", description: "SCoPE: A Prompting Framework for Chemical Information Extraction — 第八届工业人工智能国际会议。" }
   ]
 };

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0095 课：论文全景与问题动机 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-4xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); }
+  .lesson .content h2 { font-family: var(--font-serif); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); }
+  .lesson .content h3 { font-family: var(--font-serif); margin: var(--space-6) 0 var(--space-3); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .tip-box { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; }
+  .tip-box strong { color: var(--accent-deep); }
+  .callout { background: #F0F4F8; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: #2C5B7A; }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent); text-decoration: none; }
+  .footer-nav a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  .glossary-term { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 3px; background: var(--accent-dim); font-weight: 600; font-size: var(--text-sm); }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>📖 论文全景与问题动机</h1>
+  <div class="subtitle">SCoPE 这篇论文到底在解决什么问题？</div>
+  <div class="meta">
+    <span>⏱ 25 分钟</span>
+    <span>📄 SCoPE · 第 1 课 / 共 5 课</span>
+    <span>🏷️ 背景 · 动机</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      本课不需要任何先验知识。唯一需要知道的是：<strong>LLM（大语言模型）</strong>就是像 ChatGPT 这样的 AI，能理解和生成文字。<br>
+      如果你连这个也不确定，也没关系——这节课会顺便讲清楚。
+    </div>
+
+    <h2>🎬 先问你一个问题</h2>
+    <p>假设你是一个海关工作人员。每天有成千上万的进口货物需要查验——化学品、药品、食品添加剂……你要判断这些东西是不是安全的。</p>
+    <p>传统做法是：<strong>取样 → 送实验室 → 等检测报告</strong>。一套流程下来，少则几天，多则几周。</p>
+    <p>但问题来了——货物量太大了。全检不现实，不检又有风险。</p>
+    <p>有没有一种办法，能从已有的文档（比如产品说明书、研究报告）里<strong>快速提取关键信息</strong>，先筛一遍，再决定哪些需要送检？</p>
+    <p>这就是这篇论文要解决的问题。</p>
+
+    <h2>🔍 问题拆解</h2>
+
+    <h3>1. 有一个急需的信息库</h3>
+    <p>海关需要建立一个「<strong>非食用物质智能数据库</strong>」，里面存着各种化学品的名称、成分、用途、危险性等信息。有了这个数据库，查验时只需要查一下，就知道这个东西是什么、要不要送检。</p>
+    <p>但问题是——这些信息分散在大量的<strong>非结构化文本</strong>中（研究报告、论文摘要、产品说明），格式不统一、内容杂乱，没法直接用。</p>
+
+    <div class="tip-box">
+      <strong>💡 什么是"非结构化文本"？</strong><br>
+      "非结构化"就是没有固定格式——不像 Excel 表格里每一列都有明确的含义，而是像一篇杂志文章一样，自然语言写的。人类读得懂，但计算机直接读会很困难。
+    </div>
+
+    <h3>2. 传统方案为什么不行？</h3>
+    <p>论文提到早期的方法有两种：</p>
+    <table>
+      <tr><th>方法</th><th>怎么做</th><th>问题在哪</th></tr>
+      <tr>
+        <td>正则表达式</td><td>写固定的规则（如"匹配以 CAS 开头的 7 位数字"）</td>
+        <td>规则写死，换一种表述方式就匹配不到了</td>
+      </tr>
+      <tr>
+        <td>传统深度学习（如 BERT）</td>
+        <td>训练专门的模型来做提取</td>
+        <td>需要大量人工标注数据，换了领域就得重新训练</td>
+      </tr>
+    </table>
+
+    <h3>3. LLM 有机会，但也有麻烦</h3>
+    <p>大语言模型（LLMs）很擅长理解自然语言。你给它一段文字，它能回答关于这段文字的问题——这就是"信息提取"的基础。</p>
+    <p>但问题是，LLM 有三毛病：</p>
+    <table>
+      <tr><th>毛病</th><th>什么意思</th><th>举个例子</th></tr>
+      <tr>
+        <td><strong>幻觉（Hallucination）</strong></td><td>模型会编造不存在的信息</td>
+        <td>文本里没写 CAS 号，但模型可能自己编一个</td>
+      </tr>
+      <tr>
+        <td><strong>边界模糊（Boundary Blurring）</strong></td><td>分不清不同字段的边界</td>
+        <td>把"用途"的内容写进了"化学式"字段</td>
+      </tr>
+      <tr>
+        <td><strong>格式不一致（Format Inconsistency）</strong></td>
+        <td>每次输出格式不一样，没法自动解析</td>
+        <td>这次输出 JSON，下次输出普通文字</td>
+      </tr>
+    </table>
+
+    <h2>🧠 论文的答案：SCoPE 框架</h2>
+    <p>论文的想法很简单但很聪明：<strong>不是换模型，而是把提示词（Prompt）设计得更精细。</strong></p>
+    <p>SCoPE = <strong>S</strong>tructured and <strong>C</strong>onstrained <strong>P</strong>rompting <strong>E</strong>xtractor</p>
+    <p>翻译成人话：通过精心设计的 prompt，让 LLM 乖乖地、稳定地输出结构化的数据。</p>
+    <p>具体来说，它定义了 <strong>6 个核心字段</strong>，让 LLM 从一段文字中提取这些信息：</p>
+    <table>
+      <tr><th>#</th><th>字段</th><th>例子（药品"阿昔莫司"）</th><th>类型</th></tr>
+      <tr><td>1</td><td><strong>Name</strong>（物质名称）</td><td>阿昔莫司</td><td>客观唯一</td></tr>
+      <tr><td>2</td><td><strong>English Name</strong>（英文名）</td><td>Acipimox</td><td>客观唯一</td></tr>
+      <tr><td>3</td><td><strong>Chemical Formula</strong>（化学式）</td><td>5-methylpyrazine-2-carboxylic acid 4-oxide</td><td>客观唯一</td></tr>
+      <tr><td>4</td><td><strong>Category or Function</strong>（类别/功能）</td><td>Nicotinic acid derivative; Inhibits fatty acid release</td><td>描述性</td></tr>
+      <tr><td>5</td><td><strong>CAS Number</strong>（CAS 登记号）</td><td>（无，此处缺失）</td><td>客观唯一</td></tr>
+      <tr><td>6</td><td><strong>Relative Molecular Mass</strong>（相对分子质量）</td><td>（无，此处缺失）</td><td>客观唯一</td></tr>
+    </table>
+
+    <div class="tip-box">
+      <strong>🔑 核心洞察：</strong> 前 5 个字段是"客观唯一"的（答案确定，对就是对错就是错），但第 4 个字段"类别/功能"是描述性的（可以有多种正确表述）。这个区别在后面设计评估指标时很重要，先记住。
+    </div>
+
+    <p>论文的技术路线图（Fig. 1）展示了完整流程：<br>
+    <em>爬取数据 → 数据清洗 → 设计 SCoPE prompt → 输入 LLM → 输出 JSON → 评估结果</em></p>
+    <p>接下来几节课会一步步拆开看每个环节是怎么做的。</p>
+
+    <h2>📌 这节课的核心</h2>
+    <table>
+      <tr><th>问题</th><th>答案</th></tr>
+      <tr><td>这篇论文在解决什么问题？</td><td>从非结构化化学文本中自动提取关键信息，构建智能数据库</td></tr>
+      <tr><td>为什么不用传统方法？</td><td>正则表达式太死板，深度学习需要大量标注数据</td></tr>
+      <tr><td>LLM 有什么问题？</td><td>幻觉、边界模糊、格式不一致</td></tr>
+      <tr><td>论文怎么解决的？</td><td>用 SCoPE 框架——一套精细设计的 prompt 策略</td></tr>
+      <tr><td>要提取什么？</td><td>6 个核心字段（Name, English Name, Chemical Formula, Category/Function, CAS, Molecular Mass）</td></tr>
+    </table>
+
+    <h2>✏️ 课后练习</h2>
+
+    <details class="exercise-box">
+      <summary>📝 练习 1：用自己的话解释</summary>
+      <div class="answer">
+        <p>不用翻回去看，试着用一句话回答：</p>
+        <p><strong>"SCoPE 这篇论文到底在干啥？"</strong></p>
+        <p>你的回答应该包含：</p>
+        <ul>
+          <li>要解决什么问题</li>
+          <li>用什么方法</li>
+          <li>产出什么</li>
+        </ul>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 参考答案</summary>
+          <p>"SCoPE 是一个 prompt 框架，让大语言模型能从混乱的化学文本里，稳定地提取出 6 种关键信息，用于海关搭建智能数据库。"</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🔍 练习 2：LLM 的三个毛病</summary>
+      <div class="answer">
+        <p>不看上面的内容，写出 LLM 在信息提取中的三个主要问题：</p>
+        <ol>
+          <li>__________（模型编造不存在的）</li>
+          <li>__________（分不清字段）</li>
+          <li>__________（输出格式不统一）</li>
+        </ol>
+        <details style="margin-top:var(--space-3)">
+          <summary style="cursor:pointer;color:var(--accent);">💡 参考答案</summary>
+          <p>① 幻觉（Hallucination）② 边界模糊（Boundary Blurring）③ 格式不一致（Format Inconsistency）</p>
+        </details>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>🤔 练习 3：想一想</summary>
+      <div class="answer">
+        <p>如果你来设计这个提取系统，除了论文提到的 6 个字段，你认为化学品的什么信息也很重要？为什么？</p>
+        <p>（没有标准答案，主要是让你开始思考这个问题域）</p>
+      </div>
+    </details>
+
+    <div style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:var(--space-4);margin:var(--space-6) 0;text-align:center;font-size:var(--text-sm);color:var(--ink-60);">
+      ✅ 学完这节课，你应该能回答：<strong>这篇论文在解决什么问题？为什么这个问题值得解决？</strong>
+    </div>
+
+  </div>
+
+  <div class="footer-nav">
+    <span></span>
+    <a href="../index.html">返回 PaperLesson 主页</a>
+    <a href="0096-数据集与基座模型.html">下一课：数据集与基座模型 →</a>
+  </div>
+</div>
+</body>
+</html>
