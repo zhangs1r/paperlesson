@@ -13,3 +13,6 @@ Thumbs.db
 
 # Node (unlikely but just in case)
 node_modules/
+
+# Big source files (stored externally)
+资料/

@@ -95,6 +95,13 @@
       <p>这里有两把"锁"：</p>
       <p><strong>🔒 锁一：Zero-Inference 策略</strong></p>
       <p>规定：如果文本中<strong>没有提到</strong>某个字段的值，就直接输出 <code>"None"</code>，不准自己推断。</p>
+
+      <div style="background:#FFF3E0;border:1px solid #FFE0B2;border-radius:6px;padding:var(--space-3);margin:var(--space-3) 0;font-size:var(--text-sm);">
+        <strong>⚠️ 如果没加 Zero-Inference 会怎样？</strong><br>
+        输入文本："该物质是一种白色结晶粉末，易溶于水……"（没写 CAS 号）<br>
+        ❌ <strong>不加</strong>：模型可能会说 "CAS 号是 7732-18-5"（编造——因为水也易溶、水是 7732-18-5）<br>
+        ✅ <strong>加了</strong>：模型输出 "CAS: None"（老老实实说不知道）
+      </div>
       <p>很多人会问："但是模型明明可以推理出来啊，为什么不让它推理？"</p>
       <p>答案是：在海关检验这种场景下，<strong>宁缺毋滥</strong>。你编造一个 CAS 号比不写更可怕——可能导致错误的检测判断。</p>
 
@@ -146,8 +153,10 @@
       <code>得分 = 1（如果预测值 = 正确答案），否则 = 0</code><br>
       <span style="font-size:var(--text-sm);color:var(--ink-60);">对就是对，错就是错，没有中间地带。</span>
     </div>
+    <p>不过要注意，比较前论文会做<strong>3 项预处理</strong>：忽略大小写（"Caffeine" = "caffeine"）、去除多余空格、对分子质量做数值标准化。这样不会因为格式问题被扣冤枉分。</p>
     <p>比如 CAS 号正确答案是 "7732-18-5"，模型输出 "7732-18-6" → 得 0 分，就是一个字都不能差。</p>
     <p><strong>特别规则：</strong>如果模型和人工标注都写了 "None"，也算对——说明模型正确识别出"这个字段没有信息"。</p>
+    <p><strong>反幻觉规则：</strong>反过来，如果模型输出为 None 但人工标注有值，或者人工标注为 None 但模型输出了值——也就是<strong>一方为 None、另一方不为 None</strong>——该字段直接得 0 分。这是为了防止模型"假装不知道"或者"瞎编数据"。</p>
     <p>但对于"Category or Function"这种描述性字段，Exact Match 就不太适用了（同一功能可能有不同的表述方式）。怎么评估它？——下节课讲。</p>
 
     <div class="callout">

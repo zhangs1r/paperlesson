@@ -56,6 +56,38 @@
     </div>
 
     <h2>📋 全系列回顾</h2>
+
+    <figure style="margin:var(--space-4) 0;text-align:center;background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:var(--space-5);overflow-x:auto;">
+      <div style="font-family:var(--font-mono);font-size:var(--text-sm);line-height:1.6;text-align:left;display:inline-block;">
+        <strong style="font-family:var(--font-sans);">🧠 SCoPE 课程知识图谱</strong><br><br>
+        ┌─ 现实问题：海关检测耗时昂贵<br>
+        │   └─ 方案：智能数据库 ← 需要 ← 信息提取<br>
+        │       └─ LLM 有幻觉/边界模糊/格式问题<br>
+        │<br>
+        ├─ 🔧 SCoPE 框架（四大模块）<br>
+        │   ├─ ① Task Description ← 角色锚定（化学专家）<br>
+        │   ├─ ② Field Definitions ← 6 个核心字段<br>
+        │   ├─ ③ Processing Rules<br>
+        │   │   ├─ Zero-Inference（不知道就写 None）<br>
+        │   │   └─ Verb-Noun（动词-名词格式）<br>
+        │   └─ ④ Output Example ← One-shot / ICL<br>
+        │<br>
+        ├─ 📊 评估体系<br>
+        │   ├─ Exact Match ← 客观字段（5个）<br>
+        │   └─ ROUGE-L ← 描述性字段（Category/Function）<br>
+        │       └─ 基于 LCS → 算 Precision / Recall / F1<br>
+        │<br>
+        ├─ 🧪 实验结果<br>
+        │   ├─ 单样本：Acipimox 案例 ✅<br>
+        │   ├─ 4 模型对比：Moonshot 最佳（77.56%）<br>
+        │   └─ 消融：规则贡献最大（+23.45%）<br>
+        │<br>
+        └─ 🎯 可迁移模板<br>
+            └─ 5 步法：角色→字段→规则→示例→选模型
+      </div>
+      <figcaption style="font-size:var(--text-sm);color:var(--ink-60);margin-top:var(--space-2);">课程核心概念之间的关联关系——从问题到方法到评估到迁移</figcaption>
+    </figure>
+
     <table>
       <tr><th>课</th><th>核心问题</th><th>答案一句话</th></tr>
       <tr><td>0001</td><td>论文在解决什么问题？</td><td>用 LLM 从非结构化化学文本中提取结构化数据</td></tr>
@@ -156,6 +188,10 @@
       <li><strong>StructGPT</strong>（Jiang et al., 2023）— 让 LLM 在结构化数据上推理的框架</li>
       <li><strong>LLMs are Few-Shot Clinical Information Extractors</strong>（Agrawal et al., 2022）— LLM 在医学领域的类似工作</li>
     </ul>
+
+    <h2>🎤 练口语出口</h2>
+    <p>你已经理解了 SCoPE 论文，接下来可以把它<strong>用英文讲出来</strong>。</p>
+    <p>👉 <a href="https://zhangs1r.github.io/speakscope/" target="_blank" style="color:var(--accent);font-weight:600;">SpeakScope 口语备战系统</a> 有完整的论文讲稿课程 + TTS 音频跟读 + AI 陪练配合方案，专为 IAI 2026 oral presentation 设计。</p>
 
     <h2>📌 全系列总结</h2>
     <table>
