@@ -6,6 +6,7 @@
 <title>PaperLesson · 课程总览</title>
 <link rel="stylesheet" href="shared/theme.css">
 <script src="data/course-catalog.js"></script>
+<script src="data/achievement-cards.js"></script>
 <style>
   .hero {
     background: linear-gradient(135deg, var(--paper-light) 0%, var(--paper) 100%);
@@ -379,6 +380,134 @@
   }
 
   /* ─── Search Overlay ─── */
+  /* ─── 成就馆 ─── */
+  .achieve-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-6);
+  }
+  .achieve-card {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--paper-light);
+    border: 2px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+    aspect-ratio: 4/3;
+  }
+  .achieve-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  .achieve-card.legendary {
+    border-color: #d4af37;
+    box-shadow: 0 0 15px rgba(212,175,55,0.2);
+  }
+  .achieve-card .thumb-wrap {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  .achieve-card .thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .achieve-card .achieve-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 40%, rgba(0,0,0,0.7));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: var(--space-3);
+    pointer-events: none;
+  }
+  .achieve-card .achieve-title {
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  }
+  .achieve-card .achieve-meta {
+    color: rgba(255,255,255,0.7);
+    font-size: var(--text-xs);
+    margin-top: 2px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  .rarity-dot {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .rarity-dot.legendary {
+    background: #d4af37;
+    box-shadow: 0 0 8px rgba(212,175,55,0.6);
+  }
+  .rarity-dot.common {
+    background: #8a8a9a;
+    box-shadow: 0 0 4px rgba(138,138,154,0.4);
+  }
+  .empty-achieve {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--ink-40);
+    padding: var(--space-12) 0;
+    font-size: var(--text-sm);
+  }
+  .empty-achieve .big-icon { font-size: 3rem; margin-bottom: var(--space-3); }
+
+  /* ─── 全息卡模态 ─── */
+  .holo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+  }
+  .holo-modal.open { display: flex; }
+  .holo-modal .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    transition: background 0.2s;
+  }
+  .holo-modal .modal-close:hover { background: rgba(255,255,255,0.2); }
+  .holo-modal iframe {
+    width: 90vw;
+    max-width: 500px;
+    height: 80vh;
+    max-height: 700px;
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 0 60px rgba(212,175,55,0.2);
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
   .search-overlay {
     position: fixed; inset: 0; z-index: 999;
     background: rgba(26,26,46,0.5);
@@ -603,6 +732,23 @@
   </div>
 </section>
 
+<section class="section" id="achievements" style="background: var(--paper-light);">
+  <div class="inner">
+    <div class="section-header">
+      <h2>🏆 成就馆</h2>
+      <div class="section-divider" style="margin:var(--space-3) auto;"></div>
+      <p>每学完一篇论文或一本书，生成一张专属全息收藏卡，记录你的学习里程碑。</p>
+    </div>
+    <div class="achieve-grid" id="achieveGrid"></div>
+  </div>
+</section>
+
+<!-- 全息卡模态 -->
+<div class="holo-modal" id="holoModal">
+  <button class="modal-close" onclick="closeHoloModal()">✕</button>
+  <iframe id="holoIframe" loading="lazy"></iframe>
+</div>
+
 <section class="section" id="records">
   <div class="inner">
     <div class="section-header">
@@ -634,7 +780,7 @@
 
 <script>
 function getData() {
-  return window.PAPERLESSON_DATA || {
+  var main = window.PAPERLESSON_DATA || {
     featuredCollectionId: "",
     groups: [],
     collections: [],
@@ -643,6 +789,9 @@ function getData() {
     learningRecords: [],
     siteLinks: []
   };
+  var ach = window.ACHIEVEMENT_CARDS || { cards: [] };
+  main.achievementCards = ach.cards;
+  return main;
 }
 
 function buildStats(data) {
@@ -813,6 +962,7 @@ function initPage() {
   renderCatalog(data);
   renderCards("refGrid", data.references || [], "path");
   renderCards("recordsGrid", data.learningRecords || [], "path");
+  renderAchievements(data.achievementCards || []);
   renderCards("siteLinksGrid", data.siteLinks || [], "url");
   setLastUpdated();
 }
@@ -883,6 +1033,44 @@ function searchByTag(tag) {
   input.select();
 }
 
+/* ─── 成就馆渲染 ─── */
+function renderAchievements(cards) {
+  var grid = document.getElementById("achieveGrid");
+  if (!grid) return;
+  if (!cards || cards.length === 0) {
+    grid.innerHTML = '<div class="empty-achieve"><div class="big-icon">🎴</div><p>还没有成就卡，学完一篇论文或一本书后跟我说，我来为你制作！</p></div>';
+    return;
+  }
+  grid.innerHTML = cards.map(function(c) {
+    var rarityClass = c.rarity === "legendary" ? "legendary" : "common";
+    var rarityLabel = c.rarity === "legendary" ? "传奇" : "普通";
+    return '<div class="achieve-card ' + rarityClass + '" onclick="openHoloModal(\'' + c.card_file + '\')">' +
+      '<div class="thumb-wrap"><img src="' + c.thumb_b64 + '" alt="' + c.title + '"></div>' +
+      '<div class="rarity-dot ' + rarityClass + '" title="' + rarityLabel + '"></div>' +
+      '<div class="achieve-overlay">' +
+        '<div class="achieve-title">' + c.icon + ' ' + c.title + '</div>' +
+        '<div class="achieve-meta">' + c.paper + ' · ' + c.date + '</div>' +
+      '</div></div>';
+  }).join("");
+}
+
+/* ─── 全息卡模态 ─── */
+function openHoloModal(cardFile) {
+  var modal = document.getElementById("holoModal");
+  var iframe = document.getElementById("holoIframe");
+  iframe.src = cardFile;
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeHoloModal() {
+  var modal = document.getElementById("holoModal");
+  var iframe = document.getElementById("holoIframe");
+  modal.classList.remove("open");
+  iframe.src = "";
+  document.body.style.overflow = "";
+}
+
 /* ─── 键盘快捷键 ─── */
 document.addEventListener("keydown", function(e) {
   // Ctrl+K / Cmd+K 打开搜索
@@ -890,8 +1078,12 @@ document.addEventListener("keydown", function(e) {
     e.preventDefault();
     toggleSearch();
   }
-  // Escape 关闭搜索
+  // Escape 关闭搜索或全息卡模态
   if (e.key === "Escape") {
+    var modal = document.getElementById("holoModal");
+    if (modal && modal.classList.contains("open")) {
+      closeHoloModal(); return;
+    }
     closeSearch();
   }
 });
