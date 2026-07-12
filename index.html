@@ -367,6 +367,7 @@
       margin: 0 var(--space-2);
       font-size: var(--text-xs);
     }
+    .workspace-topbar { font-size: 0.7rem; padding: 4px 16px; }
     .report-container {
       padding: var(--space-4);
     }
@@ -659,9 +660,36 @@
       padding: var(--space-5);
     }
   }
+  .workspace-topbar {
+    background: rgba(204, 120, 92, 0.08);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 24px;
+    font-size: 0.8rem;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .workspace-topbar a {
+    color: var(--accent-deep);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .workspace-topbar a:hover { text-decoration: underline; }
+  .workspace-topbar .sep {
+    color: var(--ink-20);
+    margin: 0 8px;
+  }
+  .workspace-topbar .current {
+    color: var(--ink-60);
+  }
 </style>
 </head>
 <body>
+
+<div class="workspace-topbar">
+  <a href="https://zhangs1r.github.io/lessonworkspace/">📚 LessonWorkspace</a>
+  <span class="sep">/</span>
+  <span class="current">PaperLesson</span>
+</div>
 
 <header class="site-header">
   <div class="inner">
