@@ -29,31 +29,43 @@
   }
 
   /* =========================================
-   *  容器查找（多选择器尝试）
+   *  工具条容器（SpeakScope 风格）
+   *  放在 .lesson 内的 .footer-nav 前面，
+   *  或 .lesson 末尾。
    * ========================================= */
-  var CONTAINER_SELECTORS = [
-    '.footer-nav',
-    '.nav-links',
-    'footer',
-    '.lesson > div:last-child',
-    '.content > div:last-child',
-    '.lesson',
-    '.content'
-  ];
-
-  function findContainer() {
-    for (var i = 0; i < CONTAINER_SELECTORS.length; i++) {
-      var sel = CONTAINER_SELECTORS[i];
-      try {
-        var els = document.querySelectorAll(sel);
-        if (els && els.length > 0) {
-          return els[els.length - 1];  // 最后一个匹配
-        }
-      } catch (e) {
-        // 选择器不合法就跳过
-      }
+  function createToolbar() {
+    var lesson = document.querySelector('.lesson');
+    if (!lesson) {
+      console.log('[PaperLesson Tools] no .lesson found, toolbar skipped');
+      return null;
     }
-    return null;
+
+    var toolbar = document.createElement('div');
+    toolbar.id = 'pl-toolbar';
+    toolbar.style.cssText = [
+      'display: flex',
+      'flex-wrap: wrap',
+      'gap: 8px',
+      'margin-bottom: 16px',
+      'padding: 12px 16px',
+      'background: #F7F4EE',
+      'border: 1px solid #F0ECE4',
+      'border-radius: 8px',
+      'align-items: center',
+      'box-sizing: border-box',
+      'font-family: inherit'
+    ].join(';') + ';';
+
+    // 在 .footer-nav 前面插入，找不到则追加到 .lesson 末尾
+    var footerNav = lesson.querySelector('.footer-nav');
+    if (footerNav) {
+      lesson.insertBefore(toolbar, footerNav);
+    } else {
+      lesson.appendChild(toolbar);
+    }
+
+    console.log('[PaperLesson Tools] done button initialized');
+    return toolbar;
   }
 
   /* =========================================
@@ -114,29 +126,23 @@
   }
 
   function initDoneButton() {
-    var container = findContainer();
-    if (!container) {
-      console.log('[PaperLesson Tools] no container found, done-button skipped');
-      return;
-    }
+    var toolbar = createToolbar();
+    if (!toolbar) return;
 
     var btn = document.createElement('button');
     btn.id = 'pl-done-btn';
     btn.textContent = '✅ 标记为已学';
     btn.style.cssText = [
-      'display: block',
-      'width: 100%',
-      'padding: 12px 20px',
-      'font-size: 15px',
+      'padding: 8px 16px',
+      'border: 1px solid #DDD5C8',
+      'border-radius: 6px',
+      'cursor: pointer',
+      'font-size: 0.9rem',
       'font-weight: 700',
-      'border: 2px solid #CC785C',
-      'border-radius: 8px',
       'background: #fff',
       'color: #CC785C',
-      'cursor: pointer',
+      'border-color: #CC785C',
       'transition: all 0.18s ease',
-      'margin-bottom: 16px',
-      'margin-top: 8px',
       'box-sizing: border-box',
       'font-family: inherit',
       'line-height: 1.4',
@@ -151,9 +157,7 @@
     };
     btn.onclick = markDone;
 
-    if (container.parentNode) {
-      container.parentNode.insertBefore(btn, container);
-    }
+    toolbar.appendChild(btn);
     updateDoneButton();
   }
 
@@ -186,15 +190,12 @@
   });
 
   /* =========================================
-   *  3. 个人笔记（可折叠，位于容器下方）
+   *  3. 个人笔记（可折叠，位于工具条下方）
    * ========================================= */
 
   function initNotes() {
-    var container = findContainer();
-    if (!container) {
-      console.log('[PaperLesson Tools] no container found, notes skipped');
-      return;
-    }
+    var toolbar = document.getElementById('pl-toolbar');
+    if (!toolbar) return;
 
     var outer = document.createElement('div');
     outer.style.cssText = [
@@ -264,8 +265,10 @@
     noteArea.appendChild(textarea);
     outer.appendChild(toggle);
     outer.appendChild(noteArea);
-    if (container.parentNode) {
-      container.parentNode.insertBefore(outer, container.nextSibling);
+
+    // 插入到工具条后面（工具栏已通过 insertBefore 放在 footer-nav 前）
+    if (toolbar.parentNode) {
+      toolbar.parentNode.insertBefore(outer, toolbar.nextSibling);
     }
   }
 
