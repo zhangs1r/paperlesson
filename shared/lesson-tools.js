@@ -1,23 +1,63 @@
 (function () {
   'use strict';
 
-  /* ─── 检测当前课程 ID ─── */
+  /* =========================================
+   *  健壮 ID 检测（多级 fallback）
+   * ========================================= */
   function detectLessonId() {
     try {
+      // 1. 从页面标题提取 4 位数字
       var title = document.title || '';
       var m = title.match(/(\d{4})/);
       if (m) return m[1];
+      // 2. 从 URL 路径提取 4 位数字
       m = window.location.pathname.match(/(\d{4})/);
+      if (m) return m[1];
+      // 3. 从 URL 最后一段提取末尾数字（如 /lesson/123 → 123）
+      var segments = window.location.pathname.replace(/\/$/, '').split('/');
+      var last = segments[segments.length - 1] || '';
+      m = last.match(/(\d+)$/);
       if (m) return m[1];
     } catch (e) {}
     return null;
   }
 
   var lessonId = detectLessonId();
-  if (!lessonId) return; /* 取不到课号，静默跳过 */
+  if (!lessonId) {
+    console.log('[PaperLesson Tools] no lesson ID detected, skipping');
+    return;
+  }
 
   /* =========================================
-   *  1. 标记已学  —  按钮紧贴在 footer-nav 上方
+   *  容器查找（多选择器尝试）
+   * ========================================= */
+  var CONTAINER_SELECTORS = [
+    '.footer-nav',
+    '.nav-links',
+    'footer',
+    '.lesson > div:last-child',
+    '.content > div:last-child',
+    '.lesson',
+    '.content'
+  ];
+
+  function findContainer() {
+    for (var i = 0; i < CONTAINER_SELECTORS.length; i++) {
+      var sel = CONTAINER_SELECTORS[i];
+      try {
+        var els = document.querySelectorAll(sel);
+        if (els && els.length > 0) {
+          return els[els.length - 1];  // 最后一个匹配
+        }
+      } catch (e) {
+        // 选择器不合法就跳过
+      }
+    }
+    return null;
+  }
+
+  /* =========================================
+   *  1. 标记已学
    * ========================================= */
 
   function getDoneIds() {
@@ -55,41 +95,70 @@
     var btn = document.getElementById('pl-done-btn');
     if (!btn) return;
     if (isDone()) {
-      btn.textContent = '\u2705 \u5DF2\u5B66\u5B8C';
+      btn.textContent = '✅ 已学完';
       btn.disabled = true;
       btn.style.opacity = '0.6';
       btn.style.cursor = 'default';
-      btn.style.background = 'rgba(204,120,92,0.03)';
+      btn.style.background = '#f5f0ee';
+      btn.style.borderColor = '#d4b0a0';
+      btn.style.color = '#999';
     } else {
-      btn.textContent = '\u2705 \u6807\u8BB0\u4E3A\u5DF2\u5B66';
+      btn.textContent = '✅ 标记为已学';
       btn.disabled = false;
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
-      btn.style.background = 'rgba(204,120,92,0.06)';
+      btn.style.background = '#fff';
+      btn.style.borderColor = '#CC785C';
+      btn.style.color = '#CC785C';
     }
   }
 
   function initDoneButton() {
-    var footerNav = document.querySelector('.footer-nav');
-    if (!footerNav) return;
+    var container = findContainer();
+    if (!container) {
+      console.log('[PaperLesson Tools] no container found, done-button skipped');
+      return;
+    }
 
     var btn = document.createElement('button');
     btn.id = 'pl-done-btn';
-    btn.style.cssText = 'display:block;width:100%;padding:var(--space-3);border:2px solid var(--accent);border-radius:8px;background:rgba(204,120,92,0.06);color:var(--accent-deep);font-size:var(--text-base);font-weight:700;cursor:pointer;transition:all .18s ease;margin-bottom:var(--space-5);box-sizing:border-box;';
+    btn.textContent = '✅ 标记为已学';
+    btn.style.cssText = [
+      'display: block',
+      'width: 100%',
+      'padding: 12px 20px',
+      'font-size: 15px',
+      'font-weight: 700',
+      'border: 2px solid #CC785C',
+      'border-radius: 8px',
+      'background: #fff',
+      'color: #CC785C',
+      'cursor: pointer',
+      'transition: all 0.18s ease',
+      'margin-bottom: 16px',
+      'margin-top: 8px',
+      'box-sizing: border-box',
+      'font-family: inherit',
+      'line-height: 1.4',
+      'text-align: center'
+    ].join(';') + ';';
+
     btn.onmouseover = function () {
-      if (!btn.disabled) btn.style.background = 'rgba(204,120,92,0.15)';
+      if (!btn.disabled) btn.style.background = '#fceee8';
     };
     btn.onmouseout = function () {
-      if (!btn.disabled) btn.style.background = 'rgba(204,120,92,0.06)';
+      if (!btn.disabled) btn.style.background = '#fff';
     };
     btn.onclick = markDone;
 
-    footerNav.parentNode.insertBefore(btn, footerNav);
+    if (container.parentNode) {
+      container.parentNode.insertBefore(btn, container);
+    }
     updateDoneButton();
   }
 
   /* =========================================
-   *  2. 滚动位置保存（每 3 秒一次）
+   *  2. 滚动位置保存（每 3 秒防抖）
    * ========================================= */
 
   var scrollKey = 'paperlesson_scroll_' + lessonId;
@@ -117,28 +186,60 @@
   });
 
   /* =========================================
-   *  3. 个人笔记（可折叠，位于 footer-nav 下方）
+   *  3. 个人笔记（可折叠，位于容器下方）
    * ========================================= */
 
   function initNotes() {
-    var footerNav = document.querySelector('.footer-nav');
-    if (!footerNav) return;
+    var container = findContainer();
+    if (!container) {
+      console.log('[PaperLesson Tools] no container found, notes skipped');
+      return;
+    }
 
-    var container = document.createElement('div');
-    container.style.cssText = 'margin-top:var(--space-6);border-top:1px solid var(--border);padding-top:var(--space-4);';
+    var outer = document.createElement('div');
+    outer.style.cssText = [
+      'margin-top: 20px',
+      'border-top: 1px solid #e0d6d0',
+      'padding-top: 12px'
+    ].join(';') + ';';
 
     var toggle = document.createElement('button');
-    toggle.textContent = '\uD83D\uDCDD \u6211\u7684\u7B14\u8BB0 \u25B8';
-    toggle.style.cssText = 'background:none;border:none;cursor:pointer;font-size:var(--text-sm);color:var(--ink-60);padding:var(--space-2) 0;width:100%;text-align:left;font-family:var(--font-sans);transition:color .12s;';
-    toggle.onmouseover = function () { toggle.style.color = 'var(--accent-deep)'; };
-    toggle.onmouseout = function () { toggle.style.color = 'var(--ink-60)'; };
+    toggle.textContent = '📝 我的笔记 ▸';
+    toggle.style.cssText = [
+      'background: none',
+      'border: none',
+      'cursor: pointer',
+      'font-size: 14px',
+      'color: #888',
+      'padding: 8px 0',
+      'width: 100%',
+      'text-align: left',
+      'font-family: inherit',
+      'transition: color 0.12s'
+    ].join(';') + ';';
+    toggle.onmouseover = function () { toggle.style.color = '#CC785C'; };
+    toggle.onmouseout = function () { toggle.style.color = '#888'; };
 
     var noteArea = document.createElement('div');
     noteArea.style.display = 'none';
 
     var textarea = document.createElement('textarea');
-    textarea.style.cssText = 'width:100%;min-height:100px;border:1px solid var(--border);border-radius:8px;padding:var(--space-3);font-size:var(--text-sm);font-family:var(--font-sans);resize:vertical;box-sizing:border-box;margin-top:var(--space-2);background:var(--paper-light);color:var(--ink);';
-    textarea.placeholder = '\u5199\u4E0B\u4F60\u7684\u5B66\u4E60\u7B14\u8BB0\u2026';
+    textarea.style.cssText = [
+      'width: 100%',
+      'min-height: 100px',
+      'border: 1px solid #d4c8c0',
+      'border-radius: 8px',
+      'padding: 12px',
+      'font-size: 14px',
+      'font-family: inherit',
+      'resize: vertical',
+      'box-sizing: border-box',
+      'margin-top: 8px',
+      'background: #fcfcfc',
+      'color: #333',
+      'line-height: 1.6'
+    ].join(';') + ';';
+    textarea.placeholder = '写下你的学习笔记…';
 
     var noteKey = 'paperlesson_note_' + lessonId;
     try {
@@ -153,33 +254,36 @@
     toggle.addEventListener('click', function () {
       if (noteArea.style.display === 'none') {
         noteArea.style.display = 'block';
-        toggle.textContent = '\uD83D\uDCDD \u6211\u7684\u7B14\u8BB0 \u25BE';
+        toggle.textContent = '📝 我的笔记 ▾';
       } else {
         noteArea.style.display = 'none';
-        toggle.textContent = '\uD83D\uDCDD \u6211\u7684\u7B14\u8BB0 \u25B8';
+        toggle.textContent = '📝 我的笔记 ▸';
       }
     });
 
     noteArea.appendChild(textarea);
-    container.appendChild(toggle);
-    container.appendChild(noteArea);
-    footerNav.parentNode.insertBefore(container, footerNav.nextSibling);
+    outer.appendChild(toggle);
+    outer.appendChild(noteArea);
+    if (container.parentNode) {
+      container.parentNode.insertBefore(outer, container.nextSibling);
+    }
   }
 
   /* =========================================
    *  初始化
    * ========================================= */
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      initDoneButton();
-      initNotes();
-      restoreScroll();
-    });
-  } else {
+  function init() {
     initDoneButton();
     initNotes();
     restoreScroll();
+    console.log('[PaperLesson Tools] inited');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 
 })();
