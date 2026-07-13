@@ -463,6 +463,12 @@
   }
   .empty-achieve .big-icon { font-size: 3rem; margin-bottom: var(--space-3); }
 
+  /* ─── 学习进度 ─── */
+  .lesson-card.done .lesson-num { opacity: 0.5; }
+  .lesson-card.done h5 { color: var(--ink-40); }
+  .lesson-card.done .done-badge { display: inline; }
+  .done-badge { display: none; font-size: 0.7rem; margin-left: auto; color: var(--accent); }
+
   /* ─── 全息卡模态 ─── */
   .holo-modal {
     position: fixed;
@@ -830,10 +836,13 @@ function buildStats(data) {
   const lessons = data.lessons || [];
   const bookCollections = collections.filter((item) => (item.kind || "").includes("教材")).length;
   const paperCollections = collections.filter((item) => (item.kind || "").includes("论文")).length;
+  var doneIds = []; try { doneIds = JSON.parse(localStorage.getItem('paperlesson_done')) || []; } catch(e) {}
+  var doneCount = 0;
+  lessons.forEach(function(l) { if (doneIds.indexOf(l.id) !== -1) doneCount++; });
   const stats = [
     { num: groups.length, label: "分馆" },
     { num: collections.length, label: "来源块" },
-    { num: lessons.length, label: "课程页" },
+    { num: doneCount + " / " + lessons.length, label: "已学" },
     { num: bookCollections + " / " + paperCollections, label: "教材块 / 论文块" }
   ];
   statsRow.innerHTML = stats.map((stat) => `
@@ -841,7 +850,27 @@ function buildStats(data) {
       <div class="num">${stat.num}</div>
       <div class="label">${stat.label}</div>
     </div>
-  `).join("");
+  `).join("") + '<div id="pl-streak" style="grid-column:1/-1;text-align:center;margin-top:var(--space-2);font-size:var(--text-sm);color:var(--ink-60);"></div>';
+
+  // 今日学习打卡
+  (function() {
+    try {
+      var todayStr = new Date().toISOString().slice(0, 10);
+      var tally = JSON.parse(localStorage.getItem('paperlesson_vtally')) || {};
+      var todayCount = 0;
+      for (var k in tally) { if (tally[k] === todayStr) todayCount++; }
+      var streak = 0;
+      var d = new Date();
+      while (true) {
+        var ds = d.toISOString().slice(0, 10);
+        var found = false;
+        for (var k in tally) { if (tally[k] === ds) { found = true; break; } }
+        if (found) { streak++; d.setDate(d.getDate() - 1); } else break;
+      }
+      var el = document.getElementById('pl-streak');
+      if (el) el.textContent = '今日已学 ' + todayCount + ' 节  🔥 连续 ' + streak + ' 天';
+    } catch(e) {}
+  })();
 }
 
 function renderHero(data) {
@@ -886,6 +915,8 @@ function renderCatalog(data) {
   const root = document.getElementById("catalogRoot");
   if (!root) return;
 
+  var _doneIds = []; try { _doneIds = JSON.parse(localStorage.getItem('paperlesson_done')) || []; } catch(e) {}
+
   const lessonsByCollection = new Map();
   (data.lessons || []).forEach((lesson) => {
     const key = lesson.collectionId || lesson.paper || "uncategorized";
@@ -902,12 +933,14 @@ function renderCatalog(data) {
     const collectionsHtml = collections.map((collection) => {
       const lessons = lessonsByCollection.get(collection.id) || [];
       const lessonCards = lessons.map((lesson) => {
+        var _d = _doneIds.indexOf(lesson.id) !== -1;
         const tags = (lesson.tags || []).map((tag) => `<span class="tag tag-accent tag-clickable" onclick="event.stopPropagation();searchByTag('${tag.replace(/'/g,"\\'")}');return false;">${tag}</span>`).join("");
         return `
-          <a href="${lesson.path}" class="lesson-card">
+          <a href="${lesson.path}" class="lesson-card${_d ? ' done' : ''}">
             <div class="lesson-top">
               <div class="lesson-num">${lesson.id}</div>
               <span>${lesson.emoji || ""}</span>
+              <span class="done-badge">✅</span>
             </div>
             <h5>${lesson.title}</h5>
             <div class="subtitle">${lesson.subtitle || ""}</div>
@@ -1061,7 +1094,7 @@ function searchByTag(tag) {
   input.select();
 }
 
-/* ─── 成就馆渲染 ─── */
+/* ─── 成就馆渲染（含动态解锁） ─── */
 function renderAchievements(cards) {
   var grid = document.getElementById("achieveGrid");
   if (!grid) return;
@@ -1069,16 +1102,78 @@ function renderAchievements(cards) {
     grid.innerHTML = '<div class="empty-achieve"><div class="big-icon">🎴</div><p>还没有成就卡，学完一篇论文或一本书后跟我说，我来为你制作！</p></div>';
     return;
   }
+  var data = getData();
+  var collections = data.collections || [];
+  var lessons = data.lessons || [];
+  var doneIds = []; try { doneIds = JSON.parse(localStorage.getItem('paperlesson_done')) || []; } catch(e) {}
+
+  // 自动检测新解锁的成就
+  (function() {
+    var unlocked = [];
+    try { unlocked = JSON.parse(localStorage.getItem('paperlesson_unlocked_achs')) || []; } catch(e) {}
+    var changed = false;
+    cards.forEach(function(c) {
+      var key = (c.id || '').replace(/^ach-/, '');
+      var col = null;
+      for (var i = 0; i < collections.length; i++) {
+        if (collections[i].id === key) { col = collections[i]; break; }
+      }
+      if (!col) return;
+      var colLessons = [];
+      for (var i = 0; i < lessons.length; i++) {
+        if ((lessons[i].collectionId || lessons[i].paper) === col.id) colLessons.push(lessons[i]);
+      }
+      if (colLessons.length === 0) return;
+      var allDone = colLessons.every(function(l) { return doneIds.indexOf(l.id) !== -1; });
+      if (allDone && unlocked.indexOf(c.id) === -1) {
+        unlocked.push(c.id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      try { localStorage.setItem('paperlesson_unlocked_achs', JSON.stringify(unlocked)); } catch(e) {}
+    }
+  })();
+
+  var unlockedAchs = [];
+  try { unlockedAchs = JSON.parse(localStorage.getItem('paperlesson_unlocked_achs')) || []; } catch(e) {}
+
   grid.innerHTML = cards.map(function(c) {
-    var rarityClass = c.rarity === "legendary" ? "legendary" : "common";
-    var rarityLabel = c.rarity === "legendary" ? "传奇" : "普通";
-    return '<div class="achieve-card ' + rarityClass + '" onclick="openHoloModal(\'' + c.card_file + '\')">' +
-      '<div class="thumb-wrap"><img src="' + c.thumb_b64 + '" alt="' + c.title + '"></div>' +
-      '<div class="rarity-dot ' + rarityClass + '" title="' + rarityLabel + '"></div>' +
-      '<div class="achieve-overlay">' +
-        '<div class="achieve-title">' + c.icon + ' ' + c.title + '</div>' +
-        '<div class="achieve-meta">' + c.paper + ' · ' + c.date + '</div>' +
-      '</div></div>';
+    var isUnlocked = unlockedAchs.indexOf(c.id) !== -1;
+    if (isUnlocked) {
+      var rarityClass = c.rarity === "legendary" ? "legendary" : "common";
+      var rarityLabel = c.rarity === "legendary" ? "传奇" : "普通";
+      return '<div class="achieve-card ' + rarityClass + '" onclick="openHoloModal(\'' + c.card_file + '\')">' +
+        '<div class="thumb-wrap"><img src="' + c.thumb_b64 + '" alt="' + c.title + '"></div>' +
+        '<div class="rarity-dot ' + rarityClass + '" title="' + rarityLabel + '"></div>' +
+        '<div class="achieve-overlay">' +
+          '<div class="achieve-title">' + c.icon + ' ' + c.title + '</div>' +
+          '<div class="achieve-meta">' + c.paper + ' · ' + c.date + '</div>' +
+        '</div></div>';
+    } else {
+      var key = (c.id || '').replace(/^ach-/, '');
+      var col = null;
+      for (var i = 0; i < collections.length; i++) {
+        if (collections[i].id === key) { col = collections[i]; break; }
+      }
+      var doneHere = 0, totalHere = 0;
+      if (col) {
+        for (var i = 0; i < lessons.length; i++) {
+          if ((lessons[i].collectionId || lessons[i].paper) === col.id) {
+            totalHere++;
+            if (doneIds.indexOf(lessons[i].id) !== -1) doneHere++;
+          }
+        }
+      }
+      return '<div class="achieve-card" style="opacity:0.5;filter:grayscale(0.6);cursor:default;">' +
+        '<div class="thumb-wrap" style="display:flex;align-items:center;justify-content:center;background:var(--paper);">' +
+          '<span style="font-size:2.5rem;">🔒</span>' +
+        '</div>' +
+        '<div class="achieve-overlay" style="background:linear-gradient(transparent 30%,rgba(0,0,0,0.5));">' +
+          '<div class="achieve-title">' + c.icon + ' ' + c.title + '</div>' +
+          '<div class="achieve-meta">已完成 ' + doneHere + '/' + totalHere + ' 节</div>' +
+        '</div></div>';
+    }
   }).join("");
 }
 
