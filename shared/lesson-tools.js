@@ -34,11 +34,14 @@
    *  或 .lesson 末尾。
    * ========================================= */
   function createToolbar() {
-    var lesson = document.querySelector('.lesson');
-    if (!lesson) {
-      console.log('[PaperLesson Tools] no .lesson found, toolbar skipped');
+    // Try .lesson first, then .nav as fallback for E2Map-style pages
+    var container = document.querySelector('.lesson') || document.querySelector('.nav');
+    if (!container) {
+      console.log('[PaperLesson Tools] no .lesson or .nav found, toolbar skipped');
       return null;
     }
+
+    var isNavFallback = container.classList.contains('nav');
 
     var toolbar = document.createElement('div');
     toolbar.id = 'pl-toolbar';
@@ -56,12 +59,17 @@
       'font-family: inherit'
     ].join(';') + ';';
 
-    // 在 .footer-nav 前面插入，找不到则追加到 .lesson 末尾
-    var footerNav = lesson.querySelector('.footer-nav');
-    if (footerNav) {
-      lesson.insertBefore(toolbar, footerNav);
+    if (isNavFallback) {
+      // E2Map lessons: insert toolbar before .nav
+      container.parentNode.insertBefore(toolbar, container);
     } else {
-      lesson.appendChild(toolbar);
+      // 在 .footer-nav 前面插入，找不到则追加到 .lesson 末尾
+      var footerNav = container.querySelector('.footer-nav');
+      if (footerNav) {
+        container.insertBefore(toolbar, footerNav);
+      } else {
+        container.appendChild(toolbar);
+      }
     }
 
     console.log('[PaperLesson Tools] done button initialized');
