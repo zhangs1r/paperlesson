@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W29</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 29 周 · 2026.07.06 — 2026.07.13</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共 <strong>300 篇新论文</strong>中，筛选出与移动机器人方向相关的 15 篇论文。
+    本周的亮点集中在 <strong>3DGS SLAM + VR 融合</strong>（AnythingReality）和 <strong>室内长期物体重识别</strong>（REMIND）两个方向。
+    值得注意的是本周论文的核心相关性整体偏散——跨视角定位（STEAM）、水下 3D 重建（Wat3R）、全身触觉操作（TACTIC）
+    等方向虽触及"定位"或"点云"关键词，但并非纯移动机器人工作。不过 AnythingReality 在 ORB-SLAM3 基础上叠加
+    在线 3DGS 和 VR 交互，是本周最值得深读的一篇。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">15</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">5</span><span class="label">arXiv分类</span></div>
+  <div class="stat-card"><span class="num">29</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">6.4</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">AnythingReality: Robust Online Gaussian Splatting SLAM for Open-Vocabulary VR Scene Exploration</div>
+  <div class="cn-title">AnythingReality：面向开放词汇 VR 场景探索的鲁棒在线 3DGS SLAM</div>
+  <div class="authors">✍️ Timofei Kozlov, Dmitrii Maliukov, Andrey Marchenko, Miguel Altamirano Cabrera, Dzmitry Tsetserukou</div>
+
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">ORB-SLAM3</span><span class="tag tag-accent">3DGS</span><span class="tag tag-accent">VR</span><span class="tag tag-accent">VLM</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">将 ORB-SLAM3 位姿估计与在线 3D Gaussian Splatting 重建结合，在 VR 中实时探索增量构建的场景，并通过语音指令调用 VLM 进行开放词汇物体识别与交互。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0046~0053 课（ORB 特征 / 对极几何 / PnP / BA）构成这篇论文位姿估计部分（ORB-SLAM3）的理论基础。第 0072~0074 课（RGB-D 建图 / OctoMap / TSDF）可与本文的 3DGS 建图进行对比——传统稠密建图与基于 Gaussian 的隐式表达的差异。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）和 <strong>OCD SLAM</strong>（第 0083~0088 课）同样是扩展 ORB-SLAM3 的工作，但针对动态环境；本文则侧重在线高质量重建 + VR 交互。<br>
+      <strong>LSeg</strong>（第 0007~0013 课）的开放词汇语义分割与本文的 VLM 物体识别在思路上相通，都是摆脱固定类别限制。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首次将 ORB-SLAM3 位姿估计与在线 3D Gaussian Splatting 整合为完整 SLAM 系统，不依赖外部位姿或清洁深度假设，直接在噪声数据上运行；② 在 TUM-RGBD 上 PSNR +11.7%、SSIM +7.8%、LPIPS -21.6%，在自建数据集上 +14.5% PSNR；③ 集成 VR 实时探索管线 + 语音驱动 VLM 交互，物体识别率 88%；④ 提供质量-速度可配置模式，帧率可比或优于 SOTA 方法。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>本文提出一种新颖的集成架构，用于鲁棒的在线 3D Gaussian Splatting、实时 VR 探索以及语音驱动的视觉-语言模型交互。与那些假设清洁深度或外部位姿的方法不同，本系统将基于 ORB-SLAM3 的位姿估计与在线高斯重建相结合，适用于噪声真实世界数据。一条 VR 管线支持对增量重建场景的沉浸式探索；一个语义模块转录语音指令、生成场景描述并记录感兴趣点。与最先进的在线 Gaussian Splatting 方法相比，本文在自建数据集上图像质量提升 +14.5% PSNR、+8.6% SSIM、-14.3% LPIPS，在 TUM-RGBD 上提升 +11.7% PSNR、+7.8% SSIM、-21.6% LPIPS，且通过质量-速度配置可实现可比或更优的帧率。VLM 物体识别率达到 88%。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这论文做了什么？</strong> 想象你戴着 VR 头显走进一个从来没去过的房间。传统的 VR 需要提前把房间建模好（找人扫描、建模、导入），但这篇论文让机器人边看你走边实时建模，你甚至可以直接在 VR 里跟它说"那个蓝色的杯子是什么？"<br><br>
+
+      <strong>3D Gaussian Splatting（3DGS）是什么？</strong> 以前的 3D 重建是把场景表示成"点云"（很多很多三维点），或者"TSDF"（一个稠密的体素网格）。3DGS 改用无数个微小的、半透明的彩色椭球体（Gaussian）来表示场景。这些椭球体拼在一起，不仅能看出场景的形状，还能渲染出非常逼真的新视角图像。你可以想象成用一堆彩色肥皂泡堆出一个房间——从任何角度看都挺像那么回事的。<br><br>
+
+      <strong>在线（Online）是什么意思？</strong> 就是边拍边重建，不是先拍完再花几小时离线算。机器人一边用 ORB-SLAM3 搞清楚"我在哪"，一边不断把新的观测数据变成新的 Gaussian 加到地图里。这个"一边走一边建"的能力对移动机器人来说特别重要。<br><br>
+
+      <strong>跟 ORB-SLAM3 什么关系？</strong> ORB-SLAM3 是这篇论文的"位姿引擎"——它负责回答"相机现在在什么位置"。传统 3DGS 方法要么假设你知道相机位置（用已知轨迹），要么用很复杂的 SLAM 方法自己推。这篇文章直接说：用 ORB-SLAM3 就够了，它够快、够鲁棒，即使在真实世界的噪声数据上也能跑。<br><br>
+
+      <strong>VLM 交互是什么？</strong> VLM 是 Vision-Language Model（视觉-语言模型）。你看 VR 里看到一个物体，对它说"这是什么？"，系统把画面和语音一起发给 VLM，VLM 回答"这是一个红色的陶瓷马克杯"。这不是固定的物体分类（预设 1000 种类别），而是开放词汇的——你说什么它都能识别，只要它能"看"到。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.09260v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.7</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">REMIND: RE-Identification with Memory for INDoor Navigation</div>
+  <div class="cn-title">REMIND：面向室内导航的带记忆重识别系统</div>
+  <div class="authors">✍️ Pablo Diaz-Pereda, Alejandro Rodriguez-Ramos, David Perez-Saura, Pascual Campoy</div>
+
+  <div class="keywords"><span class="tag tag-accent">localization</span><span class="tag tag-accent">indoor navigation</span><span class="tag tag-accent">物体重识别</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">为室内移动机器人设计了一个长期多目标重识别系统，利用 DINOv3 特征 + 双记忆库 + 邻居上下文推理，在长时间间隔、大视角变化和光照变化下依然能认出之前见过的物体。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0069~0071 课（回环检测 / 词袋模型 / DBoW）的核心问题与 REMIND 类似：如何判断"我又回到了之前去过的地方"？但回环检测"认"的是整帧图像，REMIND "认"的是单个物体。后者更适合语义地图维护和长期自主导航。<br>
+      <strong>E2Map</strong>（第 0001~0003 课）的导航系统中，机器人需要在多次运行中记住特定位置和物体，REMIND 的持久化重识别能力正是这种场景需要的。<br>
+      <strong>VLMaps</strong>（第 0006 课）将物体与自然语言标签关联，REMIND 则为每个物体维持长期身份 ID，两者结合可以形成更完整的语义导航系统。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出用于通用室内物体的长期多目标重识别框架，不依赖相机位姿或深度信息；② 双记忆库多原型外观记忆 + 部分/背景级描述符 + 邻居上下文推理模块，模拟人类利用空间共现的认知策略；③ 在自建室内数据集上达到 90.35% IDF1，比 SOTA 视频分割基线高出近 20 分；④ 在 ScanNet++ 上除一项指标外全部最高，且完成所有场景（对比基线在 66.9% 场景上因显存溢出失败）。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>在室内环境中运行的移动机器人必须在长时间间隔、显著视角变化和剧烈光照变化后重新识别之前观察到的物体。这仍然是一个具有挑战性的问题：多目标跟踪方法针对视频帧率下行人和车辆的短期关联进行了优化；人和车辆的重识别方法缺乏持久记忆机制；最先进的视频对象分割技术依赖被动干扰过滤而非强制全局身份一致性。为应对这些局限，本文提出 REMIND，一个专为通用室内物体的长期多目标重识别设计的在线跟踪器，仅需单目 RGB 图像，不需要相机位姿或深度。受视觉认知证据启发——人类依赖累积的外观熟悉度和空间上下文而非明确的自我定位——REMIND 结合冻结的 DINOv3 特征、双记忆库多原型外观记忆、部分/背景级描述符、利用空间共现的邻居上下文推理模块，以及具有歧义感知保护的联合匈牙利匹配。在专为控制性重访和密集同类物体干扰构建的室内数据集上，REMIND 达到 90.35% IDF1，比 SOTA 视频对象分割基线高出近 20 分，比强跟踪-检测基线高出 36 分以上。在 ScanNet++ 上，除一个设置外 REMIND 在所有指标上取得最高 IDF1，且完成了每个场景，而视频对象分割基线在 66.9% 的场景上由于 YOLO 检测耗尽了 GPU 内存。完整系统、评估框架和数据集均已开源发布。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>问题是什么？</strong> 你的机器人在客厅见到一个蓝色抱枕，转了一圈去厨房，五分钟后回到客厅——它还能认出"这个蓝色抱枕就是刚才那个"吗？对人类来说太简单了，但对机器人来说很难：光照变了、角度变了、抱枕可能还被挪动了一点位置。<br><br>
+
+      <strong>以前的方法为什么不行？</strong> 多目标跟踪（MOT）是为视频监控设计的——人从画面左边走到右边，跟踪器一直盯着，不能丢掉。但如果人离开画面五分钟再回来，MOT 就认不出了（它没有"长期记忆"）。行人重识别（ReID）专门做人，但不会记住物体 ID 之间的时间关系。视频分割方法会在画面里把物体轮廓圈出来，但会频繁地给同一个物体换 ID。<br><br>
+
+      <strong>REMIND 怎么解决的？</strong> 它像人类一样做三件事：<br>
+      ① <strong>记住外观</strong>：用一个"双记忆库"存每个物体的多个"样子"（不同角度看到的不同版本），而不是只存一个模板。<br>
+      ② <strong>利用空间关系</strong>：如果之前看到蓝色抱枕在沙发左边、绿色抱枕在沙发右边，下次即使看不清楚抱枕，看到"沙发左边有个蓝蓝的东西"也能猜出来。<br>
+      ③ <strong>不轻易放弃</strong>：如果匹配置信度不够高，它会标记为"待定"而不是武断分配新 ID，减少了身份切换错误。<br><br>
+
+      <strong>DINOv3 是什么？</strong> 一个自监督训练的视觉 Transformer，不需要人工标注就能学到非常好的物体特征。REMIND 用它提取每个物体的"视觉指纹"，然后跟记忆库里的指纹比对。<br><br>
+
+      <strong>对移动机器人为什么重要？</strong> 如果机器人能长期记住物体，它就可以做很多有用的事："帮我把上次那个蓝色抱枕拿过来"、"餐桌上多了个新东西，去看看是什么"、"这个花瓶上周还在这，现在不见了"——这些都需要持久化物体重识别。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.09267v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.8</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">STEAM: Stable Self-Training with Elastic Matching and Adaptive Purification</div>
+  <div class="cn-title">STEAM：基于弹性匹配与自适应提纯的稳定自训练跨视角地理定位</div>
+  <div class="authors">✍️ Shaoxiang Wang, Kejia Zhang, Haiwei Pan, Lan Zhang</div>
+
+  <div class="keywords"><span class="tag tag-accent">localization</span><span class="tag tag-accent">跨视角定位</span><span class="tag tag-accent">自训练</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出无监督跨视角地理定位框架，通过稳定空间感知模块 + 弹性匹配 + 自适应提纯，在无人机-卫星图像匹配上达到接近监督方法的精度，且不需要任何人工标注。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0048~0049 课（对极几何 / 三角测量）解决了"不同视角下同一点怎么对应"的问题。STEAM 解决的是更极端的跨视角问题：无人机拍的（俯视）和卫星图（正射）之间的对应。核心思想相通，但匹配难度大很多。<br>
+      无监督/自训练方法在第 0054~0059 课（直接法）中也有涉及——直接法本质上是利用像素亮度一致性进行自监督的位姿估计。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出端到端无监督跨视角地理定位框架，直接在真实无人机和卫星图像上进行自训练，不依赖生成模型或分阶段优化；② 稳定空间感知模块增强特征表示的稳定性，弹性匹配发现高质量跨视角伪标签，自适应提纯动态维护可靠伪标签库；③ 在 University-1652 和 SUES-200 基准上达到无监督方法最优，性能接近监督方法。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>跨视角地理定位（CVGL）旨在通过匹配无人机视角图像与对应卫星视角图像来实现无 GPS 定位。现有监督方法依赖大规模人工标注的跨视角图像对，成本高且难以扩展。现有的无监督方法通常依赖生成模型或基于聚类的分阶段优化，易于产生分布偏置和噪声伪标签累积。为应对这些局限，本文提出 STEAM（稳定自训练 + 弹性匹配 + 自适应提纯），一个端到端的无监督跨视角地理定位框架，直接在真实无人机与卫星图像上进行自训练。具体而言，所提出的稳定空间感知模块增强特征表示稳定性，弹性匹配发现高质量跨视角伪标签，自适应提纯在整个自训练过程中动态维护可靠伪标签库。在 University-1652 和 SUES-200 基准上的大量实验表明，STEAM 在所有现有无监督方法中达到最优性能，且性能可与监督方法媲美，验证了所提出框架的有效性和优越性。源代码已开源。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>跨视角地理定位是什么？</strong> 想象你站在高楼上用手机拍了一张地面照片，然后你拿出卫星地图想找"我站的这栋楼在哪"。这就是跨视角定位——把"从 A 视角看的样子"和"从正上方看的样子"对应起来。对无人机来说尤其重要：无人机拍到的画面和卫星图视角完全不同，但都需要定位。<br><br>
+
+      <strong>为什么难？</strong> 无人机拍的是一条街道的斜视角（能看到建筑侧面），卫星图是正上方的顶视图（只能看到屋顶）。同一个物体在两个视角下长得完全不一样，就像你看一个人的正面和头顶——你很难把两者对应起来。<br><br>
+
+      <strong>无监督是什么意思？</strong> 就是不需要人工标注"这张无人机图对应这张卫星图"。以前的方法需要人去标成千上万对图片，累死人了。STEAM 让模型自己从数据中学习对应关系：先用一些粗匹配生成"伪标签"（模型自己的猜测），然后逐步优化这些猜测的质量。<br><br>
+
+      <strong>弹性匹配做了什么？</strong> 在生成伪标签时，不是简单地找"最像的"，而是用弹性匹配策略，允许一定的空间偏移——因为无人机图和卫星图即使对应同一个地方，也可能有轻微的位置偏差。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.09057v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.8</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">TACTIC: Tactile and Vision Conditioned Contact-Centric Control for Whole-Arm Manipulation</div>
+  <div class="cn-title">TACTIC：触觉与视觉条件化的全身接触操作控制</div>
+  <div class="authors">✍️ Rishabh Madan, Angchen Xie, Samantha Saak, Andres Blanco, Dohyeok Lee, Sarah Grace Brown, Yunting Yan, Mark Zolotas, Jose Barreiros, Tapomayukh Bhattacharjee</div>
+
+  <div class="keywords"><span class="tag tag-accent">MPC</span><span class="tag tag-accent">全身操作</span><span class="tag tag-accent">触觉感知</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">将 RGB-D + 分布式触觉 + 2D 近场感知与接触雅可比分析结合，用 MPC 实现机器人全身多接触链操作的精确控制，在仿真和实物上均胜过现有方法。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0040~0041 课（高斯牛顿法 / LM 算法）的优化思想与 MPC 中的滚动时域优化一脉相承。第 0032~0035 课（相机模型 / 双目 / RGB-D）是本文 RGB-D 感知的基础技术。<br>
+      虽然 TACTIC 是针对机械臂全身操作的，但其<strong>学习型动力学 + 分析型运动学混合</strong>的建模思路，对移动机器人的<strong>移动操作（Mobile Manipulation）</strong>方向有启发意义——当 TurtleBot 需要在移动中同时用机械臂抓取物体时，全身协调控制就变得必要了。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出接触中心混合预测模型，将学习的动作条件潜动力学模型与分析运动学（接触雅可比）相结合，预测未来接触构型和交互力；② 基于接触雅可比的投影采样引导动作序列向力调制方向搜索；③ 在仿真中持续优于 SOTA 模型基和无模型方法，在实物机器人上完成翻转人体模型、重定位和 3D 动态迷宫目标到达三项全身操作任务。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>全身操作涉及机器人与环境的直接接触——机器人在完成任务时通过多个连杆分配接触力，接触点形成、滑动、断开。这种设置打破了学习型操作流水线中许多隐含假设：臂构型紧密耦合运动与接触力，接触状态在遮挡下部分可观测，纯学习 rollout 在分布偏移下可能变得物理不一致。为此本文提出 TACTIC，一个用于全身操作的滚动时域控制器。TACTIC 使用接触中心混合预测模型，结合 RGB-D、分布式触觉感知和紧凑 2D 近场表示。该模型将学习的动作条件潜动力学模型通过接触雅可比与分析运动学耦合，实现对未来接触构型和交互力的 rollout。TACTIC 将这些 rollout 集成到基于采样的 MPC 规划器中，配备接触感知动作采样：基于接触雅可比的投影将采样的动作序列推向力调制方向，在预测近场和交互力上定义的目标权衡任务进度与全身力调节。本文在仿真中对比 SOTA 模型基和无模型方法并进行了消融实验，TACTIC 持续优于其他方法。在配备分布式触觉感知的真实机器人上，本文在三项需要多接触轨迹的全身操作任务（翻转人体模型、重定位、3D 动态迷宫目标到达）上验证了实物性能。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>全身操作 vs 普通操作？</strong> 普通的机械臂抓取是"指尖捏东西"——只有末端执行器接触物体。全身操作是整条胳膊都参与——比如你把一个沙发翻过来，不仅手在用力，小臂、大臂、肩膀都在不同位置接触沙发。机器人做这个非常难。<br><br>
+
+      <strong>MPC（模型预测控制）是什么？</strong> 想象你在开车时，不仅看当前的路况，还会预判前方 50 米的路况来调整方向盘和刹车。MPC 就是让机器人也这样做——它往前"想象"未来几秒会发生什么，然后选择最好的动作。本文用的是"基于采样"的 MPC：随机生成很多种动作序列，挑最好的那个执行。<br><br>
+
+      <strong>触觉感知为什么重要？</strong> 当你用整条胳膊推一个物体时，每个接触点的力度都不一样。视觉只能看到"胳膊碰到了"，但不知道"碰到了多大力"。触觉传感器像皮肤一样覆盖在机器人手臂上，能测量每个点的压力，告诉机器人"轻一点，快压坏了"或者"用力，还没到位"。<br><br>
+
+      <strong>接触雅可比是什么？</strong> 雅可比（Jacobian）是一个数学工具，描述"关节转一点点，末端动多少"。接触雅可比更进一步：描述"关节转一点点，接触点的力怎么变"。这就像你把手指压在一个弹簧上——手指弯 1 度，弹簧被压了多少？接触雅可比就回答这种问题。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.09218v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.8</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">Wat3R: Underwater 3D Geometry Learning without Annotations</div>
+  <div class="cn-title">Wat3R：无需标注的水下 3D 几何学习</div>
+  <div class="authors">✍️ Jiangwei Ren, Xingyu Jiang, Zijie Song, Wei Xu, Hongkai Lin, Dingkang Liang, Xiang Bai</div>
+
+  <div class="keywords"><span class="tag tag-accent">point cloud</span><span class="tag tag-accent">水下3D</span><span class="tag tag-accent">半监督学习</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出跨域半监督学习框架，将前馈 3D 重建模型从空气域适应到水下场景，仅需未标注的真实水下视频即可学会鲁棒的几何表示，在水下多视角深度估计和点云重建上超越 SOTA。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0037 课（拼接点云实践）和第 0072~0074 课（RGB-D 建图 / OctoMap / TSDF）关注"如何把观测数据变成三维地图"。Wat3R 面对的挑战——光衰减、散射——在水下机器人（AUV/ROV）的 SLAM 中同样存在。课程中讨论过视觉 SLAM 在弱光照环境下的退化，水下环境是这种退化的极端形式。<br>
+      第 0054~0059 课（直接法）中利用像素一致性的自监督思路，与 Wat3R 的跨视图一致性损失有异曲同工之处。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首个无需水下标注数据的跨域半监督 3D 重建框架，采用教师-学生架构从未标注真实水下视频中学习鲁棒几何表示；② 跨视图一致性损失，利用其他视角的几何线索补偿当前视图因水介质衰减和信息散射造成的信息退化；③ 构建 Water3D 多样本水下数据集用于评估，覆盖多种水体和场景；④ 在水下多视角深度估计和点云重建上优于当前 SOTA。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>在水下环境中估计 3D 几何面临着独特的挑战——光衰减、散射，以及缺乏大规模高质量 3D 标注。开创性方法依赖于密集的深度标注，但这在水下环境中不现实。本文提出 Wat3R，一个跨域半监督学习框架，旨在将前馈 3D 重建模型从空气域适应到水下场景。独特之处在于，该方法完全消除了对标注水下数据的需求：采用教师-学生架构，仅利用大量未标注的真实水下视频片段即可学习鲁棒的几何表示。本文还设计了跨视图一致性损失，利用其他视图的几何线索来补偿当前视图因水衰减和散射造成的信息退化。此外，针对缺乏综合评估基准的问题，本文构建了 Water3D 数据集，覆盖多种水体和场景，专用于几何任务评估。实验结果表明，Wat3R 在水下多视角深度估计和点云重建上优于当前最先进方法。数据集和代码已开源。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>水下 3D 重建为什么难？</strong> 你在泳池里睁开眼睛看东西——是不是模糊不清、颜色偏蓝绿？水会吸收和散射光线。相机在水下拍到的画面：远处的东西看不清、颜色失真、对比度低。这对 3D 重建是灾难性的——因为重建算法依赖"两张图上同一个点看起来一样"来算深度，水下这个假设被严重破坏。<br><br>
+
+      <strong>标注数据的问题？</strong> 在空气中做 3D 重建，你可以用激光扫描仪同时扫一遍来获取"真值"（精确的三维形状）。水下没有好用的激光扫描方案——激光在水中也会衰减。所以水下 3D 的标注数据极度匮乏。这篇论文的关键思路：不依赖水下标注，把在空气中学到的重建知识迁移到水下。<br><br>
+
+      <strong>教师-学生架构怎么工作？</strong> 先让一个"教师模型"（在空气数据上训练好的）看水下视频，给出它认为的 3D 形状。再让"学生模型"看同样的水下视频，任务是自己预测 3D 形状。学生预测完后跟老师的预测对比学习。因为老师有一定的先验知识（知道"正常"的 3D 形状长什么样），学生可以通过模仿老师慢慢适应水下的特殊视觉环境。<br><br>
+
+      <strong>跨视图一致性损失是什么？</strong> 水下某个视角的画面很模糊，但换个角度看同一个地方可能没那么模糊。跨视图一致性损失就是强迫模型："不管从哪个角度看同一个物体，你重建出来的 3D 形状应该是一样的。"这相当于让不同视角互相帮忙，补偿单个视角被水搞坏的信息。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.08772v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 3.7</span>
+  <div class="mini-title">From Classification to Localization and Clinical Validation: Large-Scale Development of a Deep Learning System for Thoracic Disease Detection on Chest Radiographs in Thailand</div>
+  <div class="mini-cn">从分类到定位与临床验证：泰国胸部X光胸腔疾病深度学习检测系统的大规模开发</div>
+  <div class="mini-oneliner">📌 大规模胸片 AI 诊断系统，在泰国 13 家医院验证，分类 AUROC 0.970，病灶定位率 77.9%。</div>
+  <div class="mini-conn">🔗 "localization" 关键词匹配指医学病灶定位，与机器人定位不同领域，但 DenseNet 骨干 + 注意力机制的设计在 CV 层面可跨领域参考。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09305v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 3.5</span>
+  <div class="mini-title">DRIFT: Differential Analysis of Multispectral Images for Terrain Identification</div>
+  <div class="mini-cn">DRIFT：面向地形识别的多光谱图像差分分析框架</div>
+  <div class="mini-oneliner">📌 轻量多光谱地形识别框架，利用光谱波段比率消除光照影响，对野外机器人导航中的地形理解有直接价值。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0032 课（相机模型）的传感器类型扩展相关，多光谱相机提供超越 RGB 的感知能力，对 TurtleBot 在复杂户外环境的导航有参考意义。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09319v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 3.5</span>
+  <div class="mini-title">HumanForge: A Human-Centric Deepfake Video Benchmark with Multi-Agent Forgery Rationales</div>
+  <div class="mini-cn">HumanForge：基于多智能体伪造推理的人类中心深度伪造视频基准</div>
+  <div class="mini-oneliner">📌 大规模人类中心视频伪造数据集，用多智能体管线自动生成标注，为数字取证提供基准。</div>
+  <div class="mini-conn">🔗 "localization"指时空定位，与机器人定位无关；但 Gen2Anno 多智能体标注管线的设计思路值得关注。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.08705v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 3.5</span>
+  <div class="mini-title">Co-VGGT: Probing Geometric Foundation Models for Co-Visibility</div>
+  <div class="mini-cn">Co-VGGT：探针几何基础模型的共视性检测能力</div>
+  <div class="mini-oneliner">📌 发现 VGGT 模型隐式编码了共视性信息，训练轻量专家头即可判断两张图像是否共享可见表面，可直接用于 SfM 和 SLAM 管线的可见性图构建。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0046~0049 课（特征匹配）和第 0075~0076 课（开源系统）直接相关——共视性判断是 SLAM 中回环检测和局部地图维护的基础。Co-VGGT 提供了一个不依赖特征匹配的替代方案。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09503v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 3.4</span>
+  <div class="mini-title">REBASE: Reference-Background Subspace Elimination for Training-Free In-Context Segmentation</div>
+  <div class="mini-cn">REBASE：基于参考背景子空间消除的免训练上下文分割</div>
+  <div class="mini-oneliner">📌 通过消除参考图像和查询图像之间的共享背景子空间，提升免训练单样本分割的质量。</div>
+  <div class="mini-conn">🔗 "localization"为分割中的 prompt 定位。与 <strong>LSeg</strong>（第 0007~0013 课）在语义分割方向上有交集，REBASE 的"免训练"思路与 LSeg 的"开放词汇"形成互补。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09082v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔍 延伸关注（第 11–15 名）</h2>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">3.4</span> <span class="paper-rank" style="color:var(--ink-60);">#11</span>
+  <div class="en-title" style="font-size:var(--text-sm);">Validating Virtual Reality for Studying Multimodal Human-Robot Interaction in Socially Aware Robot Navigation</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">验证 VR 用于社交感知机器人导航中的多模态人机交互研究</div>
+  <div class="authors" style="font-size:var(--text-xs);">Hariharan Arunachalam, Phani Teja Singamaneni, Rachid Alami</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 通过 N=21 被试实验验证 VR 能有效复现真实人机共行中的交互行为，为社交导航研究提供可靠的仿真平台。<br>
+    🔗 与 <strong>E2Map</strong>（第 0003 课·导航实验）和 <strong>VLMaps</strong>（第 0006 课）的导航中人机交互方向相关。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09261v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">3.3</span> <span class="paper-rank" style="color:var(--ink-60);">#12</span>
+  <div class="en-title" style="font-size:var(--text-sm);">Vascular Geometry Characterization for AI-Based Endovascular Navigation</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">面向 AI 血管内介入导航的血管几何特征表征</div>
+  <div class="authors" style="font-size:var(--text-xs);">Han-Ru Wu, Harry Robertshaw, Lisa Dwyer-Joyce, Thomas C Booth, Alejandro Granados</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 用强化学习训练血管内导航智能体，发现血管弯曲度、弓型等几何特征显著影响导航成功率。<br>
+    🔗 "autonomous navigation"在医学介入语境下应用，与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（VO 框架）的"导航"概念跨度较大，但强化学习方法可迁移参考。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09130v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">3.2</span> <span class="paper-rank" style="color:var(--ink-60);">#13</span>
+  <div class="en-title" style="font-size:var(--text-sm);">BTHA: Decoupling Language Guidance from Backbones for Text-Guided Medical Segmentation</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">BTHA：将语言引导与骨干网络解耦的文本驱动医学图像分割</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 提出骨干可迁移的层次化适配器框架，使文本引导分割模块可在不同视觉/文本编码器间重复使用。<br>
+    🔗 与 <strong>LSeg</strong>（第 0007~0013 课）的语言驱动分割同方向，BTHA 的"解耦设计"思路对构建模块化 SLAM 系统有启发。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09481v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">3.1</span> <span class="paper-rank" style="color:var(--ink-60);">#14</span>
+  <div class="en-title" style="font-size:var(--text-sm);">Hydra++: Real-Time Hierarchical 3D Scene Graph Construction With Object-Level Shape Estimation</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">Hydra++：带物体级形状估计的实时分层 3D 场景图构建</div>
+  <div class="authors" style="font-size:var(--text-xs);">Hyungtae Lim, Nathan Hughes, Xihang Yu, Ruihan Xu, Yun Chang, Jingnan Shi, Rajat Talak, Luca Carlone</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 MIT 团队在 3D 场景图中集成物体级形状估计，支持 LiDAR-相机混合配置在室外大规模场景运行。<br>
+    🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0072~0074 课（建图）和第 0075 课（开源方案巡礼）直接相关，场景图是 SLAM 建图的更高级抽象。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.09455v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">3.1</span> <span class="paper-rank" style="color:var(--ink-60);">#15</span>
+  <div class="en-title" style="font-size:var(--text-sm);">LTM: Large-scale Terrain Model for Wildfire-prone Landscapes</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">LTM：面向野火易发景观的大规模地形模型</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 大规模地形重建模型，面向野火管理场景，关注点云几何与地形语义分割。<br>
+    🔗 "point cloud"关键词匹配，与 <strong>视觉 SLAM 十四讲</strong>第 0037 课（点云拼接）和第 0074 课（OctoMap）的点云处理技术有交集，但应用场景（无人机的野火监测）与室内 SLAM 差异大。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.08711v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ 3DGS SLAM 加速从"能秀"走向"能用"</h4>
+  <p>AnythingReality 是本周最值得关注的工作——它把 3DGS 从一个"好看的渲染演示"真正放进了 SLAM 系统里：用 ORB-SLAM3 做位姿估计，在线建 3DGS 地图，还接入了 VR 和 VLM 交互。3DGS SLAM 不再只是生成漂亮新视图的玩具，而是开始展示"实时在线 + 鲁棒定位 + 丰富交互"的综合能力。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ 长期自主性：从"短时跟踪"走向"长期记忆"</h4>
+  <p>REMIND 专注的是机器人领域一个常被忽视但极其关键的问题：怎么在长时间、多视角、变光照的条件下认出同一个物体。大部分导航系统假设"只运行一次"或"每次都是新的环境"，但真正有用的服务机器人需要在同一环境中长期工作。持久化物体重识别将是语义地图长期维护的核心技术。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 半监督/无监督方法在 3D 感知中持续渗透</h4>
+  <p>STEAM（无监督跨视角定位）和 Wat3R（半监督水下 3D 重建）都展示了同一个趋势：在标注数据稀缺的场景下，自训练、教师-学生、跨视图一致性等无监督技术正在接近甚至媲美监督方法的性能。这对移动机器人特别有意义——真实部署中很难拿到精确标注数据。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 感知模态从"单一 RGB"走向"多光谱 + 触觉 + 近场"</h4>
+  <p>DRIFT 的多光谱地形识别和 TACTIC 的触觉 + RGB-D + 近场融合，表明机器人感知正在突破纯视觉的边界。对 TurtleBot 等平台而言，低成本多模态感知（如多光谱相机、分布式触觉皮肤）的成熟将显著提升其在复杂环境中的鲁棒性。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 — 第 29 周</span>
+  <a href="../index.html">← 返回课程馆</a>
+</div>
+
+<div class="report-header" style="margin-top:var(--space-6);">
+  <div class="subtitle">—— 顾清然 · PaperLesson 研究助理</div>
+</div>
+
+</div>
+</body>
+</html>

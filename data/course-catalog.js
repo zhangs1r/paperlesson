@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 28 周起每周一期。基于 arXiv 检索 + 四维评分筛选，每篇论文标注与 PaperLesson 课程板块的关联。本周推荐了 OCD SLAM、DL-SLAM、SPLC 等与课程内容紧密相关的工作。",
-      quickOpen: "start weekly-reports/weekly-2026-w28.html",
+      description: "第 29 周。本期亮点：AnythingReality 将 ORB-SLAM3 + 在线 3DGS + VR 探索 + VLM 语音交互融合，在 TUM-RGBD 上 PSNR 提升 11.7%；REMIND 实现室内长期物体重识别，IDF1 达 90.35%；另有 STEAM 无监督跨视角定位、Wat3R 水下 3D 半监督重建、TACTIC 全身触觉 MPC 控制等。本周论文整体相关性偏散，但 3DGS SLAM 走向实时在线是一大看点。",
+      quickOpen: "start weekly-reports/weekly-2026-w29.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {
