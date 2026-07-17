@@ -51,8 +51,8 @@
       'gap: 8px',
       'margin-bottom: 16px',
       'padding: 12px 16px',
-      'background: #F7F4EE',
-      'border: 1px solid #F0ECE4',
+      'background: var(--paper, #F7F4EE)',
+      'border: 1px solid var(--border-light, #F0ECE4)',
       'border-radius: 8px',
       'align-items: center',
       'box-sizing: border-box',
@@ -208,7 +208,7 @@
     var outer = document.createElement('div');
     outer.style.cssText = [
       'margin-top: 20px',
-      'border-top: 1px solid #e0d6d0',
+      'border-top: 1px solid var(--border, #e0d6d0)',
       'padding-top: 12px'
     ].join(';') + ';';
 
@@ -219,15 +219,15 @@
       'border: none',
       'cursor: pointer',
       'font-size: 14px',
-      'color: #888',
+      'color: var(--ink-40, #888)',
       'padding: 8px 0',
       'width: 100%',
       'text-align: left',
       'font-family: inherit',
       'transition: color 0.12s'
     ].join(';') + ';';
-    toggle.onmouseover = function () { toggle.style.color = '#CC785C'; };
-    toggle.onmouseout = function () { toggle.style.color = '#888'; };
+    toggle.onmouseover = function () { toggle.style.color = 'var(--accent, #CC785C)'; };
+    toggle.onmouseout = function () { toggle.style.color = 'var(--ink-40, #888)'; };
 
     var noteArea = document.createElement('div');
     noteArea.style.display = 'none';
@@ -236,7 +236,7 @@
     textarea.style.cssText = [
       'width: 100%',
       'min-height: 100px',
-      'border: 1px solid #d4c8c0',
+      'border: 1px solid var(--border, #d4c8c0)',
       'border-radius: 8px',
       'padding: 12px',
       'font-size: 14px',
@@ -244,8 +244,8 @@
       'resize: vertical',
       'box-sizing: border-box',
       'margin-top: 8px',
-      'background: #fcfcfc',
-      'color: #333',
+      'background: var(--paper-light, #fcfcfc)',
+      'color: var(--ink, #333)',
       'line-height: 1.6'
     ].join(';') + ';';
     textarea.placeholder = '写下你的学习笔记…';
