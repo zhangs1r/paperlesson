@@ -21,6 +21,11 @@
   --accent-light: #E8C4B0;
   --accent-deep:  #A85D42;
   --accent-dim:   rgba(204, 120, 92, 0.12);
+  --accent-glow:  rgba(204, 120, 92, 0.08);
+  --green:        #5A9E6F;
+  --green-dim:    rgba(90, 158, 111, 0.12);
+  --gold:         #D4A853;
+  --gold-dim:     rgba(212, 168, 83, 0.12);
   --border:       #E8E4DC;
   --border-light: #F0ECE4;
   --success:      #5A9E6F;
