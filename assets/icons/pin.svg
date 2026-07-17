@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
+    <defs>
+      <style>
+        @keyframes draw { 0% { stroke-dashoffset:154; } 100% { stroke-dashoffset:0; } }
+        @keyframes fpop { 0% { opacity:0; transform:scale(0); } 60% { opacity:1; transform:scale(1.2); } 100% { opacity:1; transform:scale(1); } }
+        @keyframes bounce {
+          0%   { transform:scale(1) rotate(0deg); }
+          30%  { transform:scale(1.18) rotate(3deg); }
+          55%  { transform:scale(0.92) rotate(-2deg); }
+          78%  { transform:scale(1.06) rotate(1deg); }
+          100% { transform:scale(1) rotate(0deg); }
+        }
+      .p0 { animation: draw 2.566666666666667s ease-in-out 0.0s forwards; stroke-dasharray:154; stroke-dashoffset:154; }
+      .p1 { animation: fpop 1.4s cubic-bezier(0.34,1.56,0.64,1) 0.15s forwards; opacity:0; }
+        .bx { animation: bounce 0.7s cubic-bezier(0.34,1.56,0.64,1) 2.766666666666667s forwards; }
+      </style>
+    </defs>
+  <g class="bx">
+      <path class="p0" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z" fill="none" stroke="#CC785C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path class="p1" d="M12 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="#CC785C" stroke="#CC785C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
