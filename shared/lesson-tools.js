@@ -119,17 +119,17 @@
       btn.disabled = true;
       btn.style.opacity = '0.6';
       btn.style.cursor = 'default';
-      btn.style.background = '#f5f0ee';
-      btn.style.borderColor = '#d4b0a0';
-      btn.style.color = '#999';
+      btn.style.background = 'var(--paper)';
+      btn.style.borderColor = 'var(--accent-light)';
+      btn.style.color = 'var(--ink-40)';
     } else {
       btn.textContent = '✅ 标记为已学';
       btn.disabled = false;
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
-      btn.style.background = '#fff';
-      btn.style.borderColor = '#CC785C';
-      btn.style.color = '#CC785C';
+      btn.style.background = 'var(--paper-light)';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
     }
   }
 
@@ -142,15 +142,15 @@
     btn.textContent = '✅ 标记为已学';
     btn.style.cssText = [
       'padding: 8px 16px',
-      'border: 1px solid #DDD5C8',
+      'border: 1px solid var(--border)',
       'border-radius: 6px',
       'cursor: pointer',
       'font-size: 0.9rem',
       'font-weight: 700',
-      'background: #fff',
-      'color: #CC785C',
-      'border-color: #CC785C',
-      'transition: all 0.18s ease',
+      'background: var(--paper-light)',
+      'color: var(--accent)',
+      'border-color: var(--accent)',
+      'transition: all 0.2s ease',
       'box-sizing: border-box',
       'font-family: inherit',
       'line-height: 1.4',
@@ -158,10 +158,10 @@
     ].join(';') + ';';
 
     btn.onmouseover = function () {
-      if (!btn.disabled) btn.style.background = '#fceee8';
+      if (!btn.disabled) btn.style.background = 'var(--accent-dim)';
     };
     btn.onmouseout = function () {
-      if (!btn.disabled) btn.style.background = '#fff';
+      if (!btn.disabled) btn.style.background = 'var(--paper-light)';
     };
     btn.onclick = markDone;
 
