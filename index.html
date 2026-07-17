@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PaperLesson · 课程总览</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='48'>📖</text></svg>">
 <link rel="stylesheet" href="shared/theme.css">
 <script src="data/course-catalog.js"></script>
 <script src="data/achievement-cards.js"></script>
@@ -80,13 +81,13 @@
     gap: var(--space-2);
     padding: 0.45rem 0.8rem;
     border-radius: 999px;
-    background: rgba(255,255,255,0.82);
+    background: var(--paper-light);
     border: 1px solid var(--border);
     font-size: var(--text-xs);
     color: var(--ink-50);
   }
   .hero-panel {
-    background: rgba(255,255,255,0.78);
+    background: var(--paper-light);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     padding: var(--space-7);
@@ -122,7 +123,7 @@
     border-color: var(--accent-light);
     color: var(--accent-deep);
     transform: translateY(-1px);
-    background: white;
+    background: var(--paper-light);
   }
 
   .section {
@@ -143,7 +144,7 @@
     gap: var(--space-5);
   }
   .stat {
-    background: rgba(255,255,255,0.82);
+    background: var(--paper-light);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
@@ -166,7 +167,7 @@
     gap: var(--space-10);
   }
   .group-shell {
-    background: rgba(255,255,255,0.72);
+    background: var(--paper-light);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     padding: var(--space-7);
@@ -236,21 +237,28 @@
   .lesson-card {
     position: relative;
     display: block;
-    background: white;
+    background: var(--paper-light);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
     text-decoration: none;
     color: inherit;
-    transition: all .18s ease;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 0.25s ease,
+                background 0.25s ease;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
   .lesson-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     border-color: var(--accent-light);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     text-decoration: none;
     color: inherit;
+  }
+  .lesson-card:active {
+    transform: translateY(-1px) scale(0.98);
   }
   .lesson-card::after {
     content: "→";
@@ -258,11 +266,11 @@
     top: var(--space-6);
     right: var(--space-6);
     color: var(--ink-20);
-    transition: all .18s ease;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .lesson-card:hover::after {
     color: var(--accent);
-    transform: translateX(2px);
+    transform: translateX(4px);
   }
   .lesson-top {
     display: flex;
@@ -395,12 +403,18 @@
     cursor: pointer;
     background: var(--paper-light);
     border: 2px solid var(--border);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 0.25s ease;
     aspect-ratio: 4/3;
   }
   .achieve-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+    border-color: var(--accent-light);
+  }
+  .achieve-card:active {
+    transform: translateY(-1px) scale(0.97);
   }
   .achieve-card.legendary {
     border-color: #d4af37;
@@ -496,11 +510,15 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.08);
     border: none;
-    transition: background 0.2s;
   }
-  .holo-modal .modal-close:hover { background: rgba(255,255,255,0.2); }
+  .holo-modal .modal-close:hover { background: rgba(255,255,255,0.15); }
+  @media (prefers-color-scheme: dark) {
+    .holo-modal { background: rgba(0,0,0,0.92); }
+    .holo-modal .modal-close { background: rgba(255,255,255,0.12); }
+    .holo-modal .modal-close:hover { background: rgba(255,255,255,0.2); }
+  }
   .holo-modal iframe {
     width: 90vw;
     max-width: 500px;
@@ -534,7 +552,7 @@
     display: flex; align-items: center; gap: var(--space-3);
     border: 2px solid var(--accent); border-radius: var(--radius-lg);
     padding: var(--space-2) var(--space-4);
-    background: white;
+    background: var(--paper-light);
   }
   .search-bar .search-icon { font-size: var(--text-lg); }
   .search-bar input {
@@ -599,7 +617,7 @@
   }
   .ref-card {
     display: block;
-    background: rgba(255,255,255,0.82);
+    background: var(--paper-light);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-6);
@@ -740,7 +758,7 @@
 
 <section class="section" style="padding-top:0; padding-bottom:0;">
   <div class="inner">
-    <div class="stats-row" id="statsRow"></div>
+    <div class="stats-row animate-stagger" id="statsRow"></div>
   </div>
 </section>
 
@@ -773,7 +791,7 @@
       <div class="section-divider" style="margin:var(--space-3) auto;"></div>
       <p>每学完一篇论文或一本书，生成一张专属全息收藏卡，记录你的学习里程碑。</p>
     </div>
-    <div class="achieve-grid" id="achieveGrid"></div>
+    <div class="achieve-grid animate-stagger" id="achieveGrid"></div>
   </div>
 </section>
 
@@ -966,7 +984,7 @@ function renderCatalog(data) {
             </div>
             <div class="collection-meta">${collectionMeta}</div>
           </div>
-          <div class="lesson-grid">${lessonCards || ""}</div>
+          <div class="lesson-grid animate-stagger">${lessonCards || ""}</div>
           ${collection.quickOpen && lessons.length === 0 ? `
             <div class="weekly-report-link">
               <a href="${collection.quickOpen.replace(/^start\s+/, '')}" class="btn btn-accent">📡 查看本期周报 →</a>

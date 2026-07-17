@@ -1,6 +1,7 @@
 /* ============================================
-   shared/theme.css — PaperLesson 全局主题
+   shared/theme.css — LessonWorkspace 全局主题
    学术出版风 · 温暖米白纸感 + 赤陶橙点缀
+   Apple Design 启发：弹簧动效 · 毛玻璃 · 暗色模式
    ============================================ */
 
 /* ─── 字体导入 ─── */
@@ -151,11 +152,17 @@ pre {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  transition: box-shadow .2s, transform .15s;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.25s ease;
 }
 .card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  border-color: var(--accent-light);
+}
+.card:active {
+  transform: translateY(-1px) scale(0.98);
 }
 
 /* ─── Buttons ─── */
@@ -170,8 +177,14 @@ pre {
   font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: all .15s;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.2s ease,
+              border-color 0.2s ease;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active {
+  transform: scale(0.95);
 }
 .btn-accent {
   background: var(--accent);
@@ -316,4 +329,234 @@ li { margin-bottom: var(--space-2); }
   .site-header, .site-footer { display: none; }
   body { background: white; color: black; }
   .card { box-shadow: none; border: 1px solid #ccc; }
+}
+
+/* ════════════════════════════════════════════════════
+   Apple Design 增强
+   ════════════════════════════════════════════════════ */
+
+/* ─── 1. 暗色模式 ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:        #1A1A2E;
+    --paper-light:  #22223A;
+    --ink:          #EDEDEE;
+    --ink-80:       #C8C8D0;
+    --ink-60:       #A0A0B0;
+    --ink-40:       #707080;
+    --ink-20:       #505060;
+    --accent:       #E8A88C;
+    --accent-light: #C88A72;
+    --accent-deep:  #F0C8B8;
+    --accent-dim:   rgba(232, 168, 140, 0.15);
+    --border:       #3A3A4A;
+    --border-light: #2A2A3A;
+    --success:      #7AB893;
+    --code-bg:      #2A2A3A;
+    --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg:  0 8px 30px rgba(0, 0, 0, 0.35);
+    --shadow-xl:  0 20px 60px rgba(0, 0, 0, 0.40);
+  }
+  .site-header {
+    background: rgba(34, 34, 58, 0.85);
+  }
+  .card, .group-shell, .collection-card, .collection-block,
+  .stat, .hero-panel, .hero-feature-box {
+    background: rgba(34, 34, 58, 0.6);
+  }
+  .hero-meta span, .group-meta span, .collection-meta span {
+    background: rgba(34, 34, 58, 0.7);
+    border-color: var(--border);
+  }
+  .workspace-topbar {
+    background: rgba(232, 168, 140, 0.10);
+    border-bottom-color: var(--border);
+  }
+  ::selection {
+    background: rgba(232, 168, 140, 0.25);
+    color: #EDEDEE;
+  }
+  blockquote {
+    background: rgba(232, 168, 140, 0.08);
+    border-left-color: var(--accent);
+  }
+  code {
+    background: var(--code-bg);
+    color: var(--ink-80);
+  }
+  pre {
+    background: var(--code-bg);
+  }
+  .lesson-card {
+    background: rgba(34, 34, 58, 0.6);
+    border-color: var(--border);
+  }
+  .lesson-card:hover {
+    background: rgba(34, 34, 58, 0.8);
+  }
+  .topic-card {
+    background: rgba(34, 34, 58, 0.6);
+  }
+  .project-card {
+    background: rgba(34, 34, 58, 0.6);
+  }
+  .project-card .btn-ghost {
+    border-color: var(--border);
+    color: var(--ink-60);
+  }
+  .ss-vocab-section,
+  .ss-daily-goal,
+  .ss-prefs,
+  .ref-card {
+    background: rgba(34, 34, 58, 0.5);
+  }
+  .achievement-card {
+    background: rgba(34, 34, 58, 0.6);
+  }
+  img {
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+  }
+  img:hover {
+    opacity: 1;
+  }
+}
+
+/* ─── 2. Reduced motion（动效降级） ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.05s !important;
+    scroll-behavior: auto !important;
+  }
+  .card:hover,
+  .lesson-card:hover,
+  .project-card:hover,
+  .topic-card:hover {
+    transform: none !important;
+  }
+}
+
+/* ─── 3. 入口动画 ─── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* —— 单元素入口 —— */
+.animate-in {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-in-fast {
+  animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* —— 交错入场（给网格容器用） —— */
+.animate-stagger > * {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-stagger > *:nth-child(1)  { animation-delay: 0.0s; }
+.animate-stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+.animate-stagger > *:nth-child(3)  { animation-delay: 0.12s; }
+.animate-stagger > *:nth-child(4)  { animation-delay: 0.18s; }
+.animate-stagger > *:nth-child(5)  { animation-delay: 0.24s; }
+.animate-stagger > *:nth-child(6)  { animation-delay: 0.30s; }
+.animate-stagger > *:nth-child(7)  { animation-delay: 0.36s; }
+.animate-stagger > *:nth-child(8)  { animation-delay: 0.42s; }
+.animate-stagger > *:nth-child(9)  { animation-delay: 0.48s; }
+.animate-stagger > *:nth-child(10) { animation-delay: 0.54s; }
+.animate-stagger > *:nth-child(11) { animation-delay: 0.60s; }
+.animate-stagger > *:nth-child(12) { animation-delay: 0.66s; }
+
+/* —— Hero 内容默认入场 —— */
+.hero .inner {
+  animation: fade-in 0.4s ease both;
+}
+.hero-copy .badge {
+  animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.1s;
+}
+.hero-copy h1 {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.15s;
+}
+.hero-copy .subtitle {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.2s;
+}
+.hero-meta {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.25s;
+}
+.hero-panel,
+.hero-feature-box {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.3s;
+}
+
+/* ─── 4. 毛玻璃 · 浮层效果 ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.glass-heavy {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(34, 34, 58, 0.55);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .glass-heavy {
+    background: rgba(34, 34, 58, 0.72);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* ─── 5. 弹簧 hover 工具类（避免全局冲突，按需使用） ─── */
+.spring-hover {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.25s ease !important;
+}
+.spring-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.spring-hover:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+/* ─── 6. Stagger 辅助（对内联 style 的 grid 也可以用） ─── */
+@media (max-width: 768px) {
+  .animate-stagger > * {
+    animation-delay: 0s !important;
+  }
+  .hero-copy .badge,
+  .hero-copy h1,
+  .hero-copy .subtitle,
+  .hero-meta,
+  .hero-panel,
+  .hero-feature-box {
+    animation-delay: 0s !important;
+  }
 }
