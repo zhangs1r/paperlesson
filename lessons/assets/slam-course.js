@@ -13,8 +13,13 @@ window.lessonKit = {
     });
     document.querySelectorAll(`[data-tab-button="${group}"]`).forEach((button) => {
       const active = button.dataset.tabId === id;
-      button.style.background = active ? "#cc785c" : "#fff7f3";
-      button.style.color = active ? "#ffffff" : "#7d4c3b";
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      button.style.background = active
+        ? (isDark ? '#E8A88C' : '#cc785c')
+        : (isDark ? 'rgba(34,34,58,0.6)' : '#fff7f3');
+      button.style.color = active
+        ? (isDark ? '#1A1A2E' : '#ffffff')
+        : (isDark ? '#C8C8D0' : '#7d4c3b');
     });
   }
 };

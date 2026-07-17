@@ -96,7 +96,7 @@
       <p><strong>🔒 锁一：Zero-Inference 策略</strong></p>
       <p>规定：如果文本中<strong>没有提到</strong>某个字段的值，就直接输出 <code>"None"</code>，不准自己推断。</p>
 
-      <div style="background:#FFF3E0;border:1px solid #FFE0B2;border-radius:6px;padding:var(--space-3);margin:var(--space-3) 0;font-size:var(--text-sm);">
+      <div style="background:var(--paper-light, #FFF3E0);border:1px solid var(--border, #FFE0B2);border-radius:6px;padding:var(--space-3);margin:var(--space-3) 0;font-size:var(--text-sm);">
         <strong>⚠️ 如果没加 Zero-Inference 会怎样？</strong><br>
         输入文本："该物质是一种白色结晶粉末，易溶于水……"（没写 CAS 号）<br>
         ❌ <strong>不加</strong>：模型可能会说 "CAS 号是 7732-18-5"（编造——因为水也易溶、水是 7732-18-5）<br>

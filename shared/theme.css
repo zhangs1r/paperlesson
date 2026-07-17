@@ -421,6 +421,27 @@ li { margin-bottom: var(--space-2); }
   img:hover {
     opacity: 1;
   }
+
+  /* ─── 跨课程通用 class 暗色覆盖 ─── */
+  body .quote { background: rgba(232, 168, 140, 0.10); border-left-color: var(--accent) !important; }
+  body .quote .en { color: var(--ink-60); }
+  body .warning { background: rgba(232, 168, 140, 0.10); border-left-color: var(--accent) !important; }
+  body .warning strong { color: var(--accent-deep); }
+  body .tip { background: rgba(232, 168, 140, 0.08); border-left-color: var(--accent) !important; }
+  body .tip strong { color: var(--accent-deep); }
+  body .callout { background: rgba(34, 34, 58, 0.6); border-left-color: var(--ink-40) !important; }
+  body .callout strong { color: var(--accent-deep); }
+  body .story-box { background: rgba(34, 34, 58, 0.5); }
+  body .paper-quote { background: rgba(34, 34, 58, 0.5); }
+  body .interactive-demo { background: rgba(34, 34, 58, 0.5); }
+  body .e2map-link { background: rgba(34, 34, 58, 0.5); border-left-color: var(--accent) !important; }
+  body .e2map-link strong { color: var(--accent-deep); }
+  body .analogy { background: rgba(34, 34, 58, 0.5); }
+  body .formula-box { background: rgba(34, 34, 58, 0.5); }
+  body .result-bad { background: rgba(34, 34, 58, 0.5); border-left-color: var(--accent) !important; }
+  body .critical-box { background: rgba(34, 34, 58, 0.5); border-left-color: var(--accent) !important; }
+  body .critical-box strong { color: var(--accent-deep); }
+  .howto-cmd { background: var(--paper); color: var(--ink-80); }
 }
 
 /* ─── 2. Reduced motion（动效降级） ─── */
