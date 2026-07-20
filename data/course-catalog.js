@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 29 周。本期亮点：AnythingReality 将 ORB-SLAM3 + 在线 3DGS + VR 探索 + VLM 语音交互融合，在 TUM-RGBD 上 PSNR 提升 11.7%；REMIND 实现室内长期物体重识别，IDF1 达 90.35%；另有 STEAM 无监督跨视角定位、Wat3R 水下 3D 半监督重建、TACTIC 全身触觉 MPC 控制等。本周论文整体相关性偏散，但 3DGS SLAM 走向实时在线是一大看点。",
-      quickOpen: "start weekly-reports/weekly-2026-w29.html",
+      description: "第 30 周。本期亮点：Bonn 大学 Stachniss 团队 LiDAR SLAM 地图一致性工作（#1）、WNOJ-LIO 在 208 km/h 赛车上验证的高动态 LIO 融合（#2）、TurtleBot3 实物验证的语言驱动导航框架（#4）、Rectified Flow 上采样实现图像-点云配准（#5）。本周 Top 5 中 3 篇直接与 SLAM/定位相关，核心性很强。#4 的 ROS 2 + Nav2 方案可在 PaperLesson TurtleBot3 平台直接复现。",
+      quickOpen: "start weekly-reports/weekly-2026-w30.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {

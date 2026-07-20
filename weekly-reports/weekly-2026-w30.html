@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W30</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 30 周 · 2026.07.13 — 2026.07.20</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共 <strong>665 篇新论文</strong>中，筛选出与移动机器人方向相关的 <strong>78 篇论文</strong>，取 Top 15 推荐。
+    本周的亮点集中在 <strong>LiDAR SLAM 地图一致性</strong> 和 <strong>高动态 LIO 融合</strong> 两个方向上。
+    #1 来自 Bonn 大学 Cyrill Stachniss 团队的 LiDAR SLAM 工作——这是 SLAM 领域的顶级团队，他们在 ICP 信息矩阵 + 回顾式回环检测上做了扎实贡献。
+    #2 WNOJ-LIO 针对高速赛车场景（最高 208 km/h）提出的运动先验 EKF，在 TUM 开源社区的 FAST-LIO 系列基础上向前迈了一步。
+    值得注意的是本周论文的<strong>核心性很强</strong>——Top 5 中有 3 篇直接与 SLAM / 定位 / 导航工程高度相关，
+    尤其是 #4 在 TurtleBot3 实物上验证了语言驱动导航，是我们平台可以直接复现的工作。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">665</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">78</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">15</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">30</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">7.6</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">Improving Map Consistency in Graph-Based LiDAR SLAM Through Information-Aware Odometry and Retroactive Loop Closure</div>
+  <div class="cn-title">通过信息感知里程计与追溯式回环检测改进基于图的 LiDAR SLAM 地图一致性</div>
+  <div class="authors">✍️ Saurabh Gupta, Niklas Trekel, Louis Wiesmann, Cyrill Stachniss（波恩大学）</div>
+
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">LiDAR SLAM</span><span class="tag tag-accent">ICP</span><span class="tag tag-accent">回环检测</span><span class="tag tag-accent">地图一致性</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">波恩大学 Cyrill Stachniss 团队提出信息感知 ICP 里程计 + 分层回环 + 追溯式回环检测框架，让 LiDAR SLAM 不仅轨迹精度高，地图在重访位置也拼得严丝合缝。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0042~0044 课（图优化 / 位姿图）构成本文 pose graph 优化的理论基础，第 0063~0068 课（后端优化 / 回环检测）与本文的分层回环和追溯式回环直接对应。第 0036~0037 课（点云配准 / ICP）中讨论的 ICP 的局限性，本文通过"信息矩阵"给出了改进方案——不是所有点对都同等对待，几何结构好的区域贡献更大。<br>
+      <strong>OCD SLAM</strong>（第 0083~0088 课）和 <strong>DFusion-SLAM</strong>（第 0077~0082 课）同样关注 SLAM 鲁棒性，但针对视觉动态场景；本文专攻 LiDAR SLAM 的地图一致性，技术路线互补。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出高效估计 ICP 几何相关信息矩阵的框架，为位姿图中的里程计约束提供原则性加权；② 分层回环检测模块将地点识别与几何配准解耦，配合追溯式回环模块利用优化后的位姿图找回遗漏的回环；③ 提出重访位置地图一致性评估协议；④ 在多个数据集上与 SOTA LiDAR SLAM 系统对比，轨迹精度持平或更优，重访地图一致性持续提升。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>高质量地图是机器人导航与规划等任务的基础。尽管现代基于图的 LiDAR SLAM 系统能够实现良好的轨迹精度，但低轨迹误差并不能保证几何一致的地图——尤其是在重访位置，遗漏的回环和残余漂移会产生局部错位。本文针对 3D LiDAR SLAM 中联合改进全局轨迹估计和局部地图质量的问题，首先提出高效估计 ICP 几何相关信息矩阵的框架，实现对位姿图中里程计约束的原则性加权；然后引入将地点识别与几何配准解耦的分层回环检测模块，以及利用优化后位姿图找回遗漏回环的追溯式回环模块。本文还提出了重访位置地图一致性的评估协议。实验结果表明，本系统的全局轨迹精度与现有方法持平或更优，同时在重访位置的地图几何一致性持续提升。这表明将不确定性感知的里程计与几何引导的回环细化相结合，能够产生更精确的轨迹和更高质量的地图。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文要解决什么问题？</strong> 想象你在拼一幅巨大的拼图。传统的 SLAM 关心的是"你拼得快不快、路线走得准不准"（轨迹精度），但没人检查"拼图的接缝处拼得齐不齐"（地图一致性）。结果就是：虽然机器人自认为走得很准，但地图在同一个地方出现了"重影"——比如一面墙变成了两面错开的墙。<br><br>
+
+      <strong>为什么轨迹误差低≠地图好？</strong> 你从客厅走到厨房再走回客厅，SLAM 系统认为你回到了原来的位置（误差只有 5cm），但如果你在回客厅的路上没有及时关门（没检测到回环），地图上就会在客厅出现两套不完全对齐的墙和家具。对导航来说，地图不对齐比轨迹有些误差更严重——机器人看到"两堵重叠的墙"会困惑该怎么走。<br><br>
+
+      <strong>三个关键创新：</strong><br>
+      ① <strong>信息感知的 ICP</strong>：ICP 是激光雷达配准的"标配"——把两帧点云对齐。但不是所有点对都同等重要。比如一面平整的墙（几何结构简单），沿着墙面方向移动一点看不出来差异；但墙角（几何结构丰富），微小的错位就被放大。本文给每对点计算一个"信息矩阵"（可以理解为置信度），告诉优化器"这对点可靠，那对点要打折扣"。<br>
+      ② <strong>分层回环检测</strong>：先"认出这个地方以前来过"（地点识别），再"精细配准"（几何注册）。把两步拆开，比一次性做更灵活可靠。就像你回母校——先认出"这是大学校门"，再仔细找"当年拍照的台阶在哪"。<br>
+      ③ <strong>追溯式回环</strong>：跑完全程优化后，再用优化后的轨迹重新检查有没有遗漏的回环。就像做完一张卷子，检查一遍有没有漏做的题——第二次看往往能发现第一次遗漏的。<br><br>
+
+      <strong>Cyrill Stachniss 是谁？</strong> SLAM 领域最知名的学者之一，波恩大学摄影测量与机器人实验室负责人，参与开发了多款经典 LiDAR SLAM 系统。这篇论文来自他的团队，值得特别关注。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.13516v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">7.1</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">WNOJ-LIO: A White-Noise-on-Jerk Motion-Prior EKF for High-Dynamic LiDAR-IMU Fusion</div>
+  <div class="cn-title">WNOJ-LIO：基于白噪声加加速度运动先验的高动态 LiDAR-IMU 融合 EKF</div>
+  <div class="authors">✍️ Junning Lyu, Qizhi Guo, Xia Ning, Tao Song, Shaoming He</div>
+
+  <div class="keywords"><span class="tag tag-accent">LIO</span><span class="tag tag-accent">EKF</span><span class="tag tag-accent">IMU</span><span class="tag tag-accent">高速场景</span><span class="tag tag-accent">FAST-LIO</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出基于白噪声加加速度（WNOJ）运动先验的 EKF 框架，将 IMU 从"状态传播驱动源"重构为"高频测量源"，在 208 km/h 自动驾驶赛车上验证了显著优于 FAST-LIO 的抗振与定位精度。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0027~0030 课（卡尔曼滤波 / EKF）和第 0031 课（ESKF / 误差状态卡尔曼滤波）是理解本文 WNOJ-EKF 的基础。本文的关键洞察——IMU 积分传递噪声——在第 0031 课 ESKF 中已有讨论，但 WNOJ 提出了更优雅的数学框架。<br>
+      第 0075~0076 课（开源方案巡礼）中对比了 LIO-SAM、FAST-LIO2、FAST-LIO2-SC 等 LiDAR-IMU 融合方案，WNOJ-LIO 是在 FAST-LIO 基础上对高速运动场景的专项改进。代码已开源，可直接纳入对比基准。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出解耦的 WNOJ 运动先验，在 R³×SO(3) 上做状态预测而非 IMU 积分，避免了传统 LIO 中 IMU 噪声向点云去畸变传播的问题；② 闭合形式协方差传播公式，弥合了批处理 WNOJ 高斯过程轨迹先验与递归滤波之间的理论空隙；③ 实现在 53~208 km/h 四段赛道上全面验证，涵盖加速度/角速度去噪、点云去畸变和定位精度，性能全面优于 FAST-LIO 基线。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>LiDAR-惯性里程计（LIO）是自主导航的关键组成部分，但高动态驾驶暴露了两个相互耦合的挑战：扫描内运动畸变和受振动污染的惯性测量。大多数实时 LiDAR-惯性管线通过积分原始 IMU 测量来传播系统状态，然后将传播轨迹用于点云去畸变，从而将惯性噪声传播到校正后的扫描和后续的扫描到地图配准中。本文提出 WNOJ-LIO，一个基于白噪声加加速度（WNOJ）扩展卡尔曼滤波器的 LiDAR-IMU 融合框架。WNOJ-LIO 采用解耦的 WNOJ 先验进行状态预测，将 IMU 视为高频测量源而非状态传播驱动源。所得的后验状态历史随后用于 LiDAR 扫描去畸变和后续的点到平面 LiDAR 更新。解耦的过程模型实现了闭合形式协方差传播，弥合了批处理 WNOJ 高斯过程轨迹先验与递归滤波之间的差距。仿真结果展示了在加速度和角速度去噪、扫描去畸变和定位精度上相对于 FAST-LIO 风格基线的提升。真实世界实验使用自动驾驶赛车在最大速度 53 至 208 km/h 的四段赛道上进行，覆盖了广泛的车辆振动水平。实验进一步验证了所提出方法，并在高动态驾驶下对加速度、角速度、机体线速度、姿态和位置的估计性能进行了全面评估。源代码已公开发布。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>LiDAR-惯性里程计（LIO）是什么？</strong> 就是融合激光雷达和 IMU（惯性测量单元）来做定位。激光雷达给你"周围环境的形状"，IMU 给你"加速度和角速度"。两者互补：IMU 快但会漂移，激光雷达准但慢（一帧扫描 100ms）。<br><br>
+
+      <strong>高动态场景为什么难？</strong> 想象在赛车上装激光雷达——车速 208 km/h 是什么概念？每秒约 58 米。激光雷达一帧扫描（100ms）里，车已经跑了将近 6 米！这意味着扫描出来的点云是严重扭曲变形的。更糟的是，赛车的强烈振动会让 IMU 读数充满噪声。传统 LIO 的做法是：用 IMU 积分推算运动 → 用推算的运动去校正点云 → 用点云去定位。但如果 IMU 本身就有噪声，这个链条的第一步就错了，后面的全跟着错。<br><br>
+
+      <strong>WNOJ 的核心思想是什么？</strong> 它换了个思路：不再完全信任 IMU 的瞬时读数，而是用一个更干净的数学模型——"加加速度是白噪声"——来描述运动。加加速度（Jerk）是加速度的变化率。"白噪声加加速度"意味着：我们认为加速度的变化是随机的、不可预测的，但变化本身不大。这个假设在大多数物理运动中很合理。<br><br>
+
+      <strong>这样做的好处？</strong> 传统 LIO 的 IMU 积分像"滚雪球"——噪声越滚越大。WNOJ 相当于给了你一个"预测下一步加速度的统计模型"，即使 IMU 有振动噪声，模型也能过滤掉。实验在 208 km/h 赛车上验证了加速度和角速度的去噪效果显著优于 FAST-LIO。<br><br>
+
+      <strong>对 TurtleBot 的意义？</strong> 虽然 TurtleBot 不会开到 208 km/h，但室内机器人在粗糙地面或斜坡上行驶时同样会遇到振动问题。WNOJ 的建模思想可以移植到低速场景，提高低成本 IMU 的利用效率。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.13405v1" target="_blank">📄 arXiv 原文</a> · <a href="https://github.com/LvJohny/wnoj-ekf-lio.git" target="_blank">🔗 开源代码</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">5.0</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Deployment-Ready UWB Localization for Industrial Ground Robots with Automatic Anchor Calibration and Terrain-Aware Fusion</div>
+  <div class="cn-title">面向工业地面机器人的可部署 UWB 定位——自动锚点标定与地形感知融合</div>
+  <div class="authors">✍️ Alexander Raab, Giulio Delama, Roland Jung, Stephan Weiss</div>
+
+  <div class="keywords"><span class="tag tag-accent">UWB</span><span class="tag tag-accent">定位</span><span class="tag tag-accent">EKF</span><span class="tag tag-accent">工业 AMR</span><span class="tag tag-accent">传感器融合</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">端到端 UWB 定位管线，自动标定锚点位置 + EKF 融合轮式里程计，在真实仓库的物流 AMR 上演示了免人工测量的部署流程，定位精度满足工业需求。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0027~0030 课（EKF / 卡尔曼滤波）是本文 UWB+轮式里程计融合的核心算法。<br>
+      第 0075 课（开源方案巡礼）中覆盖了多种定位方案，但 UWB 定位在前 SLAM 十四讲中涉及较少——它是视觉 SLAM 之外的另一种重要定位方式，在仓库、地下车库等视觉退化场景中尤为实用。<br>
+      <strong>E2Map</strong>（第 0001~0005 课）的导航系统如果部署在室内大空间，可补充 UWB 作为绝对定位源。自动标定能力降低了部署门槛，适合 TurtleBot 长期运行场景。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 端到端管线：自动锚点标定（无需人工测量锚点位置和偏差）+ 融合轮式里程计的 EKF；② 偏置感知的 EKF 设计提高一致性，无需繁重参数调优；③ 在真实仓库物流 AMR 上验证室内与室外过渡场景，定位一致性优于先前方法；④ 在独立叉车数据集上展示跨平台迁移能力；⑤ 公开仓库数据集供社区使用。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>超宽带（UWB）测距因其精度提升和低成本已成为工业自主移动机器人（AMR）定位的可行选择。然而，实际部署仍受两个反复出现的问题限制：标定静态锚点耗时且容易出错；将 UWB 与现有车载传感器集成需要精心设计以确保鲁棒和一致的位姿估计。针对这些问题，本文提出一个端到端管线，将自动锚点标定与适用于地面车辆运动的通用多传感器估计器相结合。它面向初始位姿先验信息可用的场景下的现有 AMR 软件栈。标定阶段估计锚点位置和测距偏差，定位阶段将 UWB 与本体感知传感器在偏置感知 EKF 中进行融合，无需繁重参数调优即可提高一致性。在仓库环境下使用商业物流 AMR 的实验展示了准确的室内和室外过渡定位，定位一致性优于先前的估计器版本。在独立叉车数据集上的评估进一步表明其可迁移性。该方法在有限视线和稀疏锚点覆盖的测试场景中仍然有效。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>UWB 定位是什么？</strong> 想象在仓库天花板上装几个小基站（锚点），机器人身上带一个标签。标签向基站发信号，基站根据信号飞行时间算出距离。有了三个以上的距离，就能像 GPS 一样算出机器人的位置——但 UWB 精度是厘米级，比 GPS（米级）精确得多。<br><br>
+
+      <strong>为什么 UWB 部署这么难？</strong> 装基站不是简单的"钉上去就完事"——你需要在安装后精确测量每个基站的三维坐标（可能要拿激光测距仪花半天标定），而且每个基站还有自己的测距偏差（出厂时不完全一致）。一篇商厦仓库可能要标定 20 个基站，光这点就让很多用户放弃了。<br><br>
+
+      <strong>本文解决了什么？</strong> 让机器人自己标定所有基站：机器人先走一圈，边走边用轮式里程计估计自己的大致位置，同时收 UWB 信号，然后利用"已知机器人位置 + 测距"反向推算出基站位置。用户只需要把基站挂在墙上、开机、让机器人跑一圈——后面的全部自动完成。<br><br>
+
+      <strong>地形感知融合是什么？</strong> 地面上的机器人如果遇到一个坡，轮式里程计会多算距离（因为车轮在坡上滚的路径更长）。这篇论文的 EKF 会用地形信息修正这种偏差——机器人知道"我在上坡"，就调整对轮式里程计的信赖程度。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.15807v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.8</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">From Language to Navigation Goals: A Vision-Language Approach for Semantic Navigation of Mobile Robots Using RGB-D Perception</div>
+  <div class="cn-title">从语言到导航目标：基于视觉-语言方法的移动机器人语义导航（RGB-D 感知）</div>
+  <div class="authors">✍️ Jose Martínez-Fajardo, Pablo Pueyo, Fernando Caballero, Luis Merino</div>
+
+  <div class="keywords"><span class="tag tag-accent">TurtleBot3</span><span class="tag tag-accent">ROS 2</span><span class="tag tag-accent">Nav2</span><span class="tag tag-accent">VLM</span><span class="tag tag-accent">语义导航</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">基于 ROS 2 + Nav2 的模块化语言驱动导航框架，用 TurtleBot3 Waffle 实物验证，用户说"去邮箱那里"机器人就能理解、找到并导航到达——代码即将开源。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>E2Map</strong>（第 0001~0005 课）同样是语言驱动的导航系统，但 E2Map 使用 LLM 在"经验-情感地图"上做路径选择；本文使用 VLM + RGB-D 做目标检测和定位，两者在语言→导航的链条上形成了互补。<br>
+      <strong>VLMaps</strong>（第 0006 课）提供视觉-语言地图的建图框架，本文关注的是目标任务级导航执行。<br>
+      <strong>LSeg</strong>（第 0007~0013 课）的开放词汇分割技术如果集成到本文的感知模块中，可以摆脱预定义物体类别的限制。<br>
+      <strong>视觉 SLAM 十四讲</strong> 第 0032~0035 课（RGB-D 相机模型）和第 0060 课（Nav2 导航栈）是本系统传感器和导航栈的工程基础。<br>
+      ⭐ <strong>最直接的可复现性</strong>——本文使用 TurtleBot3 Waffle + RealSense，与 PaperLesson 实验平台几乎完全一致。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 模块化 ROS 2 框架，将语言理解（VLM）+ RGB-D 目标检测 + Nav2 导航解耦为独立模块，便于跨平台移植；② 不仅支持直接指令（"去信箱"），还支持上下文请求（"我丢了一个蓝色杯子"）；③ 在 TurtleBot3 Waffle 和 Unitree Go2 两种平台上实物验证，框架可移植性强；④ 生成有意义的自然语言反馈（如"找到了，信箱在您右前方 3 米"）。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>自然语言交互为非专业用户与机器人平台通信提供了直观的方式。然而，将用户请求转化为可执行的导航动作仍是一项具有挑战性的任务，需要融合语言理解、环境感知和自主导航。本文提出一个语言驱动的导航框架，使移动机器人能够理解用户以自然语言发出的请求，将机器人移动到目标并自主导航到达。该框架由模块化 ROS 2 组件组成，协同将自然语言指令转化为导航动作。给定一个指向环境中目标的自然语言请求（如"去邮箱那里"），系统识别引用对象，使用 RGB-D 数据估计其位置，生成导航目标，然后通过 ROS 2 Nav2 导航栈执行。基于 ROS 2 的实现便于在不同机器人平台上移植，只需配置相应的主题和服务。在仿真和真实场景中使用 TurtleBot3 Waffle 和配备 RealSense 相机的 Unitree Go2 机器人进行了评估。实验结果表明，该框架能成功解释直接命令和上下文请求，生成有意义的自然语言反馈，并导航到目标位置。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了什么？</strong> 你可以对机器人说："去冰箱那里"。机器人要完成三步：①听懂"冰箱"这个词；②在房间中找到冰箱在哪（用摄像头看，识别出冰箱的位置）；③规划一条避开障碍物的路线走到冰箱前。听起来不难，但每一步都是一个研究领域。<br><br>
+
+      <strong>和 E2Map 的区别？</strong> E2Map 也是用语言导航，但更关注"哪个路线更舒适"（有情绪/经验地图）。这篇论文更"硬核工程"——它用标准的 ROS 2 + Nav2，关注的是"听到命令→找到物体→走到跟前"这个闭环工程实现。两种思路可以融合。<br><br>
+
+      <strong>TurtleBot3 Waffle 实物验证为什么重要？</strong> 很多论文只在仿真里跑——Gazebo 里的世界是干净的、光线完美的、物体位置固定。这篇论文在真实办公室环境中用 TurtleBot3 Waffle（配备 RealSense D435）验证了，说明它不是纸上谈兵。而且代码即将开源，意味着我们可以在自己的 TurtleBot 上复现。<br><br>
+
+      <strong>模块化设计的优势？</strong> 系统由几个独立模块组成：语言模块（理解你说什么）、感知模块（在相机画面中找到物体）、导航模块（控制机器人走过去）。如果你想换一个更高级的语言模型，只需替换语言模块；想换更精准的检测器，只换感知模块。这种设计让系统极易扩展和升级。<br><br>
+
+      <strong>上下文请求是什么意思？</strong> 除了直接说"去信箱"，你还可以说："我刚才把手机放在客厅的茶几上了，去帮我拿一下。"系统需要理解"手机"是目标、"客厅的茶几"是位置线索——这比简单的"去信箱"难得多。本文展示了这种高级指令的能力。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.13624v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.8</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">Image-to-Point Cloud Registration Made Easy with Rectified Flow-based LiDAR Upsampling</div>
+  <div class="cn-title">基于校正流激光雷达上采样的图像-点云配准简化方法</div>
+  <div class="authors">✍️ Reon Tabata, Kenji Koide, Shuji Oishi, Masashi Yokozuka, Taku Okawara, Aoki Takanose, Jun Miura</div>
+
+  <div class="keywords"><span class="tag tag-accent">点云配准</span><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">Rectified Flow</span><span class="tag tag-accent">PnP</span></div>
+
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">用 Conditional Rectified Flow 将稀疏激光雷达点云"补成"稠密强度图像，然后用标准特征匹配实现图像-点云 6DoF 配准，在 R3LIVE 数据集上平均误差 4.89° / 1.63m。</p>
+  </div>
+
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0036~0037 课（点云配准 / ICP）和第 0046~0049 课（特征匹配 / 对极几何 / PnP）涵盖了传统图像-点云配准的两个路径。本文提供了一条新路：把点云"渲染成图像"然后用图像特征匹配，绕开了跨模态特征学习的难题。<br>
+      第 0072~0074 课（RGB-D 建图 / OctoMap / TSDF）中讨论的"如何融合视觉和 LiDAR 数据"与本文目标一致——多传感器标定和融合。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）同样在做跨模态融合（语义 + SLAM），但本文的方法为传感器标定提供了一个轻量替代方案。
+    </p>
+  </div>
+
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 将 LiDAR 视为"成像传感器"：从单帧稀疏 LiDAR 扫描用 Conditional Rectified Flow 生成稠密强度图像；② 自监督预训练（图像补全） + 小样本 LiDAR 微调，不需图像-点云配对或真值位姿；③ 使用预训练特征匹配器 + PnP-RANSAC 估计 6DoF 位姿，单次配准约 0.68s；④ 在 R3LIVE 数据集上平均误差 4.89° / 1.63 m，优于现有方法。</p>
+  </div>
+
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>图像到点云配准（I2P）对于感知和自主系统中相机与 LiDAR 的集成至关重要，然而图像与点云之间的模态差异使其难以同时实现高精度和强泛化性。本文提出一种简单而有效的 I2P 方法，将 LiDAR 视为成像传感器：从单帧稀疏 LiDAR 扫描出发，使用 Conditional Rectified Flow 生成稠密 LiDAR 强度图像，然后使用预训练特征匹配器将其与相机图像匹配，通过 PnP-RANSAC 估计 6DoF 相对位姿。该模型通过自监督图像补全任务预训练，并在少量 LiDAR 数据上进行微调（不需要图像-点云配对或真值传感器位姿），使其能够扩展到多种 LiDAR 和相机配置。在 R3LIVE 数据集上的实验表明，该方法实现了 4.89° / 1.63 m 的平均误差，优于现有方法，且单次配准约 0.68 秒。</p>
+  </div>
+
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>图像-点云配准（I2P）是什么？</strong> 你的机器人有相机（拍照片）和激光雷达（扫点云）。两个传感器看到的都是同一个世界，但数据形式完全不同——照片是像素矩阵，点云是三维坐标列表。I2P 就是回答：相机拍到的红色墙壁，对应点云里的哪些点？这个问题对多传感器融合至关重要。<br><br>
+
+      <strong>为什么难？</strong> 传统方法有两种路径，各有痛点：① 手工设计跨模态特征（比如在图像和点云上都提取边缘/角点），但手工特征容易受光照和视角变化影响；② 学习跨模态特征（用神经网络学一种"通吃"的特征表示），但需要大量图像-点云配对数据，标定成本极高。<br><br>
+
+      <strong>本文的思路很巧妙</strong>：既然配准难是因为图像和点云"长得不一样"，那就让它们"长得一样"。激光雷达不仅能扫三维坐标，还能同时记录每个点的反射强度（intensity）。反射强度可以渲染成一张"强度图像"——就像黑白照片一样。问题是原始 LiDAR 点云太稀疏了（一帧就几万个点），渲染出来的强度图像模糊不清。所以本文用 Rectified Flow（一种生成模型）把稀疏的强度图像"补全"成清晰的稠密图像。<br><br>
+
+      <strong>Rectified Flow 是什么？</strong> 一种概率生成模型，比扩散模型更简单高效。可以理解为：它从纯噪声开始，一步步"校正"成目标图像。本文训练它"看到稀疏的 LiDAR 强度图 → 生成对应的稠密强度图"。<br><br>
+
+      <strong>配准流程</strong>：原始 LiDAR → Rectified Flow 上采样 → 稠密强度图像 → 用现成图像特征匹配器（如 SuperPoint）与相机照片匹配 → PnP 解算位姿。整个过程 0.68 秒，可以实时。这个思路对多传感器融合的工程实践很有启发。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.14639v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 4.5</span>
+  <div class="mini-title">A Generative Partially Specified Finite State Machine Approach to Complex Behaviour Planning</div>
+  <div class="mini-cn">基于生成式部分指定有限状态机的复杂行为规划方法</div>
+  <div class="mini-oneliner">📌 首次将 LLM 与有限状态机（FSM）结合用于机器人行为规划，在 ROS 2 上实现，导航任务规划成功率显著优于 BTGenBot 等基于行为树的 SOTA 方法。</div>
+  <div class="mini-conn">🔗 与 <strong>E2Map</strong>（第 0001~0002 课）中 LLM 规划路径的思路相通——都是在高层用语言模型做决策规划。本文的 FSM 范式比行为树（BT）更轻量、可解释性更强。ROS 2 实现使其可直接在 TurtleBot 上部署对比。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15674v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 4.4</span>
+  <div class="mini-title">Beyond Frontiers: Scene-Anomaly Guided Autonomous Exploration</div>
+  <div class="mini-cn">SCAGE：场景异常引导的自主探索框架</div>
+  <div class="mini-oneliner">📌 将自主探索重新定义为"几何异常最小化"问题——机器人不再是盲目追逐前沿边界，而是寻找"看起来不对劲"的区域去进一步探测，地图覆盖率和重建质量均优于 SOTA。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0072~0074 课（建图）和第 0076 课（扩展讨论）中的"探索与建图的平衡"直接相关。SCAGE 的核心直觉——"没建好的地方比没去过的地方更值得探索"——对 TurtleBot 自主探索策略的设计有启发。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15828v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 4.3</span>
+  <div class="mini-title">Map as a Prompt: Learning Multi-Modal Spatial-Signal Foundation Models for Cross-scenario Wireless Localization</div>
+  <div class="mini-cn">SigMap：地图即提示——面向跨场景无线定位的多模态空间信号基础模型</div>
+  <div class="mini-oneliner">📌 提出"地图即提示"范式，将 3D 地理信息作为轻量软提示（Soft Prompt）注入无线信号定位模型，实现零样本跨场景泛化，在 5G/6G 定位任务上显著超越监督和自监督基线。</div>
+  <div class="mini-conn">🔗 "localization"关键词匹配。虽然无线（5G/6G）定位与 SLAM 定位技术路线不同，但其"将场景先验知识作为条件提示注入模型"的思路在 <strong>LSeg</strong>（第 0010~0011 课·语言提示）中已有雏形，跨领域借鉴价值较高。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15713v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 4.3</span>
+  <div class="mini-title">Multi-Objective Kinodynamic Motion Planning with Asymptotic Pareto Optimality</div>
+  <div class="mini-cn">多目标运动动力学规划——具备渐进帕累托最优性保证</div>
+  <div class="mini-oneliner">📌 在 SST（稳定稀疏 RRT）框架上将单代表节点替换为局部帕累托最优节点集，提出三种变体算法（lexSST / coSST / poSST），分别对应字典序优化、约束优化和帕累托前沿逼近，提供理论收敛性证明。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（运动规划 / 路径规划）中的 RRT 系列算法直接对应。多目标运动规划在 TurtleBot 等平台的应用场景包括：同时考虑"最短路径"和"最低能耗"的权衡——本文提供了带理论保证的解决方案。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15508v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 4.2</span>
+  <div class="mini-title">VTLoc: Learning-based Tactile Contact Localization in Visual Point Clouds</div>
+  <div class="mini-cn">VTLoc：基于学习的视觉点云触觉接触定位</div>
+  <div class="mini-oneliner">📌 视觉-触觉融合框架，利用 3D 点云作为视觉输入，预测触觉传感器在物体表面的接触位置，引入几何多模态对齐模块 + 迭代定位更新器，在 100 个实物物体上降低了触觉-视觉对应歧义。</div>
+  <div class="mini-conn">🔗 "point cloud" + "localization" 关键词匹配。虽然是触觉-视觉领域，与移动机器人 SLAM 的技术路线差异较大，但其多模态对齐和迭代精化的设计对 <strong>DFusion-SLAM</strong>（第 0079~0081 课）中的多模态融合模块设计有参考意义。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.16146v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔍 延伸关注（第 11–15 名）</h2>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">4.2</span> <span class="paper-rank" style="color:var(--ink-60);">#11</span>
+  <div class="en-title" style="font-size:var(--text-sm);">CLIFE: Camera-LiDAR Fusion Framework for Edge-Deployable Roadside VRU Perception</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">CLIFE：面向边缘部署的路侧视-激光融合易受伤害道路使用者感知</div>
+  <div class="authors" style="font-size:var(--text-xs);">Tam Bang, Hoang H. Nguyen, Lei Cheng, Lihao Guo, Siyang Cao, Hussam Abubakr, Tianya Zhang, Austin Harris, Mina Sartipi</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 在 JetSon AGX Thor 上实现 53.2 FPS 的相机-LiDAR 路侧融合感知，包含免标定在线对齐和轻量后融合跟踪，在 12 个真实路口部署验证。<br>
+    🔗 "LiDAR" + "sensor fusion" 关键词匹配。与 <strong>视觉 SLAM 十四讲</strong>第 0036~0037 课（传感器标定 / 点云）和第 0075 课（开源方案巡礼）相关，但侧重路侧而非车载。边缘部署在 53.2 FPS 的性能指标对移动机器人嵌入式平台的算法选型有参考价值。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.16154v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">4.1</span> <span class="paper-rank" style="color:var(--ink-60);">#12</span>
+  <div class="en-title" style="font-size:var(--text-sm);">RAVEN: Reinforcement-Adaptive Visibility-Graph Planning for Robust Humanoid Navigation with Collision-Free MPC</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">RAVEN：强化学习自适应可见性图规划 + 无碰撞 MPC 的鲁棒人形机器人导航</div>
+  <div class="authors" style="font-size:var(--text-xs);">Ruochen Hou, Shiqi Wang, Beom Jun Kim, Hanzhang Fang, Mehak Singal, Dennis W. Hong</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 RL 自适应调整可见性图规划的障碍物膨胀参数 + MPC 跟踪执行，在人形机器人上减少了过冲和窄通道碰撞问题。<br>
+    🔗 "MPC" + "model predictive control" 关键词匹配。<strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（运动规划）中可见性图是经典全局规划方法。本文"学习调整规划参数 + 约束优化执行"的混合思路可迁移到 TurtleBot 的导航栈参数自适应调整场景。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15701v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">4.1</span> <span class="paper-rank" style="color:var(--ink-60);">#13</span>
+  <div class="en-title" style="font-size:var(--text-sm);">Trajectory-aware Cross-view Geo-localization with Sequential Observations</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">TrajLoc：轨迹感知的序列观测跨视角地理定位</div>
+  <div class="authors" style="font-size:var(--text-xs);">Tianyi Gao, Jiayu Lin, Danielle Beaulieu, Nathan Jacobs</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 提出视频-文本-卫星三模态数据集 SeqGeo-VL 和统一框架 TrajLoc，同时支持视频片段和路线描述两种查询模态进行跨视角定位。<br>
+    🔗 "localization" 关键词匹配。跨视角定位与 <strong>视觉 SLAM 十四讲</strong>第 0046~0049 课（图像匹配 / 特征点）技术在视觉层面有交集。利用轨迹几何信息增强查询嵌入的 TrajMod 模块设计可借鉴到长期重定位问题。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15491v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">4.1</span> <span class="paper-rank" style="color:var(--ink-60);">#14</span>
+  <div class="en-title" style="font-size:var(--text-sm);">HoloGeo: Mitigating Landmark Bias in Geo-localization via Evidence-Driven Reasoning</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">HoloGeo：基于证据驱动推理减轻地理定位中的地标偏差</div>
+  <div class="authors" style="font-size:var(--text-xs);">Pengcheng Zhou, Xuanyu Liu, Yanchen Yin, Bobo Li, Shengqiong Wu, Mong-Li Lee, Wynne Hsu</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 系统研究 VLM 地理定位中的地标偏差问题（模型只看地标不看整体场景），提出定量指标和 HoloGeo 框架，在多维奖励引导下实现证据驱动的联合推理。<br>
+    🔗 "localization" 关键词匹配（地理定位而非机器人定位）。但其"多维度证据平衡"思路对 <strong>DFusion-SLAM</strong>（第 0078~0080 课）中的多特征融合策略有方法学启发。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15255v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<div class="paper-card" style="border-left-color:var(--border-light);background:var(--paper);">
+  <span class="paper-score" style="background:var(--ink-20);color:var(--ink-80);">4.1</span> <span class="paper-rank" style="color:var(--ink-60);">#15</span>
+  <div class="en-title" style="font-size:var(--text-sm);">MCF-Net: Motion-Conditioned Multi-View Fusion for Myocardial Infarction Localization from Echocardiography</div>
+  <div class="cn-title" style="font-size:var(--text-xs);">MCF-Net：运动条件多视图融合用于超声心动图心肌梗死定位</div>
+  <div class="authors" style="font-size:var(--text-xs);">Guang Yang, Wentian Xu, Siyu Wang, Betty Raman, Lei Li, Vicente Grau</div>
+  <p style="font-size:var(--text-xs);color:var(--ink-60);margin:var(--space-2) 0;">
+    📌 医学图像中"localization"的任务。在心肌梗死区域定位上提出运动引导多视图融合框架，用极稀疏标注（单帧模板）初始化点跟踪，达到 72.4% F1。<br>
+    🔗 "localization" 关键词匹配（医学定位，非机器人定位）。其"稀疏标注 + 基础模型 + 多视图融合"的管线设计对机器人领域标注稀缺场景的研究方法有借鉴意义，但内容上距离移动机器人较远。
+  </p>
+  <span class="links"><a href="https://arxiv.org/abs/2607.15268v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ LiDAR SLAM 从"轨迹精度"走向"地图质量"</h4>
+  <p>本周 #1 来自 Bonn Stachniss 团队的工作代表了一个重要转向：SLAM 社区不再满足于"机器人走得准"，而是开始系统地关注"地图建得好不好"。信息感知的 ICP 和追溯式回环检测都指向同一个目标——地图不仅是路径的副产品，而是需要被直接优化的对象。随着 3D 地图在导航、规划和交互中的角色越来越核心，这个趋势只会加速。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ 高动态定位：从"低速/静态"假设中解放出来</h4>
+  <p>WNOJ-LIO 针对 208 km/h 赛车的定位问题，展示了在极端动态下的突破。事实上，从低速室内机器人到高速自动驾驶，定位算法正在经历从"假设静态"到"拥抱动态"的转变。WNOJ 将 IMU 从"推手"变为"助手"的数学框架，对于任何带有低成本 IMU 的平台（包括 TurtleBot 在晃动/斜坡场景）都有借鉴价值。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 语言-导航闭环正在走向工程实用化</h4>
+  <p>#4 在 TurtleBot3 + Unitree Go2 上验证的语言驱动导航框架，标志着自然语言→导航执行这个研究方向从"概念验证"进入了"工程部署"阶段。模块化的 ROS 2 架构、标准 RGB-D 传感器、Nav2 导航栈——所有组件都是现成的、开源的。当代码开源后，这可能是 PaperLesson 实验平台上最值得复现的论文之一。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 生成模型渗透 3D 感知管线</h4>
+  <p>#5 的 Rectified Flow LiDAR 上采样是生成模型在 3D 感知管线中"插队"的一个漂亮例子——不是把生成模型当作独立任务，而是作为预处理模块来弥合传感器模态鸿沟。类似地，扩散模型、flow 模型正在被嵌入到标定、配准、补全等传统管线环节中。这种"生成模型即插即用"的趋势值得关注。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 — 第 30 周</span>
+  <a href="../index.html">← 返回课程馆</a>
+</div>
+
+<div class="report-header" style="margin-top:var(--space-6);">
+  <div class="subtitle">—— 顾清然 · PaperLesson 研究助理</div>
+</div>
+
+</div>
+</body>
+</html>
