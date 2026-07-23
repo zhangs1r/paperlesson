@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0104 课：隐密攻击策略设计 · Insider Attack · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});">
+</script>
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); margin-top: var(--space-2); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); color: var(--ink-80); }
+  .lesson .content h2 { font-family: var(--font-serif); font-size: var(--text-xl); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); color: var(--accent-deep); }
+  .lesson .content h3 { font-family: var(--font-serif); font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-3); color: var(--ink); }
+  .lesson .content h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: var(--space-5) 0 var(--space-2); color: var(--ink-80); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .callout { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: var(--accent-deep); }
+  .callout-info { background: #F0F6FA; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-info strong { color: #2C5B7A; }
+  .callout-warn { background: #FFF8F0; border-left: 4px solid #D4A853; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-warn strong { color: #B8860B; }
+  .formula-box { background: #F8F6F0; border: 1px dashed var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-4) 0; text-align: center; font-size: var(--text-lg); }
+  .formula-box .label { font-size: var(--text-xs); color: var(--ink-40); margin-top: var(--space-2); }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); padding: var(--space-1) 0; }
+  .exercise-box summary:hover { color: var(--accent); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); font-size: var(--text-sm); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent-deep); text-decoration: none; padding: var(--space-2) var(--space-3); border-radius: 6px; transition: background 0.2s; }
+  .footer-nav a:hover { background: var(--accent-dim); text-decoration: none; }
+  .footer-nav .back-home { color: var(--ink-40); }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); color: var(--ink-60); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  .step-list { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-4) var(--space-6); margin: var(--space-4) 0; }
+  .step-list li { margin: var(--space-2) 0; font-size: var(--text-sm); }
+  .speedrun { background: linear-gradient(135deg, #F7F4EE 0%, #F0ECE4 100%); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-5) 0; }
+  .speedrun .badge { display: inline-block; background: var(--accent); color: white; font-size: var(--text-xs); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; margin-bottom: var(--space-2); }
+  .speedrun h4 { margin-top: var(--space-3); font-family: var(--font-serif); }
+  .speedrun p, .speedrun li { font-size: var(--text-sm); }
+  figure { margin: var(--space-5) 0; text-align: center; }
+  figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  figure figcaption { font-size: var(--text-sm); color: var(--ink-60); margin-top: var(--space-2); font-style: italic; }
+  @media (max-width: 768px) { .lesson { padding: var(--space-4) var(--space-3); } }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>🎭 隐密攻击策略设计</h1>
+  <div class="subtitle">攻击者如何"偷偷"反转触发条件而不被检测？—— Algorithm 1 与隐密条件</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 Insider Attack · 第 4 课 / 共 6 课</span>
+    <span>🏷️ 攻击策略 · 隐密性 · 二分搜索</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      本节需要掌握 <strong>马尔可夫链</strong> 的基本概念（状态、转移矩阵、稳定分布）。如果你不熟悉，别担心——我们有一个 <strong>5 分钟速成段</strong> 帮你快速上手。另外需要理解上一课讲的触发条件反转（反转 $f_d$ 和 $f_s$）。
+    </div>
+
+    <!-- ============ 1. 问题：反转后通信率会变 ============ -->
+    <h2>1. 问题：反转后通信率会变</h2>
+
+    <p>在上一课中，攻击者反转了触发条件——让该通信的时候不通信，不该通信的时候反而通信。但这里有一个 <strong>致命问题</strong>：</p>
+
+    <div class="callout-warn">
+      <strong>⚠️ 问题</strong>：反转触发条件后，系统的 <strong>平均通信率</strong>（average communication rate）会改变。如果通信率突然变化，基于网络的管理系统很容易发现异常——这不是隐密攻击想要的。
+    </div>
+
+    <p>想象一下：你是一个攻击者，入侵了传感器网络的调度器。你反转了触发条件，让系统在正常情况下不该通信的时刻却发了数据包。监控人员一看流量统计——"咦？今天的通信率怎么从 30% 变成了 80%？"——立马就知道出问题了。</p>
+
+    <p>所以，攻击者需要 <strong>调整参数</strong>（$\delta^a$ 或 $\tilde{\Pi}$），使得反转后的平均通信率与反转前 <strong>完全一致</strong>。这样一来，从网络监控的角度看，一切正常。</p>
+
+    <!-- ============ 2. 平均通信率 ============ -->
+    <h2>2. 平均通信率的定义</h2>
+
+    <p>记 $\gamma_k$ 为时刻 $k$ 的通信指示变量（$\gamma_k = 1$ 表示通信，$\gamma_k = 0$ 表示不通信）。平均通信率定义为：</p>
+
+    <div class="formula-box">
+      $$ \lambda = \lim_{N \to \infty} \frac{1}{N} \sum_{k=1}^{N} \gamma_k $$
+      <div class="label">式 (1)：平均通信率定义</div>
+    </div>
+
+    <p>这个极限存在的条件是什么？如果 $\gamma_k$ 的序列具有 <strong>遍历性</strong>（ergodicity），那么时间平均等于系综平均（即平稳分布下的期望）。这正是我们接下来要讨论的。</p>
+
+    <!-- ============ 3. 马尔可夫链速成 ============ -->
+    <h2>3. ⏱ 马尔可夫链速成（5 分钟）</h2>
+
+    <div class="speedrun">
+      <span class="badge">5 MIN SPEEDRUN</span>
+      <p><strong>为什么在这里讲马尔可夫链？</strong> 因为调度器的工作状态 $\tau_k$ 就是一个马尔可夫链——当前时刻的状态只依赖于前一时刻，不依赖于更早的历史。分析这个链的统计特性，我们就能知道通信率是多少。</p>
+
+      <h4>3.1 什么是马尔可夫链？</h4>
+      <p>想象你每天吃什么早餐：</p>
+      <ul>
+        <li>今天吃面包 → 明天有 70% 概率继续吃面包，30% 概率改吃粥</li>
+        <li>今天吃粥 → 明天有 60% 概率继续吃粥，40% 概率改吃面包</li>
+      </ul>
+      <p>这就是一个马尔可夫链——<strong>明天的早餐只取决于今天的早餐</strong>，和昨天、前天吃什么无关。</p>
+
+      <h4>3.2 状态空间与转移矩阵</h4>
+      <p>在我们的场景中，$\tau_k$ 的状态空间是 $\{0, 1, \dots, \bar{h}\}$，其中每个状态代表"距上次通信过去了 $\tau_k$ 步"。转移矩阵 $T$ 的维度是 $(\bar{h}+1) \times (\bar{h}+1)$，其中：</p>
+
+      <div class="formula-box">
+        $$ T_{ij} = P(\tau_{k+1} = j \mid \tau_k = i) $$
+        <div class="label">式 (2)：转移矩阵定义</div>
+      </div>
+
+      <p>具体来说，如果当前 $\tau_k = i$：</p>
+      <ul>
+        <li><strong>通信发生</strong>（$\gamma_k = 1$，概率 $p_i$）：$\tau_{k+1}$ 回到 0</li>
+        <li><strong>通信未发生</strong>（$\gamma_k = 0$，概率 $1 - p_i$）：$\tau_{k+1}$ 增加到 $i+1$（如果 $i+1 \leq \bar{h}$）或保持在 $\bar{h}$</li>
+      </ul>
+
+      <h4>3.3 稳定分布</h4>
+      <p>经过足够多步（$k \to \infty$），链的分布会 <strong>收敛</strong> 到一个不随时间变化的分布 $\eta$，称为稳定分布（stationary distribution）：</p>
+
+      <div class="formula-box">
+        $$ \eta^\top = \eta^\top T $$
+        <div class="label">式 (3)：稳定分布方程</div>
+      </div>
+
+      <p>只要链是 <strong>遍历的</strong>（不可约 + 非周期），这个稳定分布存在且唯一，并且时间平均等于系综平均。所以：</p>
+
+      <div class="formula-box">
+        $$ \lambda = \sum_{i=0}^{\bar{h}} \eta_i \cdot p_i $$
+        <div class="label">式 (4)：平均通信率 = 稳定分布下的期望通信概率</div>
+      </div>
+    </div>
+
+    <!-- ============ 4. Algorithm 1：二分搜索找 δ^a ============ -->
+    <h2>4. Algorithm 1：二分搜索找 $\delta^a$</h2>
+
+    <p>现在问题明确了：攻击者要找一个 $\delta^a$（或 $\tilde{\Pi}$），使得反转后的平均通信率 $\lambda_d^a$ 等于反转前的 $\lambda_d$。</p>
+
+    <div class="callout-info">
+      <strong>💡 直觉</strong>：$\delta$ 是触发阈值。在确定性协议中，增大 $\delta$ 会降低通信概率（更难触发），减小 $\delta$ 会提高通信概率（更容易触发）。攻击者反转触发条件后，通信行为完全反了过来，所以需要找一个"补偿"的 $\delta^a$ 来恢复原来的通信率。
+    </div>
+
+    <p>论文提出的 <strong>Algorithm 1</strong> 使用二分搜索来解决这个问题：</p>
+
+    <div class="step-list">
+      <ol>
+        <li><strong>初始化</strong>：设定 $\delta^a$ 的上下界 $[\delta_{\min}^a, \delta_{\max}^a]$</li>
+        <li><strong>取中点</strong>：$\delta^a = (\delta_{\min}^a + \delta_{\max}^a) / 2$</li>
+        <li><strong>计算 $p_d^a$</strong>：根据反转后的触发条件和当前 $\delta^a$，计算每个状态的通信概率 $p_i^a$</li>
+        <li><strong>计算 $\lambda_d^a$</strong>：用马尔可夫链稳定分布计算平均通信率 $\lambda_d^a = \sum \eta_i \cdot p_i^a$</li>
+        <li><strong>比较</strong>：
+          <ul>
+            <li>如果 $\lambda_d^a > \lambda_d$：$\delta^a$ 太小，<strong>增大下界</strong> $\delta_{\min}^a = \delta^a$</li>
+            <li>如果 $\lambda_d^a < \lambda_d$：$\delta^a$ 太大，<strong>减小上界</strong> $\delta_{\max}^a = \delta^a$</li>
+          </ul>
+        </li>
+        <li><strong>循环</strong>：重复 2-5，直到 $|\lambda_d^a - \lambda_d| < \varepsilon$（收敛容差）</li>
+      </ol>
+    </div>
+
+    <div class="formula-box">
+      $$ \text{Algorithm 1: } \delta^a = \text{BisectionSearch}(\delta, \bar{h}, \varepsilon) \quad \text{s.t.} \quad |\lambda_d^a(\delta^a) - \lambda_d| < \varepsilon $$
+      <div class="label">Algorithm 1：二分搜索找 $\delta^a$ 使攻击前后的平均通信率相等</div>
+    </div>
+
+    <h3>4.1 为什么二分搜索能用？</h3>
+
+    <p>二分搜索能工作的前提是：<strong>$\lambda_d^a$ 关于 $\delta^a$ 单调</strong>。直觉上看：</p>
+    <ul>
+      <li>反转后，误差 $e_k$ 变大时才不通信（正常是变大时通信）</li>
+      <li>$\delta^a$ 越大，"不通信"的门槛越高 → 通信越频繁 → $\lambda_d^a$ 越大</li>
+      <li>$\delta^a$ 越小 → 通信越少 → $\lambda_d^a$ 越小</li>
+    </ul>
+
+    <p>所以 $\lambda_d^a$ 是 $\delta^a$ 的 <strong>单调递增函数</strong>，二分搜索一定能找到解（如果解在范围内）。</p>
+
+    <!-- ============ 5. 隐密条件 ============ -->
+    <h2>5. 隐密条件</h2>
+
+    <div class="callout">
+      <strong>🔑 核心条件</strong>：隐密攻击的充分必要条件是
+      <div style="margin-top: var(--space-2); font-weight: 600; font-size: var(--text-lg);">$$ \lambda_d^a = \lambda_d $$</div>
+      即攻击前后的 <strong>平均通信率不变</strong>，从而躲过基于网络流量统计的检测。
+    </div>
+
+    <p>对于随机性协议，类似地需要 $\lambda_s^a = \lambda_s$，但调整的是概率矩阵 $\tilde{\Pi}$ 而不是阈值 $\delta$。</p>
+
+    <p>满足隐密条件后，从网络监控的视角看：</p>
+    <ul>
+      <li>平均通信率没变 ✓</li>
+      <li>通信模式看起来正常 ✓</li>
+      <li>但实际上传输的内容是被攻击者操控的 ✗（所以叫"隐密攻击"）</li>
+    </ul>
+
+    <!-- ============ 练习 ============ -->
+    <h2>📝 练习</h2>
+
+    <details class="exercise-box">
+      <summary>📌 练习 1：手算验证通信概率和平均通信率</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：给定 $\delta = 1.377$，正常确定性协议的触发条件为 $|e_k| > \delta$，假设误差 $e_k \sim \mathcal{N}(0, 0.5^2)$，计算：</p>
+        <ol>
+          <li>某一时刻的通信概率 $p_d = P(|e_k| > \delta)$</li>
+          <li>平均通信率 $\lambda_d$（假设系统已进入稳态）</li>
+        </ol>
+
+        <p><strong>提示</strong>：$|e_k| > \delta$ 的概率为 $2 \cdot \Phi(-\delta / \sigma)$，其中 $\Phi$ 是标准正态 CDF。</p>
+
+        <p><strong>解答</strong>：</p>
+        <p>标准差 $\sigma = 0.5$，所以：</p>
+        <div class="formula-box">
+          $$ p_d = P(|e_k| > 1.377) = 2 \cdot \Phi\left(-\frac{1.377}{0.5}\right) = 2 \cdot \Phi(-2.754) $$
+        </div>
+        <p>查正态分布表（或计算）：$\Phi(-2.754) \approx 0.00294$</p>
+        <div class="formula-box">
+          $$ p_d \approx 2 \times 0.00294 = 0.00588 \approx 0.59\% $$
+        </div>
+        <p>如果系统已经进入稳态，$\lambda_d = p_d$（前提是每次触发独立）。所以平均通信率约为 <strong>0.59%</strong>——这意味着每 1000 个时刻中大约只通信 6 次，非常稀疏。</p>
+
+        <p><strong>注意</strong>：在实际系统中，$\tau_k$ 马尔可夫链的引入使得连续时刻之间的通信不独立，平均通信率需要按式 (4) 使用稳定分布加权计算，结果与 $p_d$ 略有不同但量级一致。</p>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>📌 练习 2：理解二分搜索的正确性</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：用你自己的话解释为什么二分搜索能保证找到正确的 $\delta^a$。什么条件下二分搜索会失败？</p>
+
+        <p><strong>参考答案</strong>：</p>
+        <p><strong>为什么能成功</strong>：因为 $\lambda_d^a(\delta^a)$ 是 $\delta^a$ 的单调递增函数（$\delta^a$ 越大，通信越频繁），且连续。二分搜索在单调函数上一定能收敛到目标值，就像在有序数组中找一个数一样。</p>
+
+        <p><strong>可能失败的情况</strong>：</p>
+        <ol>
+          <li><strong>初始范围不包含解</strong>：如果目标 $\lambda_d$ 不在 $[\lambda_d^a(\delta_{\min}^a), \lambda_d^a(\delta_{\max}^a)]$ 范围内，二分搜索会收敛到边界值而无法达到目标</li>
+          <li><strong>函数不单调</strong>：如果 $\lambda_d^a(\delta^a)$ 不是单调的（理论分析保证了单调性，但如果数值实现有缺陷则可能出现问题）</li>
+          <li><strong>精度要求过高</strong>：如果 $\varepsilon$ 设得太小，而数值计算精度不够，可能无法收敛</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>📌 练习 3：随机性协议的隐密调整</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：对于随机性协议，攻击者需要调整概率矩阵 $\tilde{\Pi}$ 而不是阈值 $\delta$。随机性协议的"二分搜索"应该搜索什么？维度有什么不同？</p>
+
+        <p><strong>参考答案</strong>：</p>
+        <p>随机性协议的触发概率矩阵 $\Pi$ 有 $(\bar{h}+1)$ 个自由参数（每个状态对应一个通信概率）。攻击者需要找一个新的矩阵 $\tilde{\Pi}$，使得反转后的平均通信率不变。</p>
+        <p>这不再是 <strong>一维</strong> 二分搜索，而是 <strong>$(\bar{h}+1)$ 维</strong> 的优化问题。论文中没有给出具体的搜索算法，但可能的方法包括：</p>
+        <ul>
+          <li>固定比率缩放：让 $\tilde{\Pi} = \alpha \cdot \Pi$，然后一维搜索 $\alpha$</li>
+          <li>保持分布形状不变，只整体平移</li>
+          <li>使用更一般的非线性优化方法</li>
+        </ul>
+      </div>
+    </details>
+
+    <!-- ============ 导航 ============ -->
+    <div class="footer-nav">
+      <a href="0103-触发条件反转与内部攻击模型.html">← 上一课：触发条件反转</a>
+      <a href="0105-性能分析与反转结论.html">下一课：性能反转结论 →</a>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.lesson -->
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

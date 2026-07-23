@@ -1,0 +1,306 @@
+<!DOCTYPE html><html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课程 0100 · 论文全景与问题动机 — Vulnerability Analysis of Event-Based Protocols Under Insider Attacks</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* ─── 课程专有样式 ─── */
+  body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-family: var(--font-serif); font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
+  .lesson-header .meta { display: flex; gap: 1rem; font-size: .85rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+
+  h2 { font-family: var(--font-serif); font-size: 1.2rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-family: var(--font-serif); font-size: 1rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+
+  p, li { font-family: var(--font-sans); line-height: 1.8; color: var(--ink); }
+
+  .highlight { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .highlight strong { color: var(--accent-deep); }
+
+  .quote { background: var(--gold-dim); border-left: 4px solid var(--gold); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .quote .en { font-style: italic; color: var(--ink-60); font-size: .85rem; margin-bottom: .3rem; }
+
+  .formula { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: center; font-family: "Times New Roman", "Noto Serif SC", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); overflow-x: auto; }
+
+  .story-box { background: linear-gradient(135deg, var(--paper-light) 0%, var(--accent-glow) 100%); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.5rem; margin: 1.5rem 0; }
+  .story-box h4 { color: var(--accent-deep); font-family: var(--font-serif); margin-bottom: .5rem; font-size: 1rem; }
+  .story-box p, .story-box li { font-size: .9rem; }
+
+  .protagonist-card { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .protagonist-card .card { background: var(--paper-light); padding: 1rem; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .protagonist-card .card h4 { font-family: var(--font-serif); color: var(--accent-deep); font-size: .95rem; margin-bottom: .4rem; }
+  .protagonist-card .card p, .protagonist-card .card li { font-size: .82rem; line-height: 1.6; }
+  .protagonist-card .card .tag { display: inline-block; padding: .1rem .5rem; border-radius: 4px; font-size: .7rem; font-weight: 600; margin-bottom: .5rem; letter-spacing: .03em; }
+
+  .reversal-box { background: linear-gradient(135deg, rgba(204, 120, 92, 0.08) 0%, rgba(212, 168, 83, 0.08) 100%); border: 2px solid var(--accent-light); border-radius: 12px; padding: 1.2rem 1.5rem; margin: 1.5rem 0; }
+  .reversal-box h4 { color: var(--accent-deep); font-family: var(--font-serif); font-size: 1rem; margin-bottom: .5rem; }
+  .reversal-box p { font-size: .9rem; }
+
+  .contribution-list { list-style: none; padding: 0; margin: 1rem 0; }
+  .contribution-list li { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: .7rem 1rem; margin-bottom: .5rem; font-size: .88rem; display: flex; align-items: flex-start; gap: .6rem; }
+  .contribution-list li .num { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: white; font-size: .75rem; font-weight: 700; flex-shrink: 0; margin-top: 3px; }
+
+  .sym-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .85rem; }
+  .sym-table th { background: var(--paper); font-family: var(--font-serif); font-weight: 700; color: var(--ink-80); border: 1px solid var(--border); padding: .5rem .75rem; text-align: left; }
+  .sym-table td { border: 1px solid var(--border); padding: .4rem .75rem; }
+  .sym-table tr:nth-child(even) { background: var(--paper-light); }
+  .sym-table .sym { font-family: "Times New Roman", serif; font-weight: 600; color: var(--accent-deep); }
+
+  .quiz { background: var(--paper); border-radius: 10px; padding: 1.2rem 1.5rem; margin: 1.5rem 0; border: 1px solid var(--border); }
+  .quiz h4 { font-family: var(--font-serif); color: var(--accent-deep); margin-bottom: .8rem; font-size: .95rem; }
+  .quiz .q-item { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border-light); }
+  .quiz .q-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .quiz .q-item .q { font-weight: 600; color: var(--ink); margin-bottom: .3rem; font-size: .9rem; }
+  .quiz .q-item .q::before { content: "Q"; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: white; font-size: .7rem; font-weight: 700; margin-right: .4rem; }
+  .quiz .q-item .hint { font-size: .78rem; color: var(--ink-40); margin-top: .2rem; font-style: italic; }
+
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav a { color: var(--accent-deep); text-decoration: none; }
+  .nav a:hover { text-decoration: underline; color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .protagonist-card { grid-template-columns: 1fr; }
+    body { padding: 1rem; }
+  }
+</style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:1rem;">← 返回主页</a>
+
+<div class="lesson-header">
+  <h1>📡 课程 0100：论文全景与问题动机</h1>
+  <div class="meta">
+    <span>Vulnerability Analysis of Event-Based Protocols Under Insider Attacks</span>
+    <span>Deng &amp; Li · IEEE TAC 2025</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     场景拉入：火星漫游者
+     ════════════════════════════════════════════ -->
+
+<h2>🌌 场景拉入：火星上的通信困境</h2>
+
+<div class="story-box">
+  <h4>🪐 想象你是一个火星漫游者</h4>
+  <p>你被扔在火星表面，每天只有 <strong>有限的几个时间窗口</strong> 能和 NASA 通信。信号要穿越几亿公里，延迟十几分钟。你的电池靠太阳能板撑着，每一焦耳都要精打细算。</p>
+  <p>你携带了大量传感器——摄像头、光谱仪、温度计——每秒钟都在采集数据。但问题是：</p>
+  <ul>
+    <li><strong>带宽有限：</strong> 通信通道就那么窄，不可能把每一帧图像都传回地球。</li>
+    <li><strong>能量有限：</strong> 每次发射信号都要消耗宝贵的电力。</li>
+    <li><strong>数据爆炸：</strong> 如果事无巨细全部发送，你会被自己的数据淹死。</li>
+  </ul>
+  <p>那该怎么办？聪明的工程师想到了一个方案——<strong>事件触发</strong>（Event-Triggered）通信：别什么都发，只有当你检测到 <em>"值得关注的变化"</em> 时才发数据。</p>
+</div>
+
+<p>这就是事件触发协议的核心直觉。它不像传统的<strong>时间触发</strong>（Time-Triggered）那样每个固定周期都发送数据包，而是让系统自己判断："现在有没有重要的新信息？如果有，就发；如果没有，就闭嘴。"</p>
+
+<div class="highlight">
+  <strong>💡 核心直觉：</strong> 在带宽和能量都受限的环境里，只在"有事发生"时才通信，可以大幅节省资源——前提是你的"有事发生"判断得准。
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     为什么要关心安全问题？
+     ════════════════════════════════════════════ -->
+
+<h2>🔐 为什么要关心安全问题？</h2>
+
+<p>信息物理系统（CPS）——比如火星漫游者、无人机群、智能电网、自动驾驶汽车——有四个共同特点：</p>
+
+<ol>
+  <li><strong>算力有限：</strong> 嵌入式单片机、低功耗芯片，跑不了完整的加密和防火墙</li>
+  <li><strong>安全机制薄弱：</strong> 很多工业协议在设计之初根本没考虑安全</li>
+  <li><strong>网络暴露：</strong> 无线通信天生容易被监听、篡改、干扰</li>
+  <li><strong>后果严重：</strong> 物理世界一旦出问题，不是重启就能解决的——车会撞、电网会垮</li>
+</ol>
+
+<p>事件触发协议本身是为了节省带宽而设计的，它假设"触发逻辑"是可信的。但如果我们把这个假设推翻呢？</p>
+
+<div class="quote">
+  <div class="en">"Security is not a feature; it's a property of the system design."</div>
+  <p>—— 当攻击者黑进传感器、篡改触发逻辑时，原本省带宽的协议会不会变成攻击者的帮凶？</p>
+</div>
+
+<p>这篇论文研究的正是这个问题：<strong>内部攻击者</strong>（已经渗透进系统、能操控传感器读数的攻击者）如何利用事件触发协议的机制来破坏系统性能——而且做得悄无声息。</p>
+
+
+<!-- ════════════════════════════════════════════
+     两个主角
+     ════════════════════════════════════════════ -->
+
+<h2>🎭 两个主角：确定性 vs. 随机性事件触发</h2>
+
+<p>论文聚焦于两种经典的事件触发协议，它们就像一对性格迥异的兄弟：</p>
+
+<div class="protagonist-card">
+  <div class="card">
+    <span class="tag" style="background:var(--accent-dim);color:var(--accent-deep);">确定性</span>
+    <h4>Deterministic ET (Wu et al. 2013)</h4>
+    <p>触发规则非常简单直白：</p>
+    <div class="formula">$\| \varepsilon_k \|_\infty > \delta \quad\Rightarrow\quad \text{发送}$</div>
+    <p>其中 $\varepsilon_k$ 是<strong>创新信息</strong>（innovation）——即当前测量值与基于历史预测的差值。$\delta$ 是一个预设阈值。</p>
+    <p style="margin-top:.4rem;font-size:.82rem;color:var(--ink-60);">📌 当创新超过阈值 $\delta$ 时就发，没超过就不发。干脆利落，没有任何随机性。</p>
+  </div>
+  <div class="card">
+    <span class="tag" style="background:var(--gold-dim);color:var(--gold);">随机性</span>
+    <h4>Stochastic ET (Han et al. 2015)</h4>
+    <p>触发规则带有随机因素：</p>
+    <div class="formula">$\mathbb{P}(\gamma_k = 1) = \exp\!\big(-\tfrac12 \varepsilon_k^\top \Pi\, \varepsilon_k\big)$</div>
+    <p>其中 $\gamma_k = 1$ 表示"发送"，$\Pi$ 是一个正定权重矩阵。创新越大，发送概率越接近 1；创新很小，发送概率也趋近 0。</p>
+    <p style="margin-top:.4rem;font-size:.82rem;color:var(--ink-60);">📌 给不确定性留了余地——即使创新稍微低于"阈值"，也有一定概率会发。</p>
+  </div>
+</div>
+
+<h3>学术界的共识（正常情况）</h3>
+
+<p>在没有攻击的正常情况下，学术界有一个公认的结论：</p>
+
+<div class="highlight">
+  <strong>✅ 共识：</strong> 在同等通信率（即每单位时间发送相同数量的数据包）下，<strong>确定性事件触发协议</strong>的估计误差更小、性能更好。因为它"该发的时候一定发，不该发的时候一定不发"，决策边界清晰。
+</div>
+
+<p>这个共识很直观——确定性协议像一个严格的守门人，把关精准；随机性协议则总有一些"不必要的发送"和"该发却漏发"的情况。所以大家都认为：确定性的更好。</p>
+
+
+<!-- ════════════════════════════════════════════
+     核心反转预告
+     ════════════════════════════════════════════ -->
+
+<h2>🔄 核心反转：一件事改变了所有</h2>
+
+<div class="reversal-box">
+  <h4>💥 如果攻击者反转触发条件</h4>
+  <p>这篇论文研究了一种极其精妙的<strong>内部攻击</strong>：攻击者不是简单地篡改传感器读数，而是<strong>反转了事件触发的逻辑</strong>。</p>
+  <p style="margin-top:.6rem;">具体来说：</p>
+  <ul>
+    <li><strong>创新大的时候</strong>（本该发送的时刻）→ 攻击者让系统<strong>不发送</strong></li>
+    <li><strong>创新小的时候</strong>（本不该发送的时刻）→ 攻击者让系统<strong>反而发送</strong></li>
+  </ul>
+  <p style="margin-top:.6rem;"><strong>结果令人震惊：</strong> 被攻击后，原本性能更好的<strong>确定性协议反而沦为了更差的协议</strong>——它的估计误差竟然超过了随机性协议。那个学术界引以为傲的共识，被整个翻了过来。</p>
+</div>
+
+<p>为什么？因为确定性协议的"边界太清晰"反而成了弱点——攻击者知道精确的阈值在哪里，可以精准地"挑最痛的地方下手"。而随机性协议的内在随机性反而提供了一层天然的模糊保护：攻击者无法精确预测系统的行为。</p>
+
+<div class="quote">
+  <p>🔥 这就好比你有一个极其规律的作息习惯（确定性），小偷知道每晚10点你肯定睡着了，于是精准入室。而你的室友作息飘忽不定（随机性），小偷反而无从下手。<strong>规律性本身，在对抗性环境下变成了一个漏洞。</strong></p>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     论文贡献
+     ════════════════════════════════════════════ -->
+
+<h2>🏆 论文贡献</h2>
+
+<p>这篇论文（Deng &amp; Li, IEEE Transactions on Automatic Control, 2025）做出了以下三个核心贡献：</p>
+
+<ul class="contribution-list">
+  <li>
+    <span class="num">1</span>
+    <div><strong>误差协方差闭式推导：</strong> 在内部攻击下，推导了<strong>确定性</strong>和<strong>随机性</strong>两种事件触发协议的估计误差协方差（Error Covariance）的<strong>闭合形式</strong>（closed-form）。这意味着我们不再需要靠蒙特卡洛仿真来猜测受影响程度，而是可以直接用公式算出。</div>
+  </li>
+  <li>
+    <span class="num">2</span>
+    <div><strong>隐蔽攻击策略设计（Algorithm 1）：</strong> 设计了一类特殊的攻击策略——攻击者反转触发条件的同时，<strong>保持总通信率与无攻击时完全相同</strong>。这使得攻击极难被检测：操作员看到"通信率正常"，以为一切安好，但系统内部已经一团糟。</div>
+  </li>
+  <li>
+    <span class="num">3</span>
+    <div><strong>反转结论的形式化证明（Theorem 4）：</strong> 严格证明了在特定条件下，被攻击后<strong>确定性协议的稳态估计误差反而大于随机性协议</strong>。用数学语言把这个反直觉的结论钉死了。</div>
+  </li>
+</ul>
+
+
+<!-- ════════════════════════════════════════════
+     符号对照表
+     ════════════════════════════════════════════ -->
+
+<h2>📖 符号对照表</h2>
+
+<p>为了后续课程的学习，我们先熟悉一下论文中用到的主要符号：</p>
+
+<table class="sym-table">
+  <thead>
+    <tr>
+      <th style="width:80px;">符号</th>
+      <th>含义</th>
+      <th style="width:200px;">备注</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td class="sym">$A$</td><td>系统状态转移矩阵</td><td>描述系统如何从 $x_{k-1}$ 演化到 $x_k$</td></tr>
+    <tr><td class="sym">$C$</td><td>测量矩阵</td><td>把状态 $x_k$ 映射到测量值 $y_k$</td></tr>
+    <tr><td class="sym">$Q$</td><td>过程噪声协方差</td><td>代表系统模型的不确定性</td></tr>
+    <tr><td class="sym">$R$</td><td>测量噪声协方差</td><td>代表传感器读数的不确定性</td></tr>
+    <tr><td class="sym">$x_k$</td><td>$k$ 时刻的系统状态</td><td>我们想估计的物理量</td></tr>
+    <tr><td class="sym">$y_k$</td><td>$k$ 时刻的测量值</td><td>传感器读到的数据</td></tr>
+    <tr><td class="sym">$P$</td><td>估计误差协方差（一般形式）</td><td>衡量估计的"不准程度"</td></tr>
+    <tr><td class="sym">$\bar P$</td><td>先验误差协方差</td><td>融合测量前的预测不确定性</td></tr>
+    <tr><td class="sym">$K$</td><td>卡尔曼增益</td><td>状态估计中的加权因子</td></tr>
+    <tr><td class="sym">$\gamma_k$</td><td>触发指示变量（0/1）</td><td>$\gamma_k = 1$ 表示发送，0 表示不发送</td></tr>
+    <tr><td class="sym">$\varepsilon_k$</td><td>创新信息（innovation）</td><td>$\varepsilon_k = y_k - C A \hat x_{k-1}$</td></tr>
+    <tr><td class="sym">$\delta$</td><td>确定性协议阈值</td><td>$\|\varepsilon_k\|_\infty > \delta$ 时触发</td></tr>
+    <tr><td class="sym">$\Pi$</td><td>随机性协议权重矩阵</td><td>控制发送概率的衰减速度</td></tr>
+    <tr><td class="sym">$\tau_k$</td><td>攻击下的触发变量</td><td>被篡改后的发送决策</td></tr>
+    <tr><td class="sym">$\hbar$</td><td>攻击方向指示</td><td>反转触发条件的方向参数</td></tr>
+    <tr><td class="sym">$\xi_k$</td><td>归一化创新</td><td>$\xi_k = \Sigma^{-1/2} \varepsilon_k$</td></tr>
+    <tr><td class="sym">$\zeta_k$</td><td>均匀随机变量</td><td>用于随机性协议的掷骰子</td></tr>
+    <tr><td class="sym">$\alpha(\delta^a)$</td><td>攻击偏移量</td><td>攻击者选择的触发阈值偏移</td></tr>
+    <tr><td class="sym">$\Theta$</td><td>触发概率函数的参数集</td><td>多种触发机制的统一表示</td></tr>
+    <tr><td class="sym">$\Sigma$</td><td>创新的协方差</td><td>$\Sigma = C \bar P C^\top + R$</td></tr>
+  </tbody>
+</table>
+
+<p style="font-size:.82rem;color:var(--ink-40);">💡 建议在后续阅读中反复对照此表。符号理解是啃论文的第一道关。</p>
+
+
+<!-- ════════════════════════════════════════════
+     练习
+     ════════════════════════════════════════════ -->
+
+<h2>✏️ 练习</h2>
+
+<div class="quiz">
+  <div class="q-item">
+    <div class="q">为什么事件触发（Event-Triggered）比时间触发（Time-Triggered）更适合带宽受限的场景？</div>
+    <p style="font-size:.85rem;color:var(--ink-60);margin-top:.3rem;">从资源利用效率的角度思考：时间触发不管有没有新信息都发送，事件触发只在"值得发送"的时候才发。在火星漫游者的场景中，大部分时间环境是稳定的（温度变化不大、没有新地形），如果你每秒钟都发送数据，大量的数据包包含的是冗余信息，浪费了宝贵的带宽和能量。</p>
+    <div class="hint">💡 提示：想一想"通信资源"和"信息价值"之间的权衡。</div>
+  </div>
+  <div class="q-item">
+    <div class="q">如果你是攻击者，已经黑进了火星漫游者的传感器系统，你想到的第一个攻击方向是什么？</div>
+    <p style="font-size:.85rem;color:var(--ink-60);margin-top:.3rem;">没有标准答案，但可以想象：最简单的攻击是篡改创新值 $\varepsilon_k$，让系统该发的时候不发、不该发的时候发。或者更精妙一点——你不想被检测到，所以你保持总的通信率不变，只<em>反转</em>发送的内容（什么时候发、什么时候不发）。注意：攻击者的目标不一定是破坏系统，而是让系统的<strong>估计误差变大</strong>，同时<strong>不被发现</strong>。</p>
+    <div class="hint">💡 提示：考虑隐蔽性——如何让攻击难以被操作员发现？</div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     下节预告
+     ════════════════════════════════════════════ -->
+
+<div class="nav">
+  <span></span>
+  <a href="#">下一课 → 系统建模与问题公式化</a>
+</div>
+
+<hr style="margin-top:2rem;">
+
+<p style="text-align:center;font-size:.8rem;color:var(--ink-40);">
+  Deng &amp; Li, "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks" · IEEE TAC 2025
+</p>
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html><html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0103 · 内部攻击模型与误差演化 — 反转触发与掩蔽</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
+  .lesson-header .meta { display: flex; gap: 1rem; font-size: .85rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.2rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-size: 1rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+  .highlight { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .highlight strong { color: var(--accent-deep); }
+  .formula { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: center; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); overflow-x: auto; }
+  .formula-left { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: left; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); overflow-x: auto; }
+  .tip { background: rgba(90, 158, 111, 0.12); border-left: 4px solid var(--green, #5A9E6F); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .tip strong { color: var(--green, #5A9E6F); }
+  .warning { background: rgba(212, 168, 83, 0.12); border-left: 4px solid var(--gold, #D4A853); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .warning strong { color: var(--gold, #D4A853); }
+  .danger { background: rgba(220, 53, 69, 0.08); border-left: 4px solid #dc3545; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .danger strong { color: #dc3545; }
+  .quiz { background: var(--paper); border-radius: 8px; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--border); }
+  .quiz h4 { color: var(--accent-deep); margin-bottom: .5rem; font-size: .95rem; }
+  .quiz ol, .quiz ul { padding-left: 1.2rem; font-size: .9rem; }
+  .quiz ol li, .quiz ul li { margin-bottom: .4rem; }
+  .quiz details { margin-top: .6rem; }
+  .quiz details summary { cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: .9rem; padding: .3rem 0; }
+  .quiz details summary:hover { color: var(--accent); }
+  .quiz details .answer { margin-top: .5rem; padding: .8rem; background: var(--green-dim, rgba(90,158,111,0.08)); border-radius: 6px; font-size: .88rem; border-left: 3px solid var(--green, #5A9E6F); }
+  .def-box { background: rgba(102, 126, 234, 0.08); border-left: 4px solid #667eea; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .def-box strong { color: #667eea; }
+  figure { margin: 1.5rem 0; text-align: center; }
+  figure img { width: 100%; max-width: 720px; border-radius: 8px; box-shadow: var(--shadow-md); }
+  figcaption { font-size: .8rem; color: var(--ink-40); margin-top: .5rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .88rem; }
+  th, td { padding: .5rem .6rem; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--paper); color: var(--ink-80); font-weight: 600; white-space: nowrap; }
+  td { background: var(--paper-light); }
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav a { color: var(--accent-deep); text-decoration: none; }
+  .nav a:hover { text-decoration: underline; color: var(--accent); }
+  ul, ol { margin-left: 1.2rem; font-size: .9rem; line-height: 1.7; margin-bottom: .8rem; }
+  p { margin-bottom: .8rem; line-height: 1.7; }
+  @media (max-width: 768px) { .lesson-header .meta { flex-direction: column; gap: .3rem; } }
+</style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>🔒 第 0103 课：内部攻击模型与误差演化</h1>
+  <div class="meta">
+    <span>内部攻击下的 CPS 安全估计</span>
+    <span>⏱ 阅读时间：30 分钟</span>
+    <span>📄 精读课程 · 第 3 课 / 共 6 课</span>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>🎯 本课目标：</strong>建立<strong>内部攻击者模型</strong>——攻击者能篡改事件触发条件但篡改后的数据看起来"正常"。推导反转触发下两种事件触发协议的误差协方差演化公式。
+</div>
+
+<figure>
+  <img src="assets/insider-attack/fig1-architecture.jpg" alt="系统架构图" loading="lazy">
+  <figcaption>图 1：系统架构。传感器、远程估计器、攻击者三者关系。</figcaption>
+</figure>
+
+<h2>1. 攻击者能力假设</h2>
+
+<p>我们考虑的是<strong>内部攻击者（insider attacker）</strong>——攻击者已经渗透了传感器节点，拥有一定的内部访问权限。具体来说，攻击者具备以下能力：</p>
+
+<div class="def-box">
+  <strong>假设 1（系统知识）：</strong>攻击者知道系统的全部参数——包括状态转移矩阵 $A$、观测矩阵 $C$、噪声协方差 $Q$ 和 $R$、事件触发协议的阈值参数 $\delta$（确定性协议）或 $\Pi$（随机性协议）。
+</div>
+
+<div class="def-box">
+  <strong>假设 2（篡改触发）：</strong>攻击者可以篡改传感器的事件触发逻辑，包括：
+  <ul style="margin-top:.3rem;">
+    <li><strong>反转触发决策</strong>——把原本该发的改成不发，不该发的改成发</li>
+    <li><strong>篡改触发参数</strong>——修改阈值 $\delta$ 或 矩阵 $\Pi$</li>
+  </ul>
+</div>
+
+<div class="danger">
+  <strong>⚠ 关键约束：</strong>攻击者<strong>不能直接修改数据包内容</strong>。传输层有加密和完整性校验（如数字签名），攻击者无法伪造有效的测量数据包。攻击者的手段仅限于<strong>控制传感器的传输决策</strong>。
+</div>
+
+<p>这一约束非常符合实际——许多 CPS 安全攻防场景中，加密信道保护数据真实性，但传感器节点的传输调度逻辑更容易受到软件层面的攻击（固件篡改、后门触发等）。</p>
+
+<h2>2. 反转触发策略</h2>
+
+<p>攻击者将事件触发条件<strong>反转</strong>，使得：</p>
+
+<div class="formula">
+  $\gamma_k^a = \begin{cases} 1, & \varepsilon_k \in \widetilde{\Xi}_k \\ 0, & \varepsilon_k \notin \widetilde{\Xi}_k \end{cases}$
+</div>
+
+<p>即：<strong>创新小的时候才发送</strong>，创新大的时候不发送。这是对正常协议的完全颠倒。</p>
+
+<div class="highlight">
+  <strong>🎯 攻击者动机：</strong>
+  <ul style="margin-top:.3rem;">
+    <li>创新大时的测量值包含最多新信息（Kalman 滤波修正大）</li>
+    <li>攻击者故意<strong>阻止这些高信息量的测量被发送</strong></li>
+    <li>远程估计器只能收到创新小的数据，对状态估计的帮助微乎其微</li>
+    <li>无线通信率与正常情况相近，不易被检测到异常</li>
+  </ul>
+</div>
+
+<h2>3. 攻击者的掩蔽手段</h2>
+
+<p>攻击者不仅要搞破坏，还要<strong>不被发现</strong>。如果通信率发生剧烈变化，网络安全监控系统就会报警。为此攻击者同时篡改触发参数来维持通信率。</p>
+
+<h3>3.1 确定性协议下的掩蔽</h3>
+
+<p>攻击者篡改阈值 $\delta$ 为 $\delta^a$。原来的通信概率为 $p_d = 2Q(\delta)$，攻击后期望通信率不变，需满足：</p>
+
+<div class="formula">
+  $p_d^a = 2Q(\delta^a) = 1 - 2Q(\delta^a) \quad \Rightarrow \quad Q(\delta^a) = \frac{1}{4}$
+</div>
+
+<p>解得 $\delta^a \approx 0.6745$。此时攻击者设置的"反转阈值"让原本每次都应传输的大创新值不被发送。</p>
+
+<div class="tip">
+  <strong>💡 理解：</strong>攻击者选 $\delta^a$ 使得<strong>通信率看起来正常</strong>——网络流量监控看不出异常，但传输的内容却从"有价值的信息"变成了"已经知道的事情"。
+</div>
+
+<h3>3.2 随机性协议下的掩蔽</h3>
+
+<p>攻击者篡改矩阵 $\Pi$ 为 $\widetilde{\Pi}$。通过调整 $\widetilde{\Pi}$ 使得：</p>
+
+<div class="formula">
+  $p_s^a = 1 - \frac{1}{\sqrt{|I + K Z K^\top \widetilde{\Pi}|}} = p_d$
+</div>
+
+<p>即攻击后的通信概率与正常协议下的通信概率保持一致，掩盖攻击行为。</p>
+
+<h2>4. Theorem 1：确定性协议下的攻击后误差协方差</h2>
+
+<p>这是论文的第一个核心理论结果。</p>
+
+<div class="def-box">
+  <strong>Theorem 1（确定性协议·反转攻击）：</strong>在确定性事件触发协议下，遭受反转触发攻击后，远程估计器的误差协方差为：
+  <div class="formula-left" style="margin-top:.5rem;">
+    $\displaystyle \widetilde{P}_k^d = P + (1 - \gamma_k^a) \big[ 1 + \alpha(\delta^a) \big] \big[ h^{\tau_k}(P) - P \big]$
+  </div>
+  <p style="margin-top:.5rem;">其中：</p>
+  <div class="formula-left">
+    $\displaystyle \alpha(\delta^a) = \frac{\delta^a}{\sqrt{2\pi}} \exp\!\left(-\frac{(\delta^a)^2}{2}\right) Q^{-1}(\delta^a)$
+  </div>
+</div>
+
+<h3>4.1 公式解读</h3>
+
+<table>
+  <tr>
+    <th>符号</th>
+    <th>含义</th>
+    <th>攻击影响</th>
+  </tr>
+  <tr>
+    <td>$P$</td>
+    <td>理想 Kalman 滤波稳态误差</td>
+    <td>不变</td>
+  </tr>
+  <tr>
+    <td>$h^{\tau_k}(P)$</td>
+    <td>开环预测 $\tau_k$ 步的误差</td>
+    <td>不变</td>
+  </tr>
+  <tr>
+    <td>$\gamma_k^a$</td>
+    <td>攻击后的传输决策</td>
+    <td>被反转：大创新时不发送（$\gamma_k^a = 0$）</td>
+  </tr>
+  <tr>
+    <td>$\alpha(\delta^a)$</td>
+    <td>额外不确定性系数</td>
+    <td>攻击者调整 $\delta^a$ 后 $\alpha > 0$，放大误差</td>
+  </tr>
+</table>
+
+<div class="highlight">
+  <strong>🔍 直觉：</strong>
+  <ul style="margin-top:.3rem;">
+    <li>当 $\gamma_k^a = 1$（攻击者允许发送）时，$\widetilde{P}_k^d = P$——误差回归理想水平。</li>
+    <li>当 $\gamma_k^a = 0$（攻击者阻止发送）时，误差从 $P$ 向 $h^{\tau_k}(P)$ 方向<strong>额外放大</strong>，放大因子 $[1 + \alpha(\delta^a)] > 1$。</li>
+    <li>$\alpha(\delta^a)$ 随 $\delta^a$ 变化——攻击者可以通过选择 $\delta^a$ 来控制破坏程度。</li>
+  </ul>
+</div>
+
+<h2>5. Definition 1：完全高斯陨石坑分布</h2>
+
+<p>论文引入了一个重要的分布概念来解释随机性协议下的攻击效果。为给出随机协议下的结果，首先定义一个特殊的条件概率分布。</p>
+
+<div class="def-box">
+  <strong>Definition 1（完全高斯陨石坑分布，Fully Gaussian Crater Distribution）：</strong>一个随机向量 $\xi \in \mathbb{R}^n$ 服从参数为 $(\mu, \Sigma)$ 的完全高斯陨石坑分布，记作 $\xi \sim \text{FGC}(\mu, \Sigma)$，如果其概率密度函数为：
+  <div class="formula-left" style="margin-top:.5rem;">
+    $\displaystyle f_\xi(x) = \frac{1 - \exp\!\big(-\tfrac12 (x-\mu)^\top \Sigma^{-1} (x-\mu)\big)}{(2\pi)^{n/2} |\Sigma|^{1/2} \big(1 - 2^{-n/2} |\Sigma|^{-1/2}\big)}$
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>💡 直觉理解：</strong>"陨石坑"（Crater）这个名字很形象——普通高斯分布在中心最高、向四周平滑下降；而"陨石坑分布"在中心处<strong>凹陷</strong>（概率密度反而低），形状像火山口。这来源于随机性触发条件 $\zeta_k \le \exp(-\tfrac12 \varepsilon_k^\top \Pi \varepsilon_k)$ 造成的"选择性过滤"——某些中心附近的样本被系统性地排除（因为它们的传输概率被 $\exp(-\tfrac12 \varepsilon_k^\top \Pi \varepsilon_k)$ 判定为高，攻击者反转后不让发）。
+</div>
+
+<h2>6. Theorem 2：随机性协议下的攻击后误差协方差</h2>
+
+<div class="def-box">
+  <strong>Theorem 2（随机性协议·反转攻击）：</strong>在随机性事件触发协议下，遭受反转触发攻击后，通信概率变为：
+  <div class="formula-left" style="margin-top:.5rem;">
+    $\displaystyle p_s^a = \frac{1}{\sqrt{|I + K Z K^\top \widetilde{\Pi}|}}$
+  </div>
+  <p style="margin-top:.5rem;">远程估计器的误差协方差由 FGC 分布推导得出，其结构形式与确定性协议类似——被阻止传输时误差向 $h^{\tau_k}(P)$ 方向发散，但具体放大因子由 $\widetilde{\Pi}$ 决定。</p>
+</div>
+
+<div class="warning">
+  <strong>📌 关键观察：</strong>攻击后的通信概率与正常随机性协议的通信概率互为补数。在随机性协议下，反转触发让高概率传输的样本变为低概率，低概率变为高概率——但攻击者可以通过精心选取 $\widetilde{\Pi}$ 来维持总体通信率，实现"隐蔽破坏"。
+</div>
+
+<h2>7. 误差演化的直观理解</h2>
+
+<p>为什么反转触发会让估计更差？以下是一个直观的数值例子：</p>
+
+<div class="def-box">
+  <strong>情景模拟：</strong>
+  <ul>
+    <li>假设系统运行在稳态，$P = 1.0$</li>
+    <li>开环预测 $\tau$ 步后 $h^\tau(P) = 3.0$</li>
+    <li>攻击者选择 $\delta^a = 0.6745$，计算得 $\alpha(\delta^a) \approx 0.25$</li>
+    <li>当攻击者阻止传输时：$\widetilde{P}_k^d = 1.0 + (1 + 0.25) \times (3.0 - 1.0) = 3.5$</li>
+    <li>相比之下，正常的确定性协议下：$P_k^d = 1.0 + 0.15 \times (3.0 - 1.0) = 1.3$</li>
+  </ul>
+  <p style="margin-top:.5rem;"><strong>结果：</strong>攻击使误差从 1.3 飙升至 3.5，放大约 2.7 倍！</p>
+</div>
+
+<h2>8. 预告：马尔可夫链</h2>
+
+<div class="tip">
+  <strong>🔮 下节课预告：</strong>$\tau_k$（自上次传输以来的步数）的演化其实是一个<strong>马尔可夫链</strong>。$\tau_k$ 的状态转移矩阵由传输决策 $\gamma_k$ 的概率决定。下节课我们将：
+  <ul style="margin-top:.3rem;">
+    <li>建立 $\tau_k$ 的马尔可夫链模型</li>
+    <li>推导攻击前后稳态分布的变化</li>
+    <li>用稳态分布计算<strong>长期平均误差协方差</strong></li>
+  </ul>
+</div>
+
+<table>
+  <tr>
+    <th>课程</th>
+    <th>内容</th>
+    <th>状态</th>
+  </tr>
+  <tr>
+    <td>0101</td>
+    <td>Kalman 滤波基础</td>
+    <td>✅ 已完成</td>
+  </tr>
+  <tr>
+    <td>0102</td>
+    <td>事件触发协议（确定性 + 随机性）</td>
+    <td>✅ 已完成</td>
+  </tr>
+  <tr>
+    <td>0103</td>
+    <td>内部攻击模型与误差演化 ← <strong>当前</strong></td>
+    <td>📖 学习中</td>
+  </tr>
+  <tr>
+    <td>0104</td>
+    <td>马尔可夫链与稳态分析</td>
+    <td>🔜 下一课</td>
+  </tr>
+</table>
+
+<h2>📝 练习</h2>
+
+<div class="quiz">
+  <h4>✏️ 练习：理解反转触发对估计的影响</h4>
+  <ol>
+    <li>为什么反转触发（创新小才发，大时不发）比完全阻断通信更"危险"？</li>
+    <li>攻击者为什么需要维持通信率？如果通信率明显下降会怎样？</li>
+    <li>确定性协议下，如果攻击者不篡改 $\delta$（即 $\delta^a = \delta$），会发生什么？</li>
+    <li>完全高斯陨石坑分布的"中心凹陷"现象在攻击场景中对应什么物理过程？</li>
+  </ol>
+  <details>
+    <summary>📖 查看解答</summary>
+    <div class="answer">
+      <ol>
+        <li><strong>隐蔽性。</strong>完全阻断通信非常容易被检测——网络监控会立即发现通信中断。反转触发下通信率基本正常，安全系统误以为一切正常，但远程估计器接收的全是"无用"数据（创新小的数据不提供新信息），导致估计误差不可逆地增大。</li>
+        <li><strong>不被检测。</strong>如果通信率明显下降或异常上升，网络安全监控系统会发出警报。攻击者通过篡改参数（$\delta^a$ 或 $\widetilde{\Pi}$）使通信率保持在正常水平，让攻击行为"隐形"。</li>
+        <li>如果 $\delta^a = \delta$，那么由于反转触发，$p_d^a = 1 - p_d$——通信率发生了剧烈变化（从 $p_d$ 变为 $1-p_d$）。例如正常工作时 30% 的通信率突然变为 70%，立刻就会被检测到。所以攻击者必须调整 $\delta^a$ 使 $p_d^a \approx p_d$。</li>
+        <li>随机性协议下，传输概率 $p(\varepsilon_k) = \exp(-\tfrac12 \varepsilon_k^\top \Pi \varepsilon_k)$ 在创新大时趋近于 0，在创新小时接近 1。反转触发后，$\varepsilon_k$ 靠近原点（小创新）的被<strong>排除</strong>（不再传输），而大创新的被<strong>保留</strong>（传输）。这导致接收到的 $\varepsilon_k$ 分布在中心处凹陷——正是"陨石坑形状"的由来。</li>
+      </ol>
+    </div>
+  </details>
+</div>
+
+<div class="highlight">
+  <strong>📌 本课要点回顾：</strong>
+  <ol style="margin-top:.3rem;">
+    <li>内部攻击者能<strong>篡改触发条件</strong>但不能直接改数据包内容。</li>
+    <li><strong>反转触发</strong>让小创新发送、大创新不发，最大化破坏估计性能。</li>
+    <li>攻击者通过<strong>篡改参数</strong>（$\delta^a$ 或 $\widetilde{\Pi}$）维持通信率，实现隐蔽破坏。</li>
+    <li><strong>Theorem 1</strong> 给出确定性协议下反转攻击的误差协方差公式。</li>
+    <li><strong>Theorem 2</strong> 给出随机性协议下反转攻击的误差协方差，涉及 FGC 分布。</li>
+    <li>$\tau_k$ 的演化本质上是<strong>马尔可夫链</strong>，下节课深入分析。</li>
+  </ol>
+</div>
+
+<div class="nav">
+  <a href="0102-事件触发协议.html">← 上一课：事件触发协议</a>
+  <a href="0104-马尔可夫链与稳态分析.html">下一课：马尔可夫链与稳态分析 →</a>
+</div>
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0105 课：性能分析与反转结论 · Insider Attack · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});">
+</script>
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); margin-top: var(--space-2); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); color: var(--ink-80); }
+  .lesson .content h2 { font-family: var(--font-serif); font-size: var(--text-xl); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); color: var(--accent-deep); }
+  .lesson .content h3 { font-family: var(--font-serif); font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-3); color: var(--ink); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .callout { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: var(--accent-deep); }
+  .callout-info { background: #F0F6FA; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-info strong { color: #2C5B7A; }
+  .callout-warn { background: #FFF8F0; border-left: 4px solid #D4A853; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-warn strong { color: #B8860B; }
+  .callout-result { background: #F0FAF0; border-left: 4px solid var(--green); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-result strong { color: #3D7A4F; }
+  .formula-box { background: #F8F6F0; border: 1px dashed var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-4) 0; text-align: center; font-size: var(--text-lg); }
+  .formula-box .label { font-size: var(--text-xs); color: var(--ink-40); margin-top: var(--space-2); }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); padding: var(--space-1) 0; }
+  .exercise-box summary:hover { color: var(--accent); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); font-size: var(--text-sm); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent-deep); text-decoration: none; padding: var(--space-2) var(--space-3); border-radius: 6px; transition: background 0.2s; }
+  .footer-nav a:hover { background: var(--accent-dim); text-decoration: none; }
+  .footer-nav .back-home { color: var(--ink-40); }
+  .reasoning-chain { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-4) var(--space-6); margin: var(--space-5) 0; counter-reset: step; }
+  .reasoning-chain li { list-style: none; margin: var(--space-4) 0; padding-left: var(--space-6); position: relative; font-size: var(--text-sm); }
+  .reasoning-chain li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 24px; height: 24px; background: var(--accent-dim); color: var(--accent-deep); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; }
+  .reasoning-chain li strong { display: block; margin-bottom: var(--space-1); color: var(--ink); }
+  .inequality-box { background: linear-gradient(135deg, #FFF8F0 0%, #FFF0E0 100%); border: 1px solid #E8D5B0; border-radius: 8px; padding: var(--space-5); margin: var(--space-4) 0; text-align: center; }
+  .inequality-box .dir { font-size: var(--text-2xl); font-weight: 700; margin: var(--space-2) 0; }
+  .inequality-box .label { font-size: var(--text-xs); color: var(--ink-40); }
+  dt { font-weight: 600; color: var(--accent-deep); margin-top: var(--space-4); }
+  dd { margin-left: var(--space-4); font-size: var(--text-sm); }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); color: var(--ink-60); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  @media (max-width: 768px) { .lesson { padding: var(--space-4) var(--space-3); } }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>🔄 性能分析与反转结论</h1>
+  <div class="subtitle">Theorem 3 → Theorem 4：确定性协议从"更好"到"更差"的反转</div>
+  <div class="meta">
+    <span>⏱ 30 分钟</span>
+    <span>📄 Insider Attack · 第 5 课 / 共 6 课</span>
+    <span>🏷️ 性能分析 · 定理证明 · 反转结论</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      本节需要理解 <strong>确定性协议和随机性协议</strong> 的基本区别（第 2 课）以及 <strong>触发条件反转</strong> 和 <strong>隐密条件</strong>（第 3-4 课）。公式较多，但关键结论的直觉比推导更重要——记住"谁比谁好"以及"反转后谁变差得更厉害"就够了。
+    </div>
+
+    <!-- ============ 1. 正常情况：确定性更好 ============ -->
+    <h2>1. 正常情况下的性能：确定性更好（Theorem 3）</h2>
+
+    <p>在 <strong>没有攻击</strong> 的正常系统中，确定性触发协议和随机性触发协议在相同的平均通信率 $\lambda_d = \lambda_s = \lambda$ 下，性能如何比较？</p>
+
+    <div class="callout-result">
+      <strong>📐 Theorem 3</strong><br>
+      在相同平均通信率下，确定性协议的期望估计误差协方差 <strong>小于或等于</strong> 随机性协议：
+      <div style="margin-top: var(--space-2); font-size: var(--text-lg);">
+        $$ J_d \leq J_s $$
+      </div>
+      即 <strong>确定性协议在正常情况下的性能更好</strong>。
+    </div>
+
+    <p>这个结论的直觉不难理解：</p>
+
+    <h3>Lemma 3 的直觉</h3>
+
+    <p>定理 3 的证明依赖于一个关键不等式（Lemma 3）：</p>
+
+    <div class="formula-box">
+      $$ E[\alpha(\|e_k\|_\infty)] \preceq E[\alpha(\|e_k\|_2)] $$
+      <div class="label">Lemma 3：无穷范数下的函数期望 ≤ 2-范数下的期望</div>
+    </div>
+
+    <p>其中 $\alpha(x) = \frac{C^\top Q C}{x^2}$（标量系统），或者更一般的 $\alpha(\cdot)$ 是误差协方差增益函数。</p>
+
+    <p><strong>直觉</strong>：对于任意向量 $x \in \mathbb{R}^n$，总有 $\|x\|_\infty \leq \|x\|_2$。所以：</p>
+
+    <div class="formula-box">
+      $$ \alpha(\|e_k\|_\infty) \geq \alpha(\|e_k\|_2) \quad \Rightarrow \quad E[\alpha(\|e_k\|_\infty)] \geq E[\alpha(\|e_k\|_2)] $$
+    </div>
+
+    <p>但是——注意！这里有一个微妙的"反向"：<strong>大的范数 → 更容易触发通信 → 误差更小</strong>。确定性协议用无穷范数（更"敏感"），所以同样条件下它触发更频繁，误差更小。这就是为什么 $J_d \leq J_s$。</p>
+
+    <!-- ============ 2. 攻击后：确定性反而更差 ============ -->
+    <h2>2. 攻击后的性能反转（Theorem 4）</h2>
+
+    <p>当攻击者 <strong>反转了触发条件</strong> 并调整参数满足隐密条件（$\lambda_d^a = \lambda_s^a$）后，结论发生了惊人的反转：</p>
+
+    <div class="callout-warn">
+      <strong>📐 Theorem 4</strong><br>
+      在隐密攻击下，确定性协议的期望估计误差协方差 <strong>大于</strong> 随机性协议：
+      <div style="margin-top: var(--space-2); font-size: var(--text-lg);">
+        $$ J_d^a > J_s^a $$
+      </div>
+      即 <strong>确定性协议在攻击下的性能反而更差！</strong>
+    </div>
+
+    <div class="inequality-box">
+      <div>正常情况</div>
+      <div class="dir">$J_d \; {\color{green}\leq} \; J_s$</div>
+      <div class="label">确定性更好</div>
+    </div>
+
+    <div class="inequality-box">
+      <div>隐密攻击下</div>
+      <div class="dir">$J_d^a \; {\color{red}>} \; J_s^a$</div>
+      <div class="label">确定性反而更差！</div>
+    </div>
+
+    <!-- ============ 3. 核心反转因果链拆解（4 步） ============ -->
+    <h2>3. 核心反转因果链拆解（4 步）</h2>
+
+    <p>为什么确定性协议在攻击下会从"更好"变成"更差"？我们来拆解背后的因果链：</p>
+
+    <ol class="reasoning-chain">
+      <li>
+        <strong>① 确定性触发条件可预测</strong>
+        <p>确定性协议 $f_d(e_k, \delta)$ 的触发规则是确定的——给定 $e_k$，触发与否完全确定。攻击者可以精确建模系统的误差分布，从而<strong>精准预测</strong>哪些时刻会通信、哪些时刻不会。</p>
+        <p style="color: var(--ink-40); font-size: 0.85rem;">→ 这使得攻击者可以"定制"反转策略，每个时刻都知道自己反转的是什么</p>
+      </li>
+      <li>
+        <strong>② 反转后确定性协议的「全有或全无」特性使误差爆发更剧烈</strong>
+        <p>确定性协议在正常时有一个特性：误差大的一定触发通信，误差小的一定不触发。反转后这个特性变成了：<strong>误差大的反而不通信，误差小的反而通信</strong>。这意味着：</p>
+        <ul>
+          <li>当误差真的很大时（最需要通信的时刻），攻击者让它闭嘴</li>
+          <li>当误差很小时（不需要通信），攻击者却让它传输</li>
+        </ul>
+        <p>结果就是 <strong>误差在应该被修正的时候没有被修正</strong>，持续累积，直到爆发。</p>
+        <p style="color: var(--ink-40); font-size: 0.85rem;">→ "全有或全无"变成"该有的时候没有"</p>
+      </li>
+      <li>
+        <strong>③ 随机性协议本身的随机性增加了攻击者的难度</strong>
+        <p>随机性协议 $f_s(e_k, \Pi)$ 的触发是概率性的——给定相同的 $e_k$，有时触发有时不触发。这种内在的随机性意味着：</p>
+        <ul>
+          <li>攻击者无法精确预测某一时刻是否触发</li>
+          <li>反转后的行为也没有确定的对应关系</li>
+          <li>一些该通信的时刻（大误差）仍有概率通信（因为反转后概率不为 0）</li>
+        </ul>
+        <p style="color: var(--ink-40); font-size: 0.85rem;">→ 随机性本身就是一种防御：攻击者无法精准操控</p>
+      </li>
+      <li>
+        <strong>④ 结果：确定性在攻击下损失更大</strong>
+        <p>综合上述三点：</p>
+        <ul>
+          <li>确定性协议的正常优势（精确触发、节省通信）变成了攻击中的致命弱点</li>
+          <li>随机性协议的正常劣势（不必要的通信）反而变成了攻击中的保护</li>
+        </ul>
+        <p>结论：<strong>$J_d^a > J_s^a$</strong>，确定性协议在隐密攻击下的性能损失远超随机性协议。</p>
+        <p style="color: var(--ink-40); font-size: 0.85rem;">→ 一个引人深思的设计权衡：可预测性 = 脆弱性</p>
+      </li>
+    </ol>
+
+    <!-- ============ 4. α(δ^a) 曲线的直观意义 ============ -->
+    <h2>4. $\alpha(\delta^a)$ 曲线的直观意义</h2>
+
+    <p>论文中引入了函数 $\alpha(\delta^a)$ 来量化攻击的影响。理解这个函数是理解 Theorem 3 → Theorem 4 反转的关键：</p>
+
+    <dl>
+      <dt>$\alpha(\delta^a)$ 的定义</dt>
+      <dd>给定攻击阈值 $\delta^a$，$\alpha(\delta^a)$ 是误差协方差的"放大因子"——衡量攻击使估计性能恶化的程度。</dd>
+
+      <dt>$\Theta$ 的交叉点</dt>
+      <dd>论文定义了一个 $\Theta$ 值，使得当 $\alpha(\delta^a) > \Theta$ 时，不确定性 $\Sigma_k^a$ 的轨迹开始发散（即估计误差协方差不再有界）。</dd>
+
+      <dt>几何意义</dt>
+      <dd>反转条件改变了 Riccati 方程的更新方向。在正常条件下，Riccati 方程收敛到稳定解；在攻击下，同样的方程可能 <strong>发散</strong>。$\alpha(\delta^a)$ 度量了这个"发散速度"。</dd>
+    </dl>
+
+    <div class="formula-box">
+      $$ \alpha(\delta^a) = \frac{\text{攻击下的误差增长}}{\text{正常情况下的误差}} $$
+      <div class="label">$\alpha(\delta^a)$：攻击对误差协方差的放大倍率</div>
+    </div>
+
+    <!-- ============ 练习 ============ -->
+    <h2>📝 练习</h2>
+
+    <details class="exercise-box">
+      <summary>📌 练习 1：手算验证反转不等式</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：假设标量系统 $A = -0.99$，$C = 1$，$Q = 0.25$，$R = 0.16$。给定 $\delta = 1.377$（正常阈值）和 $\delta^a = 0.623$（攻击者通过 Algorithm 1 找到的调整后阈值），计算：</p>
+        <ol>
+          <li>正常情况下的 $\alpha(\delta)$ 值</li>
+          <li>攻击后的 $\alpha(\delta^a)$ 值</li>
+          <li>判断 $\Theta$ 的大致范围（提示：$\Theta = \alpha(\delta)$ 时临界发散）</li>
+        </ol>
+
+        <p><strong>解答</strong>：</p>
+        <p>在标量系统中，$\alpha(\delta) = \frac{C^2 Q}{\delta^2}$（简化形式）：</p>
+
+        <div class="formula-box">
+          $$ \alpha(\delta) = \frac{1^2 \times 0.25}{1.377^2} = \frac{0.25}{1.896} \approx 0.1318 $$
+        </div>
+
+        <div class="formula-box">
+          $$ \alpha(\delta^a) = \frac{0.25}{0.623^2} = \frac{0.25}{0.388} \approx 0.6443 $$
+        </div>
+
+        <p>显然，$\alpha(\delta^a) > \alpha(\delta)$。如果 $\Theta$ 介于 0.1318 和 0.6443 之间，则正常情况稳定（$\alpha(\delta) < \Theta$），攻击下发散（$\alpha(\delta^a) > \Theta$）。</p>
+
+        <p>这正是反转的核心！正常时确定性协议有 $\alpha(\delta_d) < \Theta$，攻击后 $\alpha(\delta_d^a) > \Theta$，而不等式反转由 $\alpha$ 函数的单调性和 $\Theta$ 的交叉点决定。</p>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>📌 练习 2：用自己的话解释反转</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：用你自己的话（不超过 200 字）解释为什么确定性协议在隐密攻击下比随机性协议更脆弱。</p>
+
+        <p><strong>参考答案（参考框架）</strong>：</p>
+
+        <p>确定性协议的触发条件是"硬"的（误差超阈值就通信），反转后变成"硬的反面"（误差超阈值反而不通信），<strong>全有或全无</strong>的特性导致大误差时刻完全没有修正机会。而随机性协议本来就是"软"的（概率触发），反转后大误差时刻仍然<strong>有一定概率</strong>通信，尽管概率被反转了。这种概率性缓冲使得随机性协议在攻击下的性能损失更小。此外，确定性协议的可预测性让攻击者能精准操控每个时刻的行为，而随机性协议的内在随机性增加了攻击难度。<strong>简言之：精确的调度在正常时是优势，在攻击下却是致命的可预测性。</strong></p>
+      </div>
+    </details>
+
+    <!-- ============ 导航 ============ -->
+    <div class="footer-nav">
+      <a href="0104-隐密攻击策略设计.html">← 上一课：隐密攻击策略</a>
+      <a href="0106-实验验证局限与迁移.html">下一课：实验验证与迁移 →</a>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.lesson -->
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

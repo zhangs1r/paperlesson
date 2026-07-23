@@ -117,6 +117,16 @@ window.PAPERLESSON_DATA = {
       quickOpen: "start lessons\\\\0095-论文全景与问题动机.html",
       meta: ["5 节课", "~130 分钟", "信息提取 / Prompt Engineering"]
     },
+    {
+      id: "insider-attack",
+      groupId: "papers",
+      kind: "论文精读",
+      title: "Event-Based Protocols",
+      subtitle: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks · IEEE TAC 2025",
+      description: "第 0100 到 0106 课。围绕内部攻击下事件触发协议的安全性分析，完整覆盖全景动机、Kalman滤波基础、两种触发协议、攻击模型与误差演化、隐密策略设计、性能反转结论、实验验证与迁移。",
+      quickOpen: "start lessons\\\\0100-论文全景与问题动机.html",
+      meta: ["7 节课", "~165 分钟", "CPS安全 / 事件触发"]
+    },
   ],
   lessons: [
     { id:"0001", path:"lessons/0001-论文全景概览.html", paper:"e2map", title:"论文全景概览", subtitle:"背景、动机与贡献", emoji:"📖", duration:"15 分钟", tags:["背景","动机"], description:"先把 E2Map 这篇论文的大问题和核心贡献摸清楚。" },
@@ -217,7 +227,14 @@ window.PAPERLESSON_DATA = {
     { id:"0073", path:"lessons/0073-第十三讲-极线搜索与深度滤波.html", paper:"slambook", title:"第十三讲：极线搜索与深度滤波", subtitle:"单目稠密重建的核心链路", emoji:"📏", duration:"18 分钟", tags:["深度滤波","极线搜索"], description:"理解单目稠密重建中的匹配、三角化与高斯融合。" },
     { id:"0074", path:"lessons/0074-第十三讲-RGBD地图OctoMap与TSDF.html", paper:"slambook", title:"第十三讲：RGB-D 地图、OctoMap 与 TSDF", subtitle:"不同地图表达为不同任务服务", emoji:"🧱", duration:"18 分钟", tags:["RGB-D","OctoMap","TSDF"], description:"比较点云、占据图和 TSDF 这三类地图表达。" },
     { id:"0075", path:"lessons/0075-第十四讲-开源SLAM方案巡礼.html", paper:"slambook", title:"第十四讲：开源 SLAM 方案巡礼", subtitle:"从 MonoSLAM 到 RTAB-MAP", emoji:"🏛️", duration:"18 分钟", tags:["开源系统","方案巡礼"], description:"从系统谱系角度理解经典开源 SLAM 系统。" },
-    { id:"0076", path:"lessons/0076-第十四讲-未来方向与全书收束.html", paper:"slambook", title:"第十四讲：未来方向与全书收束", subtitle:"VIO、语义 SLAM 与继续深挖路线", emoji:"🚀", duration:"18 分钟", tags:["未来方向","总结"], description:"给整本《视觉 SLAM 十四讲》做一次收束和后续路线规划。" }
+    { id:"0076", path:"lessons/0076-第十四讲-未来方向与全书收束.html", paper:"slambook", title:"第十四讲：未来方向与全书收束", subtitle:"VIO、语义 SLAM 与继续深挖路线", emoji:"🚀", duration:"18 分钟", tags:["未来方向","总结"], description:"给整本《视觉 SLAM 十四讲》做一次收束和后续路线规划。" },
+    { id:"0100", path:"lessons/0100-论文全景与问题动机.html", paper:"insider-attack", title:"论文全景与问题动机", subtitle:"Mars 漫游者场景、事件触发协议与安全挑战", emoji:"📖", duration:"20 分钟", tags:["背景","动机"], description:"从火星漫游者场景拉入，理解事件触发协议为什么需要关注安全问题。含符号对照表和下节课预备。" },
+    { id:"0101", path:"lessons/0101-系统建模与卡尔曼滤波.html", paper:"insider-attack", title:"系统建模与 Kalman 滤波器", subtitle:"线性系统、Kalman 滤波速成与 Q 函数速查", emoji:"⚙️", duration:"25 分钟", tags:["系统模型","Kalman","Q函数"], description:"理解离散时间线性系统建模、Kalman滤波器预测-更新循环、稳态协方差和Q函数。含手算练习。" },
+    { id:"0102", path:"lessons/0102-事件触发协议.html", paper:"insider-attack", title:"事件触发协议详解", subtitle:"确定性触发 vs 随机性触发", emoji:"📡", duration:"20 分钟", tags:["触发协议","通信概率"], description:"两种事件触发协议的工作原理、通信概率公式和误差协方差表达式。" },
+    { id:"0103", path:"lessons/0103-内部攻击模型与误差演化.html", paper:"insider-attack", title:"内部攻击模型与误差演化", subtitle:"反转触发、Theorem 1&2 与高斯坑分布", emoji:"🛡️", duration:"25 分钟", tags:["攻击模型","误差演化","Theorem"], description:"攻击者如何反转触发条件，推导攻击下的误差协方差闭式。含系统架构图和马尔可夫链预告。" },
+    { id:"0104", path:"lessons/0104-隐密攻击策略设计.html", paper:"insider-attack", title:"隐密攻击策略设计", subtitle:"马尔可夫链、Algorithm 1 与二分搜索", emoji:"🎯", duration:"25 分钟", tags:["隐密攻击","马尔可夫链","Algorithm 1"], description:"攻击者如何调参保持通信率不变以躲过检测。含马尔可夫链速成和二分搜索手算练习。" },
+    { id:"0105", path:"lessons/0105-性能分析与反转结论.html", paper:"insider-attack", title:"性能分析：反转结论", subtitle:"Theorem 3&4、核心反转因果链拆解", emoji:"⚡", duration:"25 分钟", tags:["性能","反转","Theorem 4"], description:"正常时确定性更好，攻击后随机性反而更好。4 步因果链拆解让你真正理解为什么。" },
+    { id:"0106", path:"lessons/0106-实验验证局限与迁移.html", paper:"insider-attack", title:"实验验证、局限与迁移", subtitle:"数值仿真、多维局限性、4 步迁移框架", emoji:"🔬", duration:"25 分钟", tags:["实验","局限","迁移"], description:"标量系统实验验证、多维系统局限性分析和4步可操作迁移框架。" }
   ],
   references: [
     { path: "reference/glossary.html", title: "课程术语表", emoji: "📖", description: "跨课程的中英对照术语与关键概念入口。" },
@@ -236,6 +253,7 @@ window.PAPERLESSON_DATA = {
     { title: "slambook GitHub 仓库", url: "https://github.com/gaoxiang12/slambook", emoji: "📚", description: "《视觉 SLAM 十四讲》官方代码仓库，包含各章示例程序与第三方依赖。" },
     { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" },
     { title: "Remote State Estimation Automatica", url: "https://doi.org/10.1016/j.automatica.2024.111882", emoji: "🧾", description: "本文论文原文 — Remote State Estimation with Privacy Against Active Eavesdroppers。" },
-    { title: "SCoPE 论文 (IAI 2026)", url: "http://iai.neu.edu.cn/", emoji: "🧾", description: "SCoPE: A Prompting Framework for Chemical Information Extraction — 第八届工业人工智能国际会议。" }
+    { title: "SCoPE 论文 (IAI 2026)", url: "http://iai.neu.edu.cn/", emoji: "🧾", description: "SCoPE: A Prompting Framework for Chemical Information Extraction — 第八届工业人工智能国际会议。" },
+    { title: "Event-Based Protocols 论文", url: "https://ieeexplore.ieee.org/", emoji: "🧾", description: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks — Deng & Li, IEEE TAC 2025。" }
   ]
 };

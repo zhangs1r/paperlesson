@@ -1,0 +1,322 @@
+<!DOCTYPE html><html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0102 · 事件触发协议 — 确定性协议与随机性协议</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
+  .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
+  .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
+  .lesson-header .meta { display: flex; gap: 1rem; font-size: .85rem; color: var(--ink-40); margin-top: .3rem; flex-wrap: wrap; }
+  .lesson-header .meta span { background: var(--paper); padding: .15rem .6rem; border-radius: 4px; border: 1px solid var(--border); }
+  h2 { font-size: 1.2rem; color: var(--accent-deep); margin: 2rem 0 .8rem; border-left: 4px solid var(--accent); padding-left: .7rem; }
+  h3 { font-size: 1rem; color: var(--ink-80); margin: 1.2rem 0 .5rem; }
+  .highlight { background: var(--accent-dim); border-left: 4px solid var(--accent); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .92rem; }
+  .highlight strong { color: var(--accent-deep); }
+  .formula { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: center; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); overflow-x: auto; }
+  .formula-left { background: var(--paper); padding: .8rem 1rem; margin: 1rem 0; border-radius: 6px; text-align: left; font-family: "Times New Roman", serif; font-size: 1.05rem; color: var(--ink); border: 1px solid var(--border); overflow-x: auto; }
+  .tip { background: rgba(90, 158, 111, 0.12); border-left: 4px solid var(--green, #5A9E6F); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .tip strong { color: var(--green, #5A9E6F); }
+  .warning { background: rgba(212, 168, 83, 0.12); border-left: 4px solid var(--gold, #D4A853); padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .warning strong { color: var(--gold, #D4A853); }
+  .quiz { background: var(--paper); border-radius: 8px; padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--border); }
+  .quiz h4 { color: var(--accent-deep); margin-bottom: .5rem; font-size: .95rem; }
+  .quiz ol, .quiz ul { padding-left: 1.2rem; font-size: .9rem; }
+  .quiz ol li, .quiz ul li { margin-bottom: .4rem; }
+  .quiz details { margin-top: .6rem; }
+  .quiz details summary { cursor: pointer; color: var(--accent-deep); font-weight: 600; font-size: .9rem; padding: .3rem 0; }
+  .quiz details summary:hover { color: var(--accent); }
+  .quiz details .answer { margin-top: .5rem; padding: .8rem; background: var(--green-dim, rgba(90,158,111,0.08)); border-radius: 6px; font-size: .88rem; border-left: 3px solid var(--green, #5A9E6F); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .88rem; }
+  th, td { padding: .5rem .6rem; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--paper); color: var(--ink-80); font-weight: 600; white-space: nowrap; }
+  td { background: var(--paper-light); }
+  figure { margin: 1.5rem 0; text-align: center; }
+  figure img { width: 100%; max-width: 720px; border-radius: 8px; box-shadow: var(--shadow-md); }
+  figcaption { font-size: .8rem; color: var(--ink-40); margin-top: .5rem; }
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .nav a { color: var(--accent-deep); text-decoration: none; }
+  .nav a:hover { text-decoration: underline; color: var(--accent); }
+  .def-box { background: rgba(102, 126, 234, 0.08); border-left: 4px solid #667eea; padding: .8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; font-size: .9rem; }
+  .def-box strong { color: #667eea; }
+  ul, ol { margin-left: 1.2rem; font-size: .9rem; line-height: 1.7; margin-bottom: .8rem; }
+  p { margin-bottom: .8rem; line-height: 1.7; }
+  @media (max-width: 768px) { .lesson-header .meta { flex-direction: column; gap: .3rem; } }
+</style>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
+  ← 返回主页
+</a>
+
+<div class="lesson-header">
+  <h1>📡 第 0102 课：事件触发协议</h1>
+  <div class="meta">
+    <span>内部攻击下的 CPS 安全估计</span>
+    <span>⏱ 阅读时间：25 分钟</span>
+    <span>📄 精读课程 · 第 2 课 / 共 6 课</span>
+  </div>
+</div>
+
+<div class="highlight">
+  <strong>🎯 本课目标：</strong>理解事件触发传输协议的工作原理——<strong>确定性触发</strong>和<strong>随机性触发</strong>两种机制如何决定传感器数据是否发送，以及它们对估计误差协方差的影响。
+</div>
+
+<h2>1. 从 Kalman 滤波到事件触发</h2>
+
+<p>上节课我们学习了 Kalman 滤波的基本框架：传感器在每个时刻 $k$ 测量系统状态 $x_k$，远程估计器接收测量值 $y_k$ 后执行预测-更新两步循环。但在 CPS（信息物理系统）中，<strong>通信资源是有限的</strong>——无线信道带宽有限，传感器电池有限。每时每刻都发送数据既浪费资源，也容易被攻击者发现。</p>
+
+<div class="highlight">
+  <strong>💡 核心思想：</strong>当"没有什么新鲜事"时，就不发送数据。只有<strong>创新（innovation）足够大</strong>时才触发传输，从而大幅降低通信率。
+</div>
+
+<p>定义时刻 $k$ 的<strong>创新（innovation）</strong>为：</p>
+
+<div class="formula">
+  $\varepsilon_k = y_k - C \hat{x}_{k|k-1}$
+</div>
+
+<p>其中 $\hat{x}_{k|k-1}$ 是上一时刻对当前状态的预测。创新衡量了<strong>实际测量值与预测值之间的偏差</strong>——如果 Kalman 滤波预测得准，创新就小，意味着没有新的信息需要传输。</p>
+
+<h2>2. 传输决策变量 $\gamma_k$</h2>
+
+<p>设二进制变量 $\gamma_k \in \{0, 1\}$ 表示时刻 $k$ 是否发送测量数据：</p>
+
+<div class="formula">
+  $\gamma_k = \begin{cases} 1, & \text{发送测量值 } y_k \\ 0, & \text{不发送} \end{cases}$
+</div>
+
+<p>事件触发协议的核心就是设计一个<strong>触发条件</strong>，根据创新 $\varepsilon_k$ 决定 $\gamma_k$ 的值。</p>
+
+<h2>3. 超时机制</h2>
+
+<div class="tip">
+  <strong>⚠ 防止"饿死"：</strong>如果通信信道一直不出问题，可能出现长时间不发送数据的情况，导致远程估计器对系统状态完全失明。因此引入<strong>超时计数器</strong> $\tau_k$。
+</div>
+
+<p>超时计数器 $\tau_k$ 记录了自上次成功传输以来经过的时间步数：</p>
+
+<div class="formula">
+  $\tau_{k+1} = \begin{cases} 0, & \gamma_k = 1 \\ \min(\tau_k + 1, \hbar), & \gamma_k = 0 \end{cases}$
+</div>
+
+<p>其中 $\hbar$ 是最大超时阈值。当 $\tau_k$ 达到 $\hbar$ 时，传感器<strong>强制</strong>发送数据（$\gamma_k = 1$），防止长时间无通信。</p>
+
+<h2>4. 确定性触发协议</h2>
+
+<p>确定性触发协议（Deterministic Triggering）的触发集合定义为：</p>
+
+<div class="formula">
+  $\Xi_k^d = \{ \varepsilon_k \mid \|\varepsilon_k\|_\infty \le \delta \}$
+</div>
+
+<p>其中 $\delta > 0$ 是人为设定的<strong>阈值参数</strong>。传输规则是：</p>
+
+<div class="formula">
+  $\gamma_k = \begin{cases} 0, & \varepsilon_k \in \Xi_k^d \;(\text{创新小，不发}) \\ 1, & \varepsilon_k \notin \Xi_k^d \;(\text{创新大，发}) \end{cases}$
+</div>
+
+<p>直观理解：如果创新 $\varepsilon_k$ 的每个分量绝对值都不超过 $\delta$，说明 Kalman 滤波预测得足够好，不需要发送数据。否则，创新太大，必须发送让估计器修正。</p>
+
+<h3>4.1 通信概率 $p_d$</h3>
+
+<p>在确定性协议下，通信概率（即 $\gamma_k = 1$ 的概率）与 $\delta$ 直接相关。假设创新服从高斯分布 $\varepsilon_k \sim \mathcal{N}(0, K_k S_k K_k^\top)$，其中 $K_k$ 是 Kalman 增益，$S_k$ 是创新协方差，则：</p>
+
+<div class="formula">
+  $p_d = 1 - \big[ 1 - 2Q(\delta) \big]^r$
+</div>
+
+<p>其中 $r$ 是测量向量的维度，$Q(\cdot)$ 是标准正态分布的尾部概率函数：</p>
+
+<div class="formula">
+  $Q(x) = \frac{1}{\sqrt{2\pi}} \int_x^\infty e^{-t^2/2} dt$
+</div>
+
+<p><strong>标量情况</strong>（$r = 1$）下公式简化为：</p>
+
+<div class="formula">
+  $p_d = 2Q(\delta)$
+</div>
+
+<div class="tip">
+  <strong>理解关键：</strong>$\delta$ 越大，$Q(\delta)$ 越小→通信概率越低。更大的阈值意味着更宽松的"不发送"条件，通信更节省。反之，$\delta$ 越小，通信越频繁。
+</div>
+
+<h2>5. 随机性触发协议</h2>
+
+<p>确定性触发的缺点是<strong>攻击者可以预测</strong>——知道 $\delta$ 就知道哪些创新值会触发传输。随机性触发协议引入随机化，让触发条件不可预测。</p>
+
+<p>随机性触发协议（Stochastic Triggering）的触发集合定义为：</p>
+
+<div class="formula">
+  $\Xi_k^s = \{ \varepsilon_k \mid \zeta_k \le \exp(-\tfrac{1}{2} \varepsilon_k^\top \Pi \varepsilon_k) \}$
+</div>
+
+<p>其中 $\zeta_k \sim \mathcal{U}[0, 1]$ 是均匀随机数，$\Pi \succ 0$ 是一个正定矩阵参数。传输规则：</p>
+
+<div class="formula">
+  $\gamma_k = \begin{cases} 0, & \varepsilon_k \in \Xi_k^s \\ 1, & \varepsilon_k \notin \Xi_k^s \end{cases}$
+</div>
+
+<p>这里的决策是<strong>概率性的</strong>——即使创新相同，两次实验也可能做出不同的传输决策，因为 $\zeta_k$ 每次随机独立抽样。</p>
+
+<div class="highlight">
+  <strong>🎯 直觉理解：</strong>确定性能让你知道"多大的创新一定会触发传输"；随机性则让传输决策变得不可预测——给定同样的创新值，可能发也可能不发，攻击者无法建立确定性的对应关系。
+</div>
+
+<h3>5.1 通信概率 $p_s$</h3>
+
+<p>随机性协议下的通信概率为：</p>
+
+<div class="formula">
+  $p_s = 1 - \frac{1}{\sqrt{|I + K Z K^\top \Pi|}}$
+</div>
+
+<p>其中 $Z = C P_{k|k-1} C^\top + R$（即 $S_k$），$K$ 是 Kalman 增益。这个公式来自高斯分布的概率积分。</p>
+
+<h2>6. 两种协议的误差协方差</h2>
+
+<h3>6.1 确定性协议下的误差协方差</h3>
+
+<p>当使用确定性事件触发协议且通信正常时，误差协方差为 $P_k^d$（记为式 13）：</p>
+
+<div class="formula-left">
+  $\displaystyle P_k^d = P + \frac{\delta}{\sqrt{2\pi}} e^{-\frac{\delta^2}{2}} Q^{-1}(\delta) \big[ h^{\tau_k}(P) - P \big]$
+</div>
+
+<p>该公式表明，误差协方差由两部分组成：</p>
+<ul>
+  <li>$P$：理想 Kalman 滤波（每次都通信）的稳态误差协方差</li>
+  <li>$h^{\tau_k}(P)$：连续 $\tau_k$ 步未通信后，开环预测的误差协方差</li>
+  <li>中间项是加权系数，反映了由事件触发引入的<strong>额外不确定性</strong></li>
+</ul>
+
+<h3>6.2 随机性协议下的误差协方差</h3>
+
+<p><strong>Lemma 2</strong>（随机触发误差协方差）：在随机性事件触发协议下，远程估计器的误差协方差为：</p>
+
+<div class="formula-left">
+  $\displaystyle P_k^s = P + \frac{1}{\sqrt{|I + K Z K^\top \Pi|}} \Big[ \Phi\big((I + K Z K^\top \Pi)^{-1/2} \varepsilon_k\big) - P \Big]$
+</div>
+
+<p>（此处 $\Phi(\cdot)$ 表示高斯累积分布函数相关的矩阵变换，完整公式参见论文 Lemma 2。）</p>
+
+<h2>7. 两种协议的对比</h2>
+
+<table>
+  <tr>
+    <th>特性</th>
+    <th>确定性触发 $\Xi_k^d$</th>
+    <th>随机性触发 $\Xi_k^s$</th>
+  </tr>
+  <tr>
+    <td>触发条件</td>
+    <td>$\|\varepsilon_k\|_\infty \le \delta$</td>
+    <td>$\zeta_k \le \exp(-\tfrac12 \varepsilon_k^\top \Pi \varepsilon_k)$</td>
+  </tr>
+  <tr>
+    <td>参数</td>
+    <td>阈值 $\delta$</td>
+    <td>矩阵 $\Pi$</td>
+  </tr>
+  <tr>
+    <td>通信概率</td>
+    <td>$p_d = 1 - [1 - 2Q(\delta)]^r$</td>
+    <td>$p_s = 1 - 1/\sqrt{|I + KZK^\top\Pi|}$</td>
+  </tr>
+  <tr>
+    <td>可预测性</td>
+    <td>高——给定 $\varepsilon_k$，$\gamma_k$ 完全确定</td>
+    <td>低——即使知道 $\varepsilon_k$ 也无法确定 $\gamma_k$</td>
+  </tr>
+  <tr>
+    <td>安全性</td>
+    <td>低——攻击者可以精确计算触发时刻</td>
+    <td>高——随机化使攻击者难以预测</td>
+  </tr>
+  <tr>
+    <td>实现难度</td>
+    <td>简单——只需比较 $\varepsilon_k$ 与 $\delta$</td>
+    <td>稍复杂——需要生成 $[0,1]$ 均匀随机数</td>
+  </tr>
+</table>
+
+<h2>📝 练习</h2>
+
+<div class="quiz">
+  <h4>✏️ 练习 1：不同 $\delta$ 下的通信概率</h4>
+  <p>假设标量测量（$r = 1$），$\varepsilon_k \sim \mathcal{N}(0, 1)$。计算以下阈值下的通信概率 $p_d$：</p>
+  <ol>
+    <li>$\delta = 0.5$</li>
+    <li>$\delta = 1.0$</li>
+    <li>$\delta = 2.0$</li>
+    <li>$\delta = 3.0$</li>
+  </ol>
+  <details>
+    <summary>📖 查看解答</summary>
+    <div class="answer">
+      <p>使用 $p_d = 2Q(\delta)$：</p>
+      <ul>
+        <li>$\delta = 0.5$：$p_d = 2 \times 0.3085 = 0.617$（约 62% 时间通信）</li>
+        <li>$\delta = 1.0$：$p_d = 2 \times 0.1587 = 0.317$（约 32% 时间通信）</li>
+        <li>$\delta = 2.0$：$p_d = 2 \times 0.0228 = 0.046$（约 4.6% 时间通信）</li>
+        <li>$\delta = 3.0$：$p_d = 2 \times 0.0013 = 0.0026$（约 0.26% 时间通信）</li>
+      </ul>
+      <p><strong>规律：</strong>$\delta$ 每增加约 1，通信概率下降一个数量级。$\delta = 2$ 时已可将通信率降至 5% 以下，大幅节省带宽。</p>
+    </div>
+  </details>
+</div>
+
+<div class="quiz">
+  <h4>✏️ 练习 2：直觉对比两种协议</h4>
+  <p>判断以下说法是否正确：</p>
+  <ol>
+    <li>"确定性触发协议的通信概率仅取决于 $\delta$，与系统动态 $A$ 无关。"</li>
+    <li>"随机性触发协议下，即使是很大的创新值，也有可能不被发送。"</li>
+    <li>"确定性协议更容易被攻击者利用，因为给定创新值，攻击者可以精确知道传输是否发生。"</li>
+    <li>"随机性协议的超时机制与确定性协议不同。"</li>
+  </ol>
+  <details>
+    <summary>📖 查看解答</summary>
+    <div class="answer">
+      <ol>
+        <li><strong>正确</strong>。$p_d = 2Q(\delta)$（标量）只依赖于 $\delta$，系统动态 $A$ 不影响通信概率，影响的是创新本身的分布。</li>
+        <li><strong>正确</strong>。因为 $\zeta_k \sim \mathcal{U}[0,1]$ 是随机的，即使 $\exp(-\tfrac12\varepsilon_k^\top\Pi\varepsilon_k)$ 很小，只要有 $\zeta_k$ 恰好小于它，就判定为"不发"。但创新越大指数项越小，不发送的概率也越低。</li>
+        <li><strong>正确</strong>。这是确定性协议最大的安全缺陷——攻击者只要知道 $\delta$，就能精确预测每一个传输事件。</li>
+        <li><strong>错误</strong>。超时机制完全独立于触发协议，两种协议共用同一个超时计数器 $\tau_k$ 和最大超时阈值 $\hbar$。</li>
+      </ol>
+    </div>
+  </details>
+</div>
+
+<h2>🔗 本课小结</h2>
+
+<div class="highlight">
+  <strong>📌 要点回顾：</strong>
+  <ol style="margin-top:.3rem;">
+    <li><strong>事件触发协议</strong>通过有选择地发送测量数据来节省通信资源。</li>
+    <li><strong>创新 $\varepsilon_k$</strong> 是触发决策的核心——新鲜事才上报。</li>
+    <li><strong>超时机制 $\tau_k$</strong> 防止长时间无通信导致的失明。</li>
+    <li><strong>确定性协议</strong>简单但可预测，通信概率 $p_d = 1 - [1 - 2Q(\delta)]^r$。</li>
+    <li><strong>随机性协议</strong>引入随机化增强安全性，通信概率 $p_s = 1 - 1/\sqrt{|I + KZK^\top\Pi|}$。</li>
+  </ol>
+</div>
+
+<p>下一课我们将引入<strong>内部攻击者</strong>，看攻击者如何利用（或绕过）事件触发协议来破坏估计性能。</p>
+
+<div class="nav">
+  <a href="0101-卡尔曼滤波.html">← 上一课：Kalman 滤波</a>
+  <a href="0103-内部攻击模型与误差演化.html">下一课：内部攻击模型与误差演化 →</a>
+</div>
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

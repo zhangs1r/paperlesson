@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 0106 课：实验验证、局限与迁移 · Insider Attack · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});">
+</script>
+<style>
+  body { background: var(--paper-light); }
+  .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .lesson h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: 0.2rem; }
+  .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); margin-top: var(--space-2); }
+  .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+  .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+  .lesson .content { line-height: 1.8; font-size: var(--text-base); color: var(--ink-80); }
+  .lesson .content h2 { font-family: var(--font-serif); font-size: var(--text-xl); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); color: var(--accent-deep); }
+  .lesson .content h3 { font-family: var(--font-serif); font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-3); color: var(--ink); }
+  .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+  .back:hover { text-decoration: underline; }
+  .callout { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout strong { color: var(--accent-deep); }
+  .callout-info { background: #F0F6FA; border-left: 4px solid #4A7C9B; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-info strong { color: #2C5B7A; }
+  .callout-warn { background: #FFF8F0; border-left: 4px solid #D4A853; padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-warn strong { color: #B8860B; }
+  .callout-tip { background: #F0FAF0; border-left: 4px solid var(--green); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+  .callout-tip strong { color: #3D7A4F; }
+  .formula-box { background: #F8F6F0; border: 1px dashed var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-4) 0; text-align: center; font-size: var(--text-lg); }
+  .formula-box .label { font-size: var(--text-xs); color: var(--ink-40); margin-top: var(--space-2); }
+  .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+  .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); padding: var(--space-1) 0; }
+  .exercise-box summary:hover { color: var(--accent); }
+  .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); font-size: var(--text-sm); }
+  .footer-nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); }
+  .footer-nav a { color: var(--accent-deep); text-decoration: none; padding: var(--space-2) var(--space-3); border-radius: 6px; transition: background 0.2s; }
+  .footer-nav a:hover { background: var(--accent-dim); text-decoration: none; }
+  .footer-nav .back-home { color: var(--ink-40); }
+  figure { margin: var(--space-5) 0; text-align: center; }
+  figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  figure figcaption { font-size: var(--text-sm); color: var(--ink-60); margin-top: var(--space-2); font-style: italic; }
+  .migration-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-4); margin: var(--space-5) 0; counter-reset: mig-step; }
+  .migration-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-4) var(--space-5); counter-increment: mig-step; position: relative; padding-left: var(--space-14); }
+  .migration-card::before { content: counter(mig-step); position: absolute; left: var(--space-4); top: var(--space-4); width: 32px; height: 32px; background: var(--accent-dim); color: var(--accent-deep); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
+  .migration-card h4 { margin: 0 0 var(--space-2); font-family: var(--font-serif); font-size: var(--text-base); }
+  .migration-card p { margin: 0; font-size: var(--text-sm); color: var(--ink-60); }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+  th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); color: var(--ink-60); }
+  td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+  tr.highlight { background: var(--accent-glow); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin: var(--space-4) 0; }
+  .two-col .card { background: var(--paper); padding: var(--space-4); border-radius: 8px; border: 1px solid var(--border); }
+  .two-col .card h4 { font-size: var(--text-sm); margin-bottom: var(--space-2); color: var(--accent-deep); font-family: var(--font-serif); }
+  .two-col .card p { font-size: var(--text-sm); margin: 0; color: var(--ink-60); }
+  @media (max-width: 768px) { .lesson { padding: var(--space-4) var(--space-3); } .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="lesson">
+  <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+  <h1>🧪 实验验证、局限与迁移</h1>
+  <div class="subtitle">标量系统仿真验证 → 多维系统局限性 → 把你的协议也拿来测一测</div>
+  <div class="meta">
+    <span>⏱ 25 分钟</span>
+    <span>📄 Insider Attack · 第 6 课 / 共 6 课（完结）</span>
+    <span>🏷️ 实验 · 局限性 · 迁移框架</span>
+  </div>
+
+  <div class="content">
+
+    <div class="callout">
+      <strong>🧩 前置知识</strong><br>
+      这是本系列的最后一课！需要回顾前几课的内容：确定性 vs 随机性协议（第 2 课）、触发条件反转（第 3 课）、隐密条件（第 4 课）、Theorem 3 & 4 的反转结论（第 5 课）。实验只看结果——理论分析已在前面讲完了。
+    </div>
+
+    <!-- ============ 1. 标量系统实验设置 ============ -->
+    <h2>1. 标量系统实验设置</h2>
+
+    <p>论文使用了一个 <strong>标量 LTI 系统</strong> 进行仿真验证：</p>
+
+    <div class="formula-box">
+      $$ x_{k+1} = A x_k + w_k, \quad y_k = C x_k + v_k $$
+      <div class="label">系统模型</div>
+    </div>
+
+    <p>参数设置：</p>
+    <table>
+      <tr><th>参数</th><th>值</th><th>含义</th></tr>
+      <tr><td>$A$</td><td>$-$0.99</td><td>系统动力学（接近不稳定，靠近单位圆边界）</td></tr>
+      <tr><td>$C$</td><td>1</td><td>观测矩阵</td></tr>
+      <tr><td>$Q$</td><td>0.25</td><td>过程噪声方差（$\sigma_w^2$）</td></tr>
+      <tr><td>$R$</td><td>0.16</td><td>观测噪声方差（$\sigma_v^2$）</td></tr>
+      <tr><td>$|A|$</td><td>$<$ 1</td><td>系统稳定条件</td></tr>
+    </table>
+
+    <p>选择 $A = -0.99$ 非常有意思——它非常接近 1，意味着系统动态 <strong>衰减极慢</strong>，误差容易累积。这种"最坏情况"设置最能凸显不同协议在攻击下的差异。</p>
+
+    <!-- ============ 2. Table I & II 数据解读 ============ -->
+    <h2>2. Table I & II：关键数值结果</h2>
+
+    <h3>Table I：正常情况下的性能对比</h3>
+    <table>
+      <tr><th>协议</th><th>通信率 $\lambda$</th><th>期望误差 $J$</th><th>备注</th></tr>
+      <tr><td>确定性 $f_d$</td><td>0.3</td><td>$J_d = 0.25$</td><td>正常，$\delta = 1.377$</td></tr>
+      <tr><td>随机性 $f_s$</td><td>0.3</td><td>$J_s = 0.32$</td><td>正常，$\bar{h} = 5$</td></tr>
+      <tr class="highlight"><td colspan="4">$J_d < J_s$ ✓ — Theorem 3 验证</td></tr>
+    </table>
+
+    <h3>Table II：攻击下的性能对比</h3>
+    <table>
+      <tr><th>协议</th><th>通信率 $\lambda^a$</th><th>期望误差 $J^a$</th><th>备注</th></tr>
+      <tr><td>确定性 $f_d^a$</td><td>0.8</td><td>$J_d^a = 8.74$</td><td>$\delta^a = 0.623$（Algorithm 1 找到）</td></tr>
+      <tr><td>随机性 $f_s^a$</td><td>0.8</td><td>$J_s^a = 1.52$</td><td>调整 $\tilde{\Pi}$</td></tr>
+      <tr class="highlight"><td colspan="4">$J_d^a > J_s^a$ ✓ — Theorem 4 验证，且 $J_d^a / J_s^a \approx 5.75$ 倍！</td></tr>
+    </table>
+
+    <div class="callout-warn">
+      <strong>⚠️ 关键观察</strong>：攻击后确定性协议的误差从 0.25 暴涨到 8.74（<strong>~35 倍</strong>），而随机性协议从 0.32 涨到 1.52（<strong>~4.75 倍</strong>）。确定性协议受损更严重——这印证了第 5 课的反转结论。
+    </div>
+
+    <!-- ============ 3. Fig 2: 性能对比曲线 ============ -->
+    <h2>3. Fig 2：不同通信率下的性能对比</h2>
+
+    <figure>
+      <img src="assets/insider-attack/fig2-performance-comparison.jpg" alt="性能对比" loading="lazy">
+      <figcaption>图 2：不同通信率下的期望估计性能对比。横轴为平均通信率 $\lambda$，纵轴为 $J$。可以看到正常时确定性曲线始终在随机性曲线下方（更好），攻击后确定性曲线大幅上升（更差）。</figcaption>
+    </figure>
+
+    <p>这张图直观地展示了 Theorem 3 和 Theorem 4 的结论：</p>
+    <ul>
+      <li><strong>正常情况（实线）</strong>：蓝色（确定性）曲线在橙色（随机性）曲线下方，$J_d < J_s$</li>
+      <li><strong>攻击后（虚线）</strong>：两条曲线都上升了，但蓝色（确定性）上升得更剧烈，最终在橙色上方，$J_d^a > J_s^a$</li>
+      <li>两条虚线的差距随 $\lambda$ 增大而增大——通信越频繁，确定性协议在攻击下的相对劣势越大</li>
+    </ul>
+
+    <!-- ============ 4. Fig 4 & 5: Monte Carlo 仿真 ============ -->
+    <h2>4. Fig 4 & 5：Monte Carlo 仿真验证</h2>
+
+    <p>论文使用 <strong>10,000 次 Monte Carlo 仿真</strong> 验证理论分析的正确性。每次仿真独立运行，统计估计误差协方差的均值。</p>
+
+    <div class="two-col">
+      <div class="card">
+        <h4>📊 Fig 4：正常情况 $\gamma = 0.3$</h4>
+        <p>两种协议通信率 $\gamma_d = \gamma_s = 0.3$，估计误差协方差随时间演化。确定性协议的误差协方差始终低于随机性协议，且更快收敛到稳态。</p>
+      </div>
+      <div class="card">
+        <h4>📊 Fig 5：攻击后 $\gamma = 0.8$</h4>
+        <p>两种协议通信率 $\gamma_d^a = \gamma_s^a = 0.8$，但确定性协议的误差协方差发散更严重。随机性协议的误差虽然也增大了，但保持了有界性。</p>
+      </div>
+    </div>
+
+    <figure>
+      <img src="assets/insider-attack/fig4-normal-gamma03.jpg" alt="正常时gamma=0.3对比" loading="lazy">
+      <figcaption>图 4：正常时 $\gamma_d = \gamma_s = 0.3$ 的估计误差协方差对比。确定性协议（蓝色）收敛更快、稳态值更低。</figcaption>
+    </figure>
+
+    <figure>
+      <img src="assets/insider-attack/fig5-attack-gamma08.jpg" alt="攻击后gamma=0.8对比" loading="lazy">
+      <figcaption>图 5：攻击后 $\gamma_d^a = \gamma_s^a = 0.8$ 的估计误差对比。确定性协议（蓝色）的误差爆发式增长，随机性协议（橙色）虽恶化但远好于确定性。</figcaption>
+    </figure>
+
+    <div class="callout-info">
+      <strong>💡 Monte Carlo 仿真的意义</strong><br>
+      理论证明了 $J_d^a > J_s^a$，但"证明"依赖于数学推导中的假设（如稳态分布存在性、遍历性）。Monte Carlo 仿真用 10000 次独立实验验证了这个结论在有限时间、有限样本下也成立——理论分析之外的"额外保险"。
+    </div>
+
+    <!-- ============ 5. 多维系统局限性 ============ -->
+    <h2>5. 多维系统局限性</h2>
+
+    <div class="callout-warn">
+      <strong>⚠️ 一个重要但诚实的局限</strong>：Theorem 3 和 Theorem 4 的结论在 <strong>标量系统</strong> 中严格成立，但 <strong>不能直接扩展到多维系统</strong>。原因涉及两种协议使用的不同范数。
+    </div>
+
+    <h3>5.1 为什么标量结论不直接扩展？</h3>
+
+    <p>核心原因 <strong>不在于</strong> 维度本身的增加，而在于两种触发协议使用了 <strong>不同的范数</strong>：</p>
+
+    <ul>
+      <li><strong>确定性协议 $f_d$</strong>：使用 <strong>无穷范数</strong> $\|e_k\|_\infty$<br>
+        $f_d$ 触发条件：$\|e_k\|_\infty > \delta$</li>
+      <li><strong>随机性协议 $f_s$</strong>：使用 <strong>2-范数</strong> $\|e_k\|_2$<br>
+        $f_s$ 触发概率：$P_s(\tau_k) = \min\{1, \Pi_{\tau_k} \cdot \|e_k\|_2^2\}$</li>
+    </ul>
+
+    <p>在标量情况下，$\|e_k\|_\infty = \|e_k\|_2 = |e_k|$，范数选择没有区别。但在多维（$n \geq 2$）情况下：</p>
+
+    <div class="formula-box">
+      $$ \|e_k\|_2 = \sqrt{e_{k,1}^2 + e_{k,2}^2 + \cdots + e_{k,n}^2} $$
+      $$ \|e_k\|_\infty = \max\{|e_{k,1}|, |e_{k,2}|, \dots, |e_{k,n}|\} $$
+      $$ \text{且 } \|e_k\|_\infty \leq \|e_k\|_2 \leq \sqrt{n} \cdot \|e_k\|_\infty $$
+    </div>
+
+    <p>这意味着两种协议对同一误差向量 $e_k$ 的"敏感度"不同，导致触发行为不可直接比较。论文使用 Fig 6 和 Fig 7 展示了多维系统的实验——结论是：<strong>反转可能不成立或者强度减弱</strong>。</p>
+
+    <h3>5.2 Fig 6 & 7：多维系统的实验结果</h3>
+
+    <figure>
+      <img src="assets/insider-attack/fig6-weir-system.jpg" alt="多维系统" loading="lazy">
+      <figcaption>图 6：四维 Weir 系统的仿真结果。标量情况的 $J_d^a > J_s^a$ 反转结论不再明显。</figcaption>
+    </figure>
+
+    <figure>
+      <img src="assets/insider-attack/fig7-uav-system.jpg" alt="UAV 系统" loading="lazy">
+      <figcaption>图 7：六维 UAV 系统的仿真。在高维系统中，范数差异导致两种协议触发行为大幅变化，反转强度减弱甚至消失。</figcaption>
+    </figure>
+
+    <h3>5.3 未来工作方向</h3>
+
+    <p>论文提出两个关键的开放问题，也是未来工作的方向：</p>
+
+    <ol>
+      <li><strong>统一触发条件的范数</strong>：让两种协议使用相同的范数（要么都用 $\|\cdot\|_\infty$，要么都用 $\|\cdot\|_2$），此时 Theorem 3 和 Theorem 4 是否能扩展到多维？</li>
+      <li><strong>多维系统的隐密条件</strong>：在多维系统中，保证 $\lambda_d^a = \lambda_d$ 的隐密条件是否仍然充分？是否存在其他可检测的异常特征？</li>
+    </ol>
+
+    <!-- ============ 6. 4 步迁移框架 ============ -->
+    <h2>6. 🧭 4 步迁移框架</h2>
+
+    <div class="callout-tip">
+      <strong>🎯 这是整门课最有用的部分</strong><br>
+      以下 4 步框架帮助你判断 <strong>你自己的研究场景</strong> 是否也面临类似的隐密攻击风险。把你正在用的触发/调度协议拿出来，一步步走一遍。
+    </div>
+
+    <div class="migration-grid">
+      <div class="migration-card">
+        <h4>你的触发协议是确定性的还是随机性的？</h4>
+        <p><strong>确定性</strong>：如果你的系统使用硬阈值（误差/事件超过某个固定值才触发），那么它和 $f_d$ 面对同样的风险——反转后"全有或全无"的特性会导致更大的性能损失。</p>
+        <p><strong>随机性</strong>：如果你的系统使用概率触发，那么内在随机性提供了天然的鲁棒性缓冲，但代价是正常情况下的性能略差。</p>
+      </div>
+
+      <div class="migration-card">
+        <h4>攻击者能接触到调度器吗？（内部攻击场景）</h4>
+        <p>如果攻击者只能干扰传感器信号（外部攻击），触发条件反转不适用——他们无法直接反转调度器的决策逻辑。但如果攻击者入侵了调度器本身（内部攻击），那么任何基于阈值的协议都可能被反转。</p>
+        <p><strong>判断</strong>：你的系统调度器是否在安全边界内？是否有硬件隔离/可信执行环境保护？</p>
+      </div>
+
+      <div class="migration-card">
+        <h4>你的系统能用通信率检测异常吗？</h4>
+        <p>论文的核心假设是：<strong>通信率是唯一可观测的特征</strong>。攻击者调整参数使通信率不变就是为了骗过这个检测。</p>
+        <ul>
+          <li>如果你的系统还有其他检测手段（如校验和、行为分析、入侵检测 IDS），则隐密攻击更难实现</li>
+          <li>如果除了网络流量统计外没有其他检测，那你就和论文的系统一样脆弱</li>
+        </ul>
+      </div>
+
+      <div class="migration-card">
+        <h4>如果被攻击，你的协议脆弱程度如何？</h4>
+        <p>结合前三个问题的答案，评估你的协议在隐密攻击下的脆弱程度：</p>
+        <table>
+          <tr><th>协议类型</th><th>调度器可接触</th><th>通信率检测</th><th>脆弱等级</th></tr>
+          <tr><td>确定性</td><td>✓ 可接触</td><td>✓ 唯一检测</td><td style="color: #C0392B;"><strong>🔴 高危</strong></td></tr>
+          <tr><td>确定性</td><td>✓ 可接触</td><td>✗ 有其他检测</td><td style="color: #E67E22;"><strong>🟡 中危</strong></td></tr>
+          <tr><td>随机性</td><td>✓ 可接触</td><td>✓ 唯一检测</td><td style="color: #E67E22;"><strong>🟡 中危</strong></td></tr>
+          <tr><td>随机性</td><td>✗ 不可接触</td><td>—</td><td style="color: #27AE60;"><strong>🟢 低危</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ 7. 总结 ============ -->
+    <h2>7. 📝 本系列总结</h2>
+
+    <p>让我们回顾这 6 节课的核心脉络：</p>
+
+    <div class="callout-info">
+      <strong>Insider Attack 系列 · 知识脉络</strong><br>
+      <ol style="margin: var(--space-2) 0 0; font-size: var(--text-sm);">
+        <li><strong>第 1 课</strong>：研究动机——事件触发调度面临内部攻击风险</li>
+        <li><strong>第 2 课</strong>：两种协议——确定性 $f_d$ vs 随机性 $f_s$ 的定义和区别</li>
+        <li><strong>第 3 课</strong>：触发条件反转——攻击者如何反转 $f_d$ 和 $f_s$</li>
+        <li><strong>第 4 课</strong>：隐密策略——Algorithm 1 二分搜索 + 隐密条件 $\lambda_d^a = \lambda_d$</li>
+        <li><strong>第 5 课</strong>：性能反转——Theorem 3 ($J_d \leq J_s$) → Theorem 4 ($J_d^a > J_s^a$)</li>
+        <li><strong>第 6 课</strong>：实验验证 + 多维局限 + 迁移框架</li>
+      </ol>
+      <p style="margin: var(--space-2) 0 0; font-size: var(--text-sm);"><strong>一句话总结</strong>：确定性调度在正常时表现更好，但在内部攻击下比随机性调度更脆弱——这是一个值得任何触发/调度系统设计者深思的权衡。</p>
+    </div>
+
+    <!-- ============ 练习 ============ -->
+    <h2>📝 练习</h2>
+
+    <details class="exercise-box">
+      <summary>📌 练习 1：将迁移框架应用到自己的场景</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：将 4 步迁移框架应用到你自己的研究场景中。回答以下问题：</p>
+
+        <ol>
+          <li>你的系统使用的是确定性还是随机性的触发/调度协议？具体什么规则？</li>
+          <li>攻击者能接触到你的调度器吗？你的系统是否有安全假设？</li>
+          <li>如果攻击者反转了触发条件，你的系统会发生什么？</li>
+          <li>你能设计什么对策来抵御这种攻击？</li>
+        </ol>
+
+        <p><strong>参考示例（ROS2 Nav2 场景）</strong>：</p>
+        <p>假设你在研究 ROS2 Nav2 的路径规划器——规划器周期性地发布规划结果。这相当于一个<strong>确定性时间触发</strong>协议（每 100ms 触发一次）。</p>
+        <ol>
+          <li>协议本质上是<strong>时间触发</strong>而非事件触发，但规划器内部有代价地图更新阈值——如果代价值未超过阈值就不重规划，这类似 $f_d$。</li>
+          <li>如果攻击者入侵了规划器节点（内部攻击），可以修改代价阈值。代价变化 > 阈值时反而不触发重规划。</li>
+          <li>结果：机器人陷入局部极小值（代价地图显示前方有障碍但规划器不重规划），导致碰撞或死锁。</li>
+          <li>对策：加入冗余的独立监控节点，监视频率和代价值的一致性；或者混合使用确定性 + 随机性触发。</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="exercise-box">
+      <summary>📌 练习 2：批判性思考——论文的局限</summary>
+      <div class="answer">
+        <p><strong>题目</strong>：这篇论文有哪些局限性？至少列出 3 点。哪些局限性对你的研究方向影响最大？</p>
+
+        <p><strong>参考答案</strong>：</p>
+        <ol>
+          <li><strong>标量系统局限</strong>：Theorem 3 & 4 的严格证明只在标量下成立。多维系统的反转结论不明确——这是论文自己承认的最大局限</li>
+          <li><strong>攻击模型简单</strong>：只考虑了"反转触发条件"这一种攻击。实际攻击者可以做更复杂的事（如修改估计器参数、注入假数据）。反转触发条件只是攻击者工具箱中的一种</li>
+          <li><strong>检测手段单一</strong>：只考虑了通信率检测。实际 CPS 中的入侵检测手段更丰富（上海交通大学团队就做过基于残差序列的 $\chi^2$ 检测）</li>
+          <li><strong>仿真实验</strong>：没有在真实硬件平台上验证攻击效果。标量 LTI 系统的噪声是高斯分布的，实际系统的噪声可能更复杂</li>
+          <li><strong>没有提出防御</strong>：论文展示了漏洞，但没有给出具体的防御机制（如加密、认证、冗余、切换等）</li>
+        </ol>
+
+        <p>对于从事 CPS 安全的研究者来说，局限 1 和 3 尤其值得关注——如果你研究的是多维系统（如无人机编队、机器人操作臂），论文的分析只能作为定性参考，不能定量套用。</p>
+      </div>
+    </details>
+
+    <!-- ============ 导航 ============ -->
+    <div class="footer-nav">
+      <a href="0105-性能分析与反转结论.html">← 上一课：性能反转结论</a>
+      <a class="back-home" href="../index.html">🏠 返回 PaperLesson 主页</a>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.lesson -->
+
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>
