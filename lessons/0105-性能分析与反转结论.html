@@ -108,6 +108,11 @@
 
     <p>但是——注意！这里有一个微妙的"反向"：<strong>大的范数 → 更容易触发通信 → 误差更小</strong>。确定性协议用无穷范数（更"敏感"），所以同样条件下它触发更频繁，误差更小。这就是为什么 $J_d \leq J_s$。</p>
 
+    <figure>
+      <img src="assets/insider-attack/fig4-normal-gamma03.jpg" alt="正常运行时gamma=0.3对比" loading="lazy">
+      <figcaption>图 4：正常运行时 $\gamma_d = \gamma_s = 0.3$ 的估计误差协方差对比。确定性协议（蓝色）始终低于随机性协议（红色），验证 Theorem 3（$J_d < J_s$）。</figcaption>
+    </figure>
+
     <!-- ============ 2. 攻击后：确定性反而更差 ============ -->
     <h2>2. 攻击后的性能反转（Theorem 4）</h2>
 
@@ -133,6 +138,11 @@
       <div class="dir">$J_d^a \; {\color{red}>} \; J_s^a$</div>
       <div class="label">确定性反而更差！</div>
     </div>
+
+    <figure>
+      <img src="assets/insider-attack/fig5-attack-gamma08.jpg" alt="攻击后gamma=0.8对比" loading="lazy">
+      <figcaption>图 5：内部攻击下 $\gamma_d^a = \gamma_s^a = 0.8$ 的估计误差协方差对比。攻击后确定性协议（蓝色）误差高于随机性协议（红色），验证 Theorem 4（$J_d^a > J_s^a$）。</figcaption>
+    </figure>
 
     <!-- ============ 3. 核心反转因果链拆解（4 步） ============ -->
     <h2>3. 核心反转因果链拆解（4 步）</h2>
