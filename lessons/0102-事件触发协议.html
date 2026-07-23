@@ -5,6 +5,8 @@
 <title>0102 · 事件触发协议 — 确定性协议与随机性协议</title>
 <link rel="stylesheet" href="../shared/theme.css">
 <style>
+  .back { display: inline-block; margin-bottom: var(--space-6, 1.5rem); color: var(--accent); text-decoration: none; font-size: var(--text-sm, .85rem); }
+  .back:hover { text-decoration: underline; }
   body { max-width: 880px; margin: 0 auto; padding: 2rem 1.5rem; background: var(--paper-light); }
   .lesson-header { border-bottom: 2px solid var(--border); padding-bottom: .8rem; margin-bottom: 2rem; }
   .lesson-header h1 { font-size: 1.6rem; color: var(--ink); margin-bottom: .3rem; }
@@ -53,9 +55,7 @@ MathJax = {
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 </head>
 <body>
-<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:var(--space-4);">
-  ← 返回主页
-</a>
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
 
 <div class="lesson-header">
   <h1>📡 第 0102 课：事件触发协议</h1>
@@ -314,8 +314,13 @@ MathJax = {
 
 <div class="nav">
   <a href="0101-系统建模与卡尔曼滤波.html">← 上一课：系统建模与卡尔曼滤波</a>
+  <a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a>
   <a href="0103-内部攻击模型与误差演化.html">下一课：内部攻击模型与误差演化 →</a>
 </div>
+
+<p style="text-align:center;font-size:.8rem;color:var(--ink-40);margin-top:1rem;">
+  Deng &amp; Li, "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks" · IEEE TIFS 2026
+</p>
 
 <script src="../shared/lesson-tools.js"></script>
 </body>

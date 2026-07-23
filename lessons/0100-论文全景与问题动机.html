@@ -58,9 +58,12 @@
   .quiz .q-item .q::before { content: "Q"; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: white; font-size: .7rem; font-weight: 700; margin-right: .4rem; }
   .quiz .q-item .hint { font-size: .78rem; color: var(--ink-40); margin-top: .2rem; font-style: italic; }
 
-  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; }
+  .back { display: inline-block; margin-bottom: var(--space-6, 1.5rem); color: var(--accent); text-decoration: none; font-size: var(--text-sm, .85rem); }
+  .back:hover { text-decoration: underline; }
+  .nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .9rem; flex-wrap: wrap; gap: .5rem; }
   .nav a { color: var(--accent-deep); text-decoration: none; }
   .nav a:hover { text-decoration: underline; color: var(--accent); }
+  .nav .back-home { color: var(--ink-40); font-size: .85rem; }
 
   @media (max-width: 768px) {
     .protagonist-card { grid-template-columns: 1fr; }
@@ -77,7 +80,7 @@ MathJax = {
 </head>
 <body>
 
-<a href="../index.html" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-40);text-decoration:none;margin-bottom:1rem;">← 返回主页</a>
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
 
 <div class="lesson-header">
   <h1>📡 课程 0100：论文全景与问题动机</h1>
@@ -291,8 +294,8 @@ MathJax = {
      ════════════════════════════════════════════ -->
 
 <div class="nav">
-  <a href="../index.html">← 返回首页</a>
   <a href="0101-系统建模与卡尔曼滤波.html">下一课 → 系统建模与卡尔曼滤波</a>
+  <a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a>
 </div>
 
 <hr style="margin-top:2rem;">
