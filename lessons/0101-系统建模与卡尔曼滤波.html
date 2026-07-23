@@ -3,461 +3,410 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>0101 · 系统建模与卡尔曼滤波</title>
+  <title>0101 · 系统建模与卡尔曼滤波 · PaperLesson</title>
   <link rel="stylesheet" href="../shared/theme.css">
   <style>
     body { background: var(--paper-light); }
-  .back { display: inline-block; margin-bottom: var(--space-6, 1.5rem); color: var(--accent); text-decoration: none; font-size: var(--text-sm, .85rem); }
-  .back:hover { text-decoration: underline; }
-    .hero { max-width: 880px; margin-left: auto; margin-right: auto; }
-    .eye-icon { font-size: 1.2rem; }
-    .formula-block {
-      margin: 1rem 0;
-      padding: .85rem 1rem;
-      border-radius: 18px;
-      background: rgba(204,120,92,.06);
-      border: 1px dashed rgba(204,120,92,.35);
-      overflow: auto;
-    }
-    .highlight { background: rgba(204,120,92,.15); padding: .1em .3em; border-radius: 4px; }
-    .symbol-card {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: .7rem;
-      margin: 1rem 0;
-    }
-    .symbol-card .sym-item {
-      background: rgba(255,255,255,.6);
-      border: 1px solid rgba(204,120,92,.11);
-      border-radius: 14px;
-      padding: .7rem .85rem;
-      font-size: .9rem;
-    }
-    .symbol-card .sym-item strong { font-family: 'JetBrains Mono', monospace; }
-    .step-list {
-      counter-reset: step;
-      list-style: none;
-      padding-left: 0;
-    }
-    .step-list li {
-      counter-increment: step;
-      padding: .5rem 0 .5rem 2.2rem;
-      position: relative;
-      margin: .5rem 0;
-    }
-    .step-list li::before {
-      content: counter(step);
-      position: absolute;
-      left: 0;
-      top: .5rem;
-      width: 1.6rem;
-      height: 1.6rem;
-      border-radius: 50%;
-      background: rgba(204,120,92,.15);
-      color: #9d553f;
-      font-weight: 700;
-      font-size: .82rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .hint-box {
-      background: linear-gradient(135deg, rgba(204,120,92,.07), rgba(204,120,92,.03));
-      border-left: 4px solid #b15d44;
-      border-radius: 0 14px 14px 0;
-      padding: .8rem 1rem;
-      margin: 1rem 0;
-      font-size: .92rem;
-    }
-    .hint-box h4 { margin: 0 0 .3rem; }
-    .calc-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin: 1rem 0;
-    }
-    .calc-step {
-      background: rgba(255,255,255,.6);
-      border: 1px solid rgba(204,120,92,.11);
-      border-radius: 16px;
-      padding: .9rem 1rem;
-    }
-    .calc-step h4 { margin: 0 0 .5rem; font-size: .95rem; }
-    @media (max-width: 680px) {
-      .calc-grid { grid-template-columns: 1fr; }
-    }
+    .lesson { max-width: 880px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+    .lesson h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: 0.2rem; }
+    .lesson .subtitle { font-size: var(--text-lg); color: var(--ink-60); font-family: var(--font-serif); margin-top: var(--space-2); }
+    .lesson .meta { display: flex; gap: var(--space-3); margin: var(--space-4) 0 var(--space-8); flex-wrap: wrap; }
+    .lesson .meta span { padding: 0.3rem 0.8rem; border-radius: 6px; background: var(--paper); border: 1px solid var(--border-light); font-size: var(--text-sm); color: var(--ink-60); }
+    .lesson .content { line-height: 1.8; font-size: var(--text-base); color: var(--ink-80); }
+    .lesson .content h2 { font-family: var(--font-serif); font-size: var(--text-xl); margin: var(--space-8) 0 var(--space-4); padding-bottom: var(--space-1); border-bottom: 1px solid var(--border); color: var(--accent-deep); }
+    .lesson .content h3 { font-family: var(--font-serif); font-size: var(--text-lg); margin: var(--space-6) 0 var(--space-3); color: var(--ink); }
+    .lesson .content h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: var(--space-5) 0 var(--space-2); color: var(--ink-80); }
+    .back { display: inline-block; margin-bottom: var(--space-6); color: var(--accent); text-decoration: none; font-size: var(--text-sm); }
+    .back:hover { text-decoration: underline; }
+    .callout { background: var(--paper); border-left: 4px solid var(--accent); padding: var(--space-4); border-radius: 0 8px 8px 0; margin: var(--space-5) 0; font-size: var(--text-sm); }
+    .callout strong { color: var(--accent-deep); }
+    .callout h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+    .callout p, .callout li { font-size: var(--text-sm); }
+    .formula-box { background: var(--paper); border: 1px dashed var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-4) 0; text-align: center; font-size: var(--text-lg); }
+    .formula-box .label { font-size: var(--text-xs); color: var(--ink-40); margin-top: var(--space-2); }
+    .formula-box p { font-size: var(--text-sm); margin-bottom: var(--space-2); }
+    .formula-box p:last-child { margin-bottom: 0; }
+    .formula-box table { margin: 0 auto; }
+    .exercise-box { border: 1px solid var(--border); border-radius: 8px; padding: var(--space-5); margin: var(--space-6) 0; background: var(--paper); }
+    .exercise-box summary { cursor: pointer; font-weight: 600; color: var(--accent-deep); font-size: var(--text-base); padding: var(--space-1) 0; }
+    .exercise-box summary:hover { color: var(--accent); }
+    .exercise-box .answer { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-light); font-size: var(--text-sm); }
+    .exercise-box h3 { font-family: var(--font-serif); color: var(--accent-deep); margin: 0 0 var(--space-4); }
+    .nav { margin-top: var(--space-10); padding-top: var(--space-6); border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: var(--text-sm); flex-wrap: wrap; gap: var(--space-3); }
+    .nav a { color: var(--accent-deep); text-decoration: none; padding: var(--space-2) var(--space-3); border-radius: 6px; transition: background 0.2s; }
+    .nav a:hover { background: var(--accent-dim); text-decoration: none; }
+    .nav .back-home { color: var(--ink-40); }
+    .nav .back-home:hover { background: transparent; color: var(--accent); }
+    /* ── 符号卡 ── */
+    .symbol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+    .symbol-grid .sym-item { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); }
+    .symbol-grid .sym-item strong { font-family: 'JetBrains Mono', monospace; color: var(--accent-deep); }
+    /* ── 计算网格 ── */
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin: var(--space-4) 0; }
+    .calc-grid .calc-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-4); }
+    .calc-grid .calc-card h4 { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); margin: 0 0 var(--space-2); }
+    .calc-grid .calc-card p { font-size: var(--text-sm); }
+    /* ── 算子双栏 ── */
+    .op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin: var(--space-4) 0; }
+    .op-grid .op-card { background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-4); }
+    .op-grid .op-card h4 { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); margin: 0 0 var(--space-2); }
+    .op-grid .op-card p { font-size: var(--text-sm); }
+    .op-grid .op-card .formula-box { margin: var(--space-2) 0 0; }
+    figure { margin: var(--space-5) 0; text-align: center; }
+    figure img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+    figure figcaption { font-size: var(--text-sm); color: var(--ink-60); margin-top: var(--space-2); font-style: italic; }
+    ul, ol { margin-left: var(--space-5); }
+    li { margin-bottom: var(--space-1); }
+    table { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; font-size: var(--text-sm); }
+    th { background: var(--paper); text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 2px solid var(--accent-light); color: var(--ink-60); }
+    td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border-light); }
+    @media (max-width: 680px) { .calc-grid { grid-template-columns: 1fr; } .op-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .lesson { padding: var(--space-4) var(--space-3); } }
   </style>
-</style>
-<script>
-MathJax = {
-  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-  svg: { fontCache: 'global' }
-};
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 </head>
 <body>
+
 <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
-<div class="page lesson">
-    <header class="hero">
-      <div class="eyebrow">Foundations / Lesson 0101</div>
-      <h1>系统建模与卡尔曼滤波</h1>
-      <p class="subtitle">离散时间线性系统是远程状态估计的"语言"，卡尔曼滤波是传感器的"大脑"。这节课把这两块基础打牢。</p>
-      <div class="hero-meta">
-        <span>🎯 主题：状态空间模型 · Kalman 滤波 · Riccati 方程</span>
-        <span>🧭 入口：Section 2–3</span>
-        <span>📖 前置：线性代数 · 概率论</span>
-      </div>
-      <div class="toc">
-        <a href="#callout-prereq">📋 前置知识</a>
-        <a href="#sys-model">📐 系统模型</a>
-        <a href="#kalman">⚡ Kalman 滤波器</a>
-        <a href="#qfunc">📊 Q 函数</a>
-        <a href="#operators">🔧 两个算子</a>
-        <a href="#lemma1">📜 Lemma 1</a>
-        <a href="#innovation">💡 增量创新</a>
-        <a href="#exercise">✏️ 手写练习</a>
-      </div>
-    </header>
+
+<div class="lesson">
+  <h1>系统建模与卡尔曼滤波</h1>
+  <div class="subtitle">离散时间线性系统是远程状态估计的"语言"，卡尔曼滤波是传感器的"大脑"。这节课把这两块基础打牢。</div>
+  <div class="meta">
+    <span>🎯 主题：状态空间模型 · Kalman 滤波 · Riccati 方程</span>
+    <span>📖 前置：线性代数 · 概率论</span>
+  </div>
+
+  <div class="content">
 
     <!-- ═══════════════ 前置知识 ═══════════════ -->
-    <section class="section-card" id="callout-prereq">
-      <div class="callout">
-        <h4>📋 前置知识 — 开始前请确认</h4>
-        <p>本节假设你已经具备以下基础。如果感觉生疏，建议先快速回顾：</p>
-        <ul>
-          <li><strong>线性代数</strong>：矩阵乘法、转置、逆矩阵、特征值分解、正定矩阵、迹 (trace)</li>
-          <li><strong>概率论</strong>：期望 $\mathbb{E}[\cdot]$、协方差 $\mathrm{Cov}(\cdot)$、高斯（正态）分布 $\mathcal{N}(\mu, \Sigma)$</li>
-        </ul>
-        <p style="margin-top:.5rem;color:#846e65;font-size:.88rem;">💡 别被公式吓到 — 这节课所有的数学运算最终都归结为矩阵乘法和加减法。</p>
-      </div>
-    </section>
+    <h2>📋 前置知识 — 开始前请确认</h2>
+
+    <div class="callout">
+      <p>本节假设你已经具备以下基础。如果感觉生疏，建议先快速回顾：</p>
+      <ul>
+        <li><strong>线性代数</strong>：矩阵乘法、转置、逆矩阵、特征值分解、正定矩阵、迹 (trace)</li>
+        <li><strong>概率论</strong>：期望 $\mathbb{E}[\cdot]$、协方差 $\mathrm{Cov}(\cdot)$、高斯分布 $\mathcal{N}(\mu, \Sigma)$</li>
+      </ul>
+      <p style="margin-top:.5rem;color:var(--ink-40);font-size:.85rem;">💡 别被公式吓到 — 这节课所有的数学运算最终都归结为矩阵乘法和加减法。</p>
+    </div>
 
     <!-- ═══════════════ 系统模型 ═══════════════ -->
-    <section class="section-card" id="sys-model">
-      <h2>1. 系统模型</h2>
+    <h2>1. 系统模型</h2>
 
-      <p>我们研究的是<strong>离散时间线性时不变系统</strong>（Discrete-Time Linear Time-Invariant System）。它描述了一个物理过程如何随时间演化、我们如何观测它。</p>
+    <p>我们研究的是<strong>离散时间线性时不变系统</strong>（Discrete-Time Linear Time-Invariant System）。它描述了一个物理过程如何随时间演化、我们如何观测它。</p>
 
-      <div class="formula-block">
-        <p><strong>状态方程</strong>（系统怎么变）：</p>
-        $$x_{k+1} = A x_k + w_k$$
+    <div class="formula-box">
+      <p><strong>状态方程</strong>（系统怎么变）：</p>
+      $$x_{k+1} = A x_k + w_k$$
+      <p style="margin-top:.8rem;"><strong>观测方程</strong>（传感器看到什么）：</p>
+      $$y_k = C x_k + v_k$$
+    </div>
 
-        <p style="margin-top:.8rem;"><strong>观测方程</strong>（传感器看到什么）：</p>
-        $$y_k = C x_k + v_k$$
-      </div>
+    <div class="symbol-grid">
+      <div class="sym-item"><strong>$x_k \in \mathbb{R}^n$</strong> — $k$ 时刻的系统状态（真实值，未知）</div>
+      <div class="sym-item"><strong>$y_k \in \mathbb{R}^m$</strong> — $k$ 时刻的传感器观测值</div>
+      <div class="sym-item"><strong>$A \in \mathbb{R}^{n \times n}$</strong> — 状态转移矩阵（描述系统动力学）</div>
+      <div class="sym-item"><strong>$C \in \mathbb{R}^{m \times n}$</strong> — 观测矩阵（描述传感器如何"看"状态）</div>
+      <div class="sym-item"><strong>$w_k$</strong> — 过程噪声，$w_k \sim \mathcal{N}(0, Q)$</div>
+      <div class="sym-item"><strong>$v_k$</strong> — 观测噪声，$v_k \sim \mathcal{N}(0, R)$</div>
+    </div>
 
-      <div class="symbol-card">
-        <div class="sym-item"><strong>$x_k \in \mathbb{R}^n$</strong> — $k$ 时刻的系统状态（真实值，未知）</div>
-        <div class="sym-item"><strong>$y_k \in \mathbb{R}^m$</strong> — $k$ 时刻的传感器观测值</div>
-        <div class="sym-item"><strong>$A \in \mathbb{R}^{n \times n}$</strong> — 状态转移矩阵（描述系统动力学）</div>
-        <div class="sym-item"><strong>$C \in \mathbb{R}^{m \times n}$</strong> — 观测矩阵（描述传感器如何"看"状态）</div>
-        <div class="sym-item"><strong>$w_k$</strong> — 过程噪声，$w_k \sim \mathcal{N}(0, Q)$</div>
-        <div class="sym-item"><strong>$v_k$</strong> — 观测噪声，$v_k \sim \mathcal{N}(0, R)$</div>
-      </div>
+    <div class="callout" style="margin-top:1rem;">
+      <h4>噪声在干什么？</h4>
+      <p>$w_k$ 表示系统建模的不确定性——比如风对无人机的影响、路面不平对小车的影响。<br>
+      $v_k$ 表示传感器的测量误差——任何传感器都有噪声，这是物理限制。<br>
+      两者都是 <strong>零均值高斯白噪声</strong>，且互不相关：$\mathbb{E}[w_k v_j^\top] = 0$ 对所有 $k,j$ 成立。</p>
+    </div>
 
-      <div class="callout" style="margin-top:1rem;">
-        <h4>噪声在干什么？</h4>
-        <p>$w_k$ 表示系统建模的不确定性——比如风对无人机的影响、路面不平对小车的影响。<br>
-        $v_k$ 表示传感器的测量误差——任何传感器都有噪声，这是物理限制。<br>
-        两者都是 <strong>零均值高斯白噪声</strong>，且互不相关：$\mathbb{E}[w_k v_j^\top] = 0$ 对所有 $k,j$ 成立。</p>
-      </div>
-
-      <h3>可检测性假设</h3>
-      <p>论文假设 $(A, C)$ <strong>可检测</strong>（detectable）。通俗来说：</p>
-      <ul>
-        <li>所有不可观测的模式都是<strong>稳定的</strong>（特征值都在单位圆内）</li>
-        <li>系统不会出现"看不到却发散"的模式</li>
-      </ul>
-      <p>这个假设很弱，绝大多数工程系统都满足。它的作用是保证后面 Kalman 滤波器能收敛到稳态。</p>
-    </section>
+    <h3>可检测性假设</h3>
+    <p>论文假设 $(A, C)$ <strong>可检测</strong>（detectable）。通俗来说：</p>
+    <ul>
+      <li>所有不可观测的模式都是<strong>稳定的</strong>（特征值都在单位圆内）</li>
+      <li>系统不会出现"看不到却发散"的模式</li>
+    </ul>
+    <p>这个假设很弱，绝大多数工程系统都满足。它的作用是保证后面 Kalman 滤波器能收敛到稳态。</p>
 
     <!-- ═══════════════ Kalman 滤波器 ═══════════════ -->
-    <section class="section-card" id="kalman">
-      <h2>2. Kalman 滤波器速成</h2>
+    <h2>2. Kalman 滤波器速成</h2>
 
-      <p>论文中的<strong>智能传感器</strong>（smart sensor）内部运行着一个 Kalman 滤波器。它用观测 $y_k$ 来估计真实状态 $x_k$。</p>
+    <p>论文中的<strong>智能传感器</strong>（smart sensor）内部运行着一个 Kalman 滤波器。它用观测 $y_k$ 来估计真实状态 $x_k$。</p>
 
-      <p>记传感器的估计值为 $\hat{x}_k^l$（上标 $l$ 代表"local"，即传感器本地估计），误差协方差为 $P_k^l$。</p>
+    <p>记传感器的估计值为 $\hat{x}_k^l$（上标 $l$ 代表"local"，即传感器本地估计），误差协方差为 $P_k^l$。</p>
 
-      <h3>2.1 两步法：预测 + 更新</h3>
+    <h3>2.1 两步法：预测 + 更新</h3>
 
-      <div class="calc-grid">
-        <div class="calc-step">
-          <h4>① 预测步（时间更新）</h4>
-          <p style="font-size:.85rem;color:#846e65;">用系统模型"猜"下一步状态</p>
-          $$\hat{x}_k^{l-} = A \hat{x}_{k-1}^l$$
-          $$P_k^{l-} = A P_{k-1}^l A^\top + Q$$
-        </div>
-        <div class="calc-step">
-          <h4>② 更新步（观测更新）</h4>
-          <p style="font-size:.85rem;color:#846e65;">用实际观测来"修正"预测值</p>
-          $$z_k = y_k - C \hat{x}_k^{l-}$$
-          $$K_k^l = P_k^{l-} C^\top (C P_k^{l-} C^\top + R)^{-1}$$
-          $$\hat{x}_k^l = \hat{x}_k^{l-} + K_k^l z_k$$
-          $$P_k^l = (I - K_k^l C) P_k^{l-}$$
-        </div>
+    <div class="calc-grid">
+      <div class="calc-card">
+        <h4>① 预测步（时间更新）</h4>
+        <p style="color:var(--ink-40);font-size:.85rem;">用系统模型"猜"下一步状态</p>
+        $$\hat{x}_k^{l-} = A \hat{x}_{k-1}^l$$
+        $$P_k^{l-} = A P_{k-1}^l A^\top + Q$$
       </div>
-
-      <div class="hint-box">
-        <h4>💡 直观理解</h4>
-        <p><strong>预测</strong>：从上一时刻的状态，用物理规律 $A$ 外推下一步。不确定性因过程噪声 $Q$ 而增大。<br>
-        <strong>更新</strong>：拿观测 $y_k$ 和预测值比较，差异叫<strong>创新（innovation）</strong>$z_k$。然后用 Kalman 增益 $K_k^l$ 来决定"信观测多少、信预测多少"。更新后不确定性缩减。</p>
+      <div class="calc-card">
+        <h4>② 更新步（观测更新）</h4>
+        <p style="color:var(--ink-40);font-size:.85rem;">用实际观测来"修正"预测值</p>
+        $$z_k = y_k - C \hat{x}_k^{l-}$$
+        $$K_k^l = P_k^{l-} C^\top (C P_k^{l-} C^\top + R)^{-1}$$
+        $$\hat{x}_k^l = \hat{x}_k^{l-} + K_k^l z_k$$
+        $$P_k^l = (I - K_k^l C) P_k^{l-}$$
       </div>
+    </div>
 
-      <h3>2.2 关键角色：卡尔曼增益 $K_k^l$</h3>
-      <p>$K_k^l$ 是 Kalman 滤波器的核心——它是一个<strong>加权矩阵</strong>，负责在预测和观测之间做最优权衡：</p>
+    <div class="callout">
+      <h4>💡 直观理解</h4>
+      <p><strong>预测</strong>：从上一时刻的状态，用物理规律 $A$ 外推下一步。不确定性因过程噪声 $Q$ 而增大。<br>
+      <strong>更新</strong>：拿观测 $y_k$ 和预测值比较，差异叫<strong>创新（innovation）</strong>$z_k$。然后用 Kalman 增益 $K_k^l$ 来决定"信观测多少、信预测多少"。更新后不确定性缩减。</p>
+    </div>
+
+    <h3>2.2 关键角色：卡尔曼增益 $K_k^l$</h3>
+    <p>$K_k^l$ 是 Kalman 滤波器的核心——它是一个<strong>加权矩阵</strong>，负责在预测和观测之间做最优权衡：</p>
+    <ul>
+      <li>$K_k^l$ 越大 → 越信任观测（观测噪声 $R$ 小，或预测误差 $P_k^{l-}$ 大）</li>
+      <li>$K_k^l$ 越小 → 越信任预测（观测噪声 $R$ 大，或预测已经很准）</li>
+    </ul>
+
+    <h3>2.3 稳态 Kalman 滤波器</h3>
+    <p>对时不变系统 $(A, C)$，Kalman 滤波器的误差协方差会<strong>收敛</strong>到固定值：</p>
+
+    <div class="formula-box">
+      $$P = \lim_{k \to \infty} P_k^l, \qquad \bar{P} = \lim_{k \to \infty} P_k^{l-}$$
+    </div>
+
+    <p>其中 $P$ 是更新后的稳态误差，$\bar{P}$ 是预测后的稳态误差。<br>
+    收敛到稳态后，增益也变成常数：$K = P C^\top (C P C^\top + R)^{-1}$。多数论文（包括我们这篇）直接使用稳态 Kalman 滤波器分析，省去了每个时间步都重新计算增益的麻烦。</p>
+
+    <div class="callout" style="background: var(--accent-dim);">
+      <h4>🔑 为什么稳态很重要</h4>
+      <p>稳态误差协方差 $P$ 是整个论文分析的<strong>性能基准</strong>。后续所有比较都会回到这个基准值。具体来说：</p>
       <ul>
-        <li>$K_k^l$ 越大 → 越信任观测（观测噪声 $R$ 小，或预测误差 $P_k^{l-}$ 大）</li>
-        <li>$K_k^l$ 越小 → 越信任预测（观测噪声 $R$ 大，或预测已经很准）</li>
+        <li>传感器本地滤波的误差 = $P$</li>
+        <li>合法用户收到真实估计后的误差 = 也是 $P$（因为同步了传感器的最优值）</li>
+        <li>窃听者被噪声毒化后的误差 = 比 $P$ 大很多</li>
       </ul>
-
-      <h3>2.3 稳态 Kalman 滤波器</h3>
-      <p>对时不变系统 $(A, C)$，Kalman 滤波器的误差协方差会<strong>收敛</strong>到固定值：</p>
-
-      <div class="formula-block">
-        $$P = \lim_{k \to \infty} P_k^l, \qquad \bar{P} = \lim_{k \to \infty} P_k^{l-}$$
-      </div>
-
-      <p>其中 $P$ 是更新后的稳态误差，$\bar{P}$ 是预测后的稳态误差。<br>
-      收敛到稳态后，增益也变成常数：$K = P C^\top (C P C^\top + R)^{-1}$。多数论文（包括我们这篇）直接使用稳态 Kalman 滤波器分析，省去了每个时间步都重新计算增益的麻烦。</p>
-
-      <div class="callout highlight">
-        <h4>🔑 为什么稳态很重要</h4>
-        <p>稳态误差协方差 $P$ 是整个论文分析的<strong>性能基准</strong>。后续所有"合法用户 vs 窃听者"的比较，都会回到这个基准值。具体来说：</p>
-        <ul>
-          <li>传感器本地滤波的误差 = $P$</li>
-          <li>合法用户收到真实估计后的误差 = 也是 $P$（因为同步了传感器的最优值）</li>
-          <li>窃听者被噪声毒化后的误差 = 比 $P$ 大很多</li>
-        </ul>
-      </div>
-    </section>
+    </div>
 
     <!-- ═══════════════ Q 函数 ═══════════════ -->
-    <section class="section-card" id="qfunc">
-      <h2>3. Q 函数速查</h2>
+    <h2>3. Q 函数速查</h2>
 
-      <p>论文中的确定型触发协议会用到标准正态分布的尾部概率——这个函数记为 $Q(\delta)$：</p>
+    <p>论文中的确定型触发协议会用到标准正态分布的尾部概率——这个函数记为 $Q(\delta)$：</p>
 
-      <div class="formula-block">
-        $$Q(\delta) = \int_{\delta}^{\infty} \frac{1}{\sqrt{2\pi}} e^{-t^2 / 2} \, dt$$
-      </div>
+    <div class="formula-box">
+      $$Q(\delta) = \int_{\delta}^{\infty} \frac{1}{\sqrt{2\pi}} e^{-t^2 / 2} \, dt$$
+    </div>
 
-      <p>它回答的问题是：<strong>"一个标准正态随机变量 $Z \sim \mathcal{N}(0,1)$ 超过阈值 $\delta$ 的概率是多少？"</strong></p>
+    <p>它回答的问题是：<strong>"一个标准正态随机变量 $Z \sim \mathcal{N}(0,1)$ 超过阈值 $\delta$ 的概率是多少？"</strong></p>
 
-      <div class="hint-box">
-        <h4>💡 直觉</h4>
-        <p>$Q(\delta)$ 就是钟形曲线右尾的面积。$\delta$ 越大，$Q(\delta)$ 越小。在论文中，它用来计算传感器的发送概率：<br>
-        $\mathbb{P}(u_k = 1) = 1 - Q(\|\hat{x}_k^l - x_k\| / \sqrt{\sigma^2})$ 之类的表达式（具体细节后续课程展开）。</p>
-      </div>
+    <div class="callout">
+      <h4>💡 直觉</h4>
+      <p>$Q(\delta)$ 就是钟形曲线右尾的面积。$\delta$ 越大，$Q(\delta)$ 越小。在论文中，它用来计算传感器的发送概率。</p>
+    </div>
 
-      <div class="callout">
-        <h4>📐 实用性质</h4>
-        <ul>
-          <li>$Q(-\delta) = 1 - Q(\delta)$  （对称性）</li>
-          <li>$Q(0) = 0.5$</li>
-          <li>$Q(3) \approx 0.00135$  （三西格玛法则）</li>
-          <li>没有解析表达式，只能用数值计算或查表</li>
-        </ul>
-      </div>
-    </section>
+    <div class="callout">
+      <h4>📐 实用性质</h4>
+      <ul>
+        <li>$Q(-\delta) = 1 - Q(\delta)$  （对称性）</li>
+        <li>$Q(0) = 0.5$</li>
+        <li>$Q(3) \approx 0.00135$  （三西格玛法则）</li>
+        <li>没有解析表达式，只能用数值计算或查表</li>
+      </ul>
+    </div>
 
     <!-- ═══════════════ 两个算子 ═══════════════ -->
-    <section class="section-card" id="operators">
-      <h2>4. 两个算子</h2>
+    <h2>4. 两个算子</h2>
 
-      <p>论文定义了两个关于<strong>矩阵的函数</strong>，分别对应 Kalman 滤波器的预测步和更新步。它们会反复出现，务必熟悉：</p>
+    <p>论文定义了两个关于<strong>矩阵的函数</strong>，分别对应 Kalman 滤波器的预测步和更新步。它们会反复出现，务必熟悉：</p>
 
-      <div class="grid-2">
-        <div class="mini-card">
-          <h4>🔮 预测算子 $h(\cdot)$</h4>
-          <div class="formula-block" style="margin:.5rem 0 0;border-style:solid;">
-            $$h(X) = A X A^\top + Q$$
-          </div>
-          <p style="font-size:.85rem;margin-top:.5rem;">输入当前的误差协方差矩阵 $X$，输出<strong>预测后的</strong>误差协方差。因为加上了过程噪声 $Q$，不确定性总是变大。</p>
+    <div class="op-grid">
+      <div class="op-card">
+        <h4>🔮 预测算子 $h(\cdot)$</h4>
+        <div class="formula-box">
+          $$h(X) = A X A^\top + Q$$
         </div>
-        <div class="mini-card">
-          <h4>🎯 更新算子 $g(\cdot)$</h4>
-          <div class="formula-block" style="margin:.5rem 0 0;border-style:solid;">
-            $$g(X) = X - X C^\top (C X C^\top + R)^{-1} C X$$
-          </div>
-          <p style="font-size:.85rem;margin-top:.5rem;">输入预测后的协方差，输出<strong>更新后的</strong>误差协方差。因为利用观测信息，不确定性总是变小（或不变）。</p>
+        <p style="margin-top:var(--space-2);font-size:var(--text-sm);">输入当前的误差协方差矩阵 $X$，输出<strong>预测后的</strong>误差协方差。因为加上了过程噪声 $Q$，不确定性总是变大。</p>
+      </div>
+      <div class="op-card">
+        <h4>🎯 更新算子 $g(\cdot)$</h4>
+        <div class="formula-box">
+          $$g(X) = X - X C^\top (C X C^\top + R)^{-1} C X$$
         </div>
+        <p style="margin-top:var(--space-2);font-size:var(--text-sm);">输入预测后的协方差，输出<strong>更新后的</strong>误差协方差。因为利用观测信息，不确定性总是变小（或不变）。</p>
       </div>
+    </div>
 
-      <h3>为什么叫"算子"？</h3>
-      <p>因为它们把<strong>矩阵</strong>映射到<strong>矩阵</strong>——就像一个函数把数字映射到数字一样。你可以把 $h$ 和 $g$ 看作 Kalman 滤波器的"算术"：</p>
+    <h3>为什么叫"算子"？</h3>
+    <p>因为它们把<strong>矩阵</strong>映射到<strong>矩阵</strong>——就像一个函数把数字映射到数字一样。你可以把 $h$ 和 $g$ 看作 Kalman 滤波器的"算术"：</p>
 
-      <div class="formula-block" style="text-align:center;">
-        $$P_k^{l-} = h(P_{k-1}^l), \qquad P_k^l = g(P_k^{l-})$$
-        $$P = g \circ h(P) \quad \text{（稳态条件）}$$
-      </div>
+    <div class="formula-box">
+      $$P_k^{l-} = h(P_{k-1}^l), \qquad P_k^l = g(P_k^{l-})$$
+      <div class="label">$$P = g \circ h(P) \quad \text{（稳态条件）}$$</div>
+    </div>
 
-      <p>后者 $P = g(h(P))$ 就是<strong>稳态 Riccati 方程</strong>。$P$ 是这个方程的唯一正定解。</p>
+    <p>后者 $P = g(h(P))$ 就是<strong>稳态 Riccati 方程</strong>。$P$ 是这个方程的唯一正定解。</p>
 
-      <div class="hint-box">
-        <h4>🔑 关键性质</h4>
-        <p>对任意正定矩阵 $X$：</p>
-        <ul>
-          <li>$h(X) > X$ （预测增加不确定性）</li>
-          <li>$g(X) \leq X$ （更新减少不确定性）</li>
-          <li>$g(X) = (I - K C) X$，其中 $K = X C^\top (C X C^\top + R)^{-1}$</li>
-        </ul>
-        <p style="margin-top:.4rem;font-size:.85rem;">这里 ">" 和 "≤" 是<strong>矩阵不等式</strong>：$A > B$ 表示 $A - B$ 正定，$A \leq B$ 表示 $B - A$ 半正定。</p>
-      </div>
-    </section>
+    <div class="callout">
+      <h4>🔑 关键性质</h4>
+      <p>对任意正定矩阵 $X$：</p>
+      <ul>
+        <li>$h(X) > X$ （预测增加不确定性）</li>
+        <li>$g(X) \leq X$ （更新减少不确定性）</li>
+        <li>$g(X) = (I - K C) X$，其中 $K = X C^\top (C X C^\top + R)^{-1}$</li>
+      </ul>
+      <p style="margin-top:.4rem;font-size:.85rem;color:var(--ink-40);">这里 ">" 和 "≤" 是<strong>矩阵不等式</strong>：$A > B$ 表示 $A - B$ 正定，$A \leq B$ 表示 $B - A$ 半正定。</p>
+    </div>
 
     <!-- ═══════════════ Lemma 1 ═══════════════ -->
-    <section class="section-card" id="lemma1">
-      <h2>5. Lemma 1</h2>
+    <h2>5. Lemma 1</h2>
 
-      <p>Lemma 1 是论文第一个重要引理，它刻画了预测后误差协方差 $\bar{P}$ 和更新后误差协方差 $P$ 之间的<strong>差距</strong>：</p>
+    <p>Lemma 1 是论文第一个重要引理，它刻画了预测后误差协方差 $\bar{P}$ 和更新后误差协方差 $P$ 之间的<strong>差距</strong>：</p>
 
-      <div class="formula-block">
-        <strong>Lemma 1.</strong> 令 $P$ 和 $\bar{P}$ 分别为 Kalman 滤波器的稳态误差协方差（更新后）和稳态预测误差协方差（更新前）。则
-        $$(\bar{P} - P) \geq 0$$
-        （半正定），且其秩为 $r = \mathrm{rank}(C)$。
-      </div>
+    <div class="formula-box">
+      <p><strong>Lemma 1.</strong> 令 $P$ 和 $\bar{P}$ 分别为 Kalman 滤波器的稳态误差协方差（更新后）和稳态预测误差协方差（更新前）。则</p>
+      $$(\bar{P} - P) \geq 0$$
+      <div class="label">（半正定），且其秩为 $r = \mathrm{rank}(C)$。</div>
+    </div>
 
-      <p>进一步，存在正交矩阵 $U$ 使得：</p>
+    <p>进一步，存在正交矩阵 $U$ 使得：</p>
 
-      <div class="formula-block">
-        $$U^\top (\bar{P} - P) \, U = \begin{pmatrix} \Lambda & 0 \\ 0 & 0_{n-r} \end{pmatrix}$$
-      </div>
+    <div class="formula-box">
+      $$U^\top (\bar{P} - P) \, U = \begin{pmatrix} \Lambda & 0 \\ 0 & 0_{n-r} \end{pmatrix}$$
+    </div>
 
-      <p>其中 $\Lambda$ 是 $r \times r$ 的正定对角矩阵，包含 $\bar{P} - P$ 的非零特征值。</p>
+    <p>其中 $\Lambda$ 是 $r \times r$ 的正定对角矩阵，包含 $\bar{P} - P$ 的非零特征值。</p>
 
-      <h3>这个引理在说什么？</h3>
-      <ul>
-        <li>$\bar{P} - P \geq 0$ 等价于 $\bar{P} \geq P$ ——验证了"预测后 > 更新后"的直觉</li>
-        <li>$\mathrm{rank}(\bar{P} - P) = \mathrm{rank}(C)$ ——差距的大小由<strong>观测矩阵</strong>决定</li>
-        <li>如果 $C$ 满秩（$r = n$），那么 $\bar{P} - P$ 也是满秩的——每次观测都带来信息增益</li>
-        <li>如果 $C$ 秩亏（某些状态不可观测），则 $\bar{P} - P$ 在某些方向上为零——那些方向更新不提供信息</li>
-      </ul>
+    <h3>这个引理在说什么？</h3>
+    <ul>
+      <li>$\bar{P} - P \geq 0$ 等价于 $\bar{P} \geq P$ ——验证了"预测后 > 更新后"的直觉</li>
+      <li>$\mathrm{rank}(\bar{P} - P) = \mathrm{rank}(C)$ ——差距的大小由<strong>观测矩阵</strong>决定</li>
+      <li>如果 $C$ 满秩（$r = n$），那么 $\bar{P} - P$ 也是满秩的——每次观测都带来信息增益</li>
+      <li>如果 $C$ 秩亏（某些状态不可观测），则 $\bar{P} - P$ 在某些方向上为零——那些方向更新不提供信息</li>
+    </ul>
 
-      <div class="callout highlight">
-        <h4>🔑 论文中的用途</h4>
-        <p>Lemma 1 为窃听者噪声中毒分析提供了<strong>结构性工具</strong>。当窃听者把噪声当作真实估计同步时，它的误差会跳到一个远大于 $P$ 的值。$\bar{P} - P$ 的谱分解帮助量化这个"毒化"程度。</p>
-      </div>
-    </section>
+    <div class="callout" style="background: var(--accent-dim);">
+      <h4>🔑 论文中的用途</h4>
+      <p>Lemma 1 为窃听者噪声中毒分析提供了<strong>结构性工具</strong>。当窃听者把噪声当作真实估计同步时，它的误差会跳到一个远大于 $P$ 的值。$\bar{P} - P$ 的谱分解帮助量化这个"毒化"程度。</p>
+    </div>
 
     <!-- ═══════════════ 增量创新 ═══════════════ -->
-    <section class="section-card" id="innovation">
-      <h2>6. 增量创新</h2>
+    <h2>6. 增量创新</h2>
 
-      <p>Kalman 滤波器每次更新时，估计值的变化量称为<strong>增量创新</strong>（incremental innovation）：</p>
+    <p>Kalman 滤波器每次更新时，估计值的变化量称为<strong>增量创新</strong>（incremental innovation）：</p>
 
-      <div class="formula-block">
-        $$\varepsilon_k = \hat{x}_k^l - A \hat{x}_{k-1}^l = K z_k$$
-      </div>
+    <div class="formula-box">
+      $$\varepsilon_k = \hat{x}_k^l - A \hat{x}_{k-1}^l = K z_k$$
+    </div>
 
-      <p>读作：估计值从"时间更新后"到"观测更新后"的变化量，等于用增益 $K$ 缩放创新 $z_k$。</p>
+    <p>读作：估计值从"时间更新后"到"观测更新后"的变化量，等于用增益 $K$ 缩放创新 $z_k$。</p>
 
-      <h3>统计性质</h3>
-      <div class="formula-block">
-        $$\mathbb{E}[\varepsilon_k] = 0$$
-        $$\mathrm{Cov}(\varepsilon_k) = K Z K^\top$$
-      </div>
+    <h3>统计性质</h3>
+    <div class="formula-box">
+      $$\mathbb{E}[\varepsilon_k] = 0$$
+      $$\mathrm{Cov}(\varepsilon_k) = K Z K^\top$$
+    </div>
 
-      <p>其中 $Z = C P_k^{l-} C^\top + R$ 是创新的协方差矩阵。</p>
+    <p>其中 $Z = C P_k^{l-} C^\top + R$ 是创新的协方差矩阵。</p>
 
-      <div class="hint-box">
-        <h4>💡 意义</h4>
-        <p>创新 $z_k$ 代表了"新信息"——观测 $y_k$ 中预测无法解释的部分。如果系统运行正常（模型准确），创新应该是<strong>零均值白噪声</strong>，即不包含任何可预测的模式。可以说：$z_k$ 就是 Kalman 滤波器的"新鲜度指标"。</p>
-      </div>
+    <div class="callout">
+      <h4>💡 意义</h4>
+      <p>创新 $z_k$ 代表了"新信息"——观测 $y_k$ 中预测无法解释的部分。如果系统运行正常（模型准确），创新应该是<strong>零均值白噪声</strong>，即不包含任何可预测的模式。可以说：$z_k$ 就是 Kalman 滤波器的"新鲜度指标"。</p>
+    </div>
 
-      <p>论文中，增量创新 $\varepsilon_k$ 会被用来构造编码方案——传感器可以发送 $\varepsilon_k$ 或 $\hat{x}_k^l$，窃听者如果缺少密钥，就无法区分真实创新和伪造噪声。</p>
-    </section>
+    <p>论文中，增量创新 $\varepsilon_k$ 会被用来构造编码方案——传感器可以发送 $\varepsilon_k$ 或 $\hat{x}_k^l$，窃听者如果缺少密钥，就无法区分真实创新和伪造噪声。</p>
 
     <!-- ═══════════════ 手写练习 ═══════════════ -->
-    <section class="section-card" id="exercise">
-      <h2>7. ✏️ 手写练习</h2>
+    <h2>7. ✏️ 手写练习</h2>
 
-      <p>理论讲完了，来点具体的。考虑一个<strong>标量系统</strong>（$n = m = 1$）：</p>
+    <p>理论讲完了，来点具体的。考虑一个<strong>标量系统</strong>（$n = m = 1$）：</p>
 
-      <div class="formula-block" style="text-align:center;">
-        $$A = 0.99, \quad C = 1, \quad Q = 0.25, \quad R = 0.16$$
-      </div>
-
-      <p>任务：<strong>手算稳态误差协方差 $P$</strong>。</p>
-
-      <h3>解题思路</h3>
-      <p>标量情况下，稳态 Riccati 方程 $P = g(h(P))$ 可以显式求解：</p>
-
-      <div class="formula-block">
-        $$P = g(h(P)) = h(P) - \frac{h(P) C^\top C h(P)}{C h(P) C^\top + R}$$
-        $$\Rightarrow \quad P = (A^2 P + Q) - \frac{(A^2 P + Q)^2}{A^2 P + Q + R}$$
-      </div>
-
-      <p>代入数值 $A=0.99$, $Q=0.25$, $R=0.16$：</p>
-
-      <div class="formula-block">
-        $$P = (0.9801 P + 0.25) - \frac{(0.9801 P + 0.25)^2}{0.9801 P + 0.25 + 0.16}$$
-      </div>
-
-      <div class="exercise-box">
-        <h3>📝 练习</h3>
-
-        <details>
-          <summary>① 解出 $P$ 的数值（保留 4 位小数）</summary>
-          <div class="hint-box">
-            <h4>📐 解法</h4>
-            <p>令 $S = 0.9801 P + 0.25$，代入 Riccati 方程：</p>
-            $$P = S - \frac{S^2}{S + 0.16} = \frac{S(S+0.16) - S^2}{S+0.16} = \frac{0.16 S}{S+0.16}$$
-            <p>即 $P(S+0.16) = 0.16 S$。代入 $S = 0.9801 P + 0.25$：</p>
-            $$P (0.9801 P + 0.25 + 0.16) = 0.16 (0.9801 P + 0.25)$$
-            $$P (0.9801 P + 0.41) = 0.156816 P + 0.04$$
-            $$0.9801 P^2 + 0.41 P = 0.156816 P + 0.04$$
-            $$0.9801 P^2 + 0.253184 P - 0.04 = 0$$
-            <p>解二次方程：</p>
-            $$P = \frac{-0.253184 + \sqrt{0.253184^2 + 4 \times 0.9801 \times 0.04}}{2 \times 0.9801}$$
-            $$P = \frac{-0.253184 + \sqrt{0.064102 + 0.156816}}{1.9602}$$
-            $$P = \frac{-0.253184 + \sqrt{0.220918}}{1.9602} = \frac{-0.253184 + 0.470019}{1.9602}$$
-            $$\boxed{P \approx 0.1106}$$
-          </div>
-        </details>
-
-        <details>
-          <summary>② 计算预测后的稳态误差 $\bar{P} = h(P)$</summary>
-          <div class="hint-box">
-            <h4>📐 解法</h4>
-            $$\bar{P} = A^2 P + Q = 0.9801 \times 0.1106 + 0.25$$
-            $$\bar{P} = 0.1084 + 0.25 = \boxed{0.3584}$$
-          </div>
-        </details>
-
-        <details>
-          <summary>③ 验证 $\bar{P} > P$ 并计算评价增益</summary>
-          <div class="hint-box">
-            <h4>📐 解法</h4>
-            <p>显然 $\bar{P} = 0.3584 > P = 0.1106$。标量情况下的"秩"就是 1——$\mathrm{rank}(C) = 1$。</p>
-            <p>稳态 Kalman 增益：</p>
-            $$K = \frac{\bar{P} C}{C \bar{P} C^\top + R} = \frac{0.3584}{0.3584 + 0.16} = \frac{0.3584}{0.5184} = \boxed{0.6914}$$
-            <p>更新后的误差：</p>
-            $$P = (1 - K C) \bar{P} = (1 - 0.6914) \times 0.3584 = 0.3086 \times 0.3584 = \boxed{0.1106}$$
-            <p>✅ 自洽！</p>
-          </div>
-        </details>
-
-        <details>
-          <summary>④ 思考：如果 $Q$ 增大到 1.0，$P$ 会怎么变？</summary>
-          <div class="hint-box">
-            <h4>📐 分析</h4>
-            <p>$Q$ 增大意味着系统本身的随机性更强，Kalman 滤波器无法准确预测状态走向，因此稳态误差 $P$ 会增大。直观上：你对系统的<strong>模型信任度降低</strong>了，需要更多地依赖观测——但观测本身也有噪声 $R$，所以整体误差还是上去了。你可以尝试用同样的方法计算 $Q=1.0$ 时的 $P$，比较差异。</p>
-          </div>
-        </details>
-      </div>
-    </section>
-
-    <div class="nav">
-      <a href="0100-论文全景与问题动机.html" class="nav-prev">← 上一课：论文全景与问题动机</a>
-      <a href="../index.html" class="nav-home">← 返回 PaperLesson 主页</a>
-      <a href="0102-事件触发协议.html" class="nav-next">下一课：事件触发协议 →</a>
+    <div class="formula-box">
+      $$A = 0.99, \quad C = 1, \quad Q = 0.25, \quad R = 0.16$$
     </div>
-  </div>
+
+    <p>任务：<strong>手算稳态误差协方差 $P$</strong>。</p>
+
+    <h3>解题思路</h3>
+    <p>标量情况下，稳态 Riccati 方程 $P = g(h(P))$ 可以显式求解：</p>
+
+    <div class="formula-box">
+      $$P = g(h(P)) = h(P) - \frac{h(P) C^\top C h(P)}{C h(P) C^\top + R}$$
+      $$\Rightarrow \quad P = (A^2 P + Q) - \frac{(A^2 P + Q)^2}{A^2 P + Q + R}$$
+    </div>
+
+    <p>代入数值 $A=0.99$, $Q=0.25$, $R=0.16$：</p>
+
+    <div class="formula-box">
+      $$P = (0.9801 P + 0.25) - \frac{(0.9801 P + 0.25)^2}{0.9801 P + 0.25 + 0.16}$$
+    </div>
+
+    <div class="exercise-box">
+      <h3>📝 练习</h3>
+
+      <details>
+        <summary>① 解出 $P$ 的数值（保留 4 位小数）</summary>
+        <div class="answer">
+          <p>令 $S = 0.9801 P + 0.25$，代入 Riccati 方程：</p>
+          $$P = S - \frac{S^2}{S + 0.16} = \frac{S(S+0.16) - S^2}{S+0.16} = \frac{0.16 S}{S+0.16}$$
+          <p>即 $P(S+0.16) = 0.16 S$。代入 $S = 0.9801 P + 0.25$：</p>
+          $$P (0.9801 P + 0.25 + 0.16) = 0.16 (0.9801 P + 0.25)$$
+          $$P (0.9801 P + 0.41) = 0.156816 P + 0.04$$
+          $$0.9801 P^2 + 0.41 P = 0.156816 P + 0.04$$
+          $$0.9801 P^2 + 0.253184 P - 0.04 = 0$$
+          <p>解二次方程：</p>
+          $$P = \frac{-0.253184 + \sqrt{0.253184^2 + 4 \times 0.9801 \times 0.04}}{2 \times 0.9801}$$
+          $$P = \frac{-0.253184 + \sqrt{0.064102 + 0.156816}}{1.9602}$$
+          $$P = \frac{-0.253184 + \sqrt{0.220918}}{1.9602} = \frac{-0.253184 + 0.470019}{1.9602}$$
+          $$\boxed{P \approx 0.1106}$$
+        </div>
+      </details>
+
+      <details>
+        <summary>② 计算预测后的稳态误差 $\bar{P} = h(P)$</summary>
+        <div class="answer">
+          $$\bar{P} = A^2 P + Q = 0.9801 \times 0.1106 + 0.25$$
+          $$\bar{P} = 0.1084 + 0.25 = \boxed{0.3584}$$
+        </div>
+      </details>
+
+      <details>
+        <summary>③ 验证 $\bar{P} > P$ 并计算稳态增益</summary>
+        <div class="answer">
+          <p>显然 $\bar{P} = 0.3584 > P = 0.1106$。标量情况下的"秩"就是 1——$\mathrm{rank}(C) = 1$。</p>
+          <p>稳态 Kalman 增益：</p>
+          $$K = \frac{\bar{P} C}{C \bar{P} C^\top + R} = \frac{0.3584}{0.3584 + 0.16} = \frac{0.3584}{0.5184} = \boxed{0.6914}$$
+          <p>更新后的误差：</p>
+          $$P = (1 - K C) \bar{P} = (1 - 0.6914) \times 0.3584 = 0.3086 \times 0.3584 = \boxed{0.1106}$$
+          <p>✅ 自洽！</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>④ 思考：如果 $Q$ 增大到 1.0，$P$ 会怎么变？</summary>
+        <div class="answer">
+          <p>$Q$ 增大意味着系统本身的随机性更强，Kalman 滤波器无法准确预测状态走向，因此稳态误差 $P$ 会增大。直观上：你对系统的<strong>模型信任度降低</strong>了，需要更多地依赖观测——但观测本身也有噪声 $R$，所以整体误差还是上去了。你可以尝试用同样的方法计算 $Q=1.0$ 时的 $P$，比较差异。</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- ═══════════════ 导航 ═══════════════ -->
+    <div class="nav">
+      <a href="0100-论文全景与问题动机.html">← 上一课：论文全景与问题动机</a>
+      <a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a>
+      <a href="0102-事件触发协议.html">下一课：事件触发协议 →</a>
+    </div>
+
+  </div><!-- /.content -->
+</div><!-- /.lesson -->
+
 <p style="text-align:center;font-size:.8rem;color:var(--ink-40);margin-top:2rem;">
   Deng &amp; Li, "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks" · IEEE TIFS 2026
 </p>
+
 <script src="../shared/lesson-tools.js"></script>
 </body>
 </html>
