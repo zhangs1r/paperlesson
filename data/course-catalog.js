@@ -122,7 +122,7 @@ window.PAPERLESSON_DATA = {
       groupId: "papers",
       kind: "论文精读",
       title: "Event-Based Protocols",
-      subtitle: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks · IEEE TAC 2025",
+      subtitle: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks · IEEE TIFS 2026",
       description: "第 0100 到 0106 课。围绕内部攻击下事件触发协议的安全性分析，完整覆盖全景动机、Kalman滤波基础、两种触发协议、攻击模型与误差演化、隐密策略设计、性能反转结论、实验验证与迁移。",
       quickOpen: "start lessons\\\\0100-论文全景与问题动机.html",
       meta: ["7 节课", "~165 分钟", "CPS安全 / 事件触发"]
@@ -254,6 +254,6 @@ window.PAPERLESSON_DATA = {
     { title: "OCD SLAM arXiv", url: "https://arxiv.org/abs/2607.02005v1", emoji: "🧾", description: "OCD SLAM 论文原文 — Cross Disparity 双目动态 SLAM。" },
     { title: "Remote State Estimation Automatica", url: "https://doi.org/10.1016/j.automatica.2024.111882", emoji: "🧾", description: "本文论文原文 — Remote State Estimation with Privacy Against Active Eavesdroppers。" },
     { title: "SCoPE 论文 (IAI 2026)", url: "http://iai.neu.edu.cn/", emoji: "🧾", description: "SCoPE: A Prompting Framework for Chemical Information Extraction — 第八届工业人工智能国际会议。" },
-    { title: "Event-Based Protocols 论文", url: "https://ieeexplore.ieee.org/", emoji: "🧾", description: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks — Deng & Li, IEEE TAC 2025。" }
+    { title: "Event-Based Protocols 论文", url: "https://doi.org/10.1109/TIFS.2026.3676946", emoji: "🧾", description: "Vulnerability Analysis of Event-Based Protocols Under Insider Attacks — Deng & Li, IEEE TIFS 2026。" }
   ]
 };
