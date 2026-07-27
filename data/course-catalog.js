@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 30 周。本期亮点：Bonn 大学 Stachniss 团队 LiDAR SLAM 地图一致性工作（#1）、WNOJ-LIO 在 208 km/h 赛车上验证的高动态 LIO 融合（#2）、TurtleBot3 实物验证的语言驱动导航框架（#4）、Rectified Flow 上采样实现图像-点云配准（#5）。本周 Top 5 中 3 篇直接与 SLAM/定位相关，核心性很强。#4 的 ROS 2 + Nav2 方案可在 PaperLesson TurtleBot3 平台直接复现。",
-      quickOpen: "start weekly-reports/weekly-2026-w30.html",
+      description: "第 31 周。本期亮点：首个大规模户外地磁 SLAM 数据集 Mag4D-SLAM（#1）、完全离线的视觉-语言导航 Edge-BehAV 在 32 次户外实验中 31 次成功（#2）、SOWL-MPC 在 ROS 2 上的安全预测控制（#3）、FAST-LIO2 嵌入式工程优化实现 200 Hz 输出（#4）、GLAM-SLAM 首度在 KITTI 长序列上实时跑通 3DGS SLAM（#5）。本周 Top 5 覆盖 SLAM/导航/定位/控制四个核心方向。#2 的小模型 vs 大模型 benchmark 为边缘端导航模型选型提供了直接参考。",
+      quickOpen: "start weekly-reports/weekly-2026-w31.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {

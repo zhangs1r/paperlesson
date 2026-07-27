@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W31</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 31 周 · 2026.07.20 — 2026.07.27</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共检索 <strong>500+ 篇新论文</strong>，经四维评分筛选后，与移动机器人方向相关的 <strong>34 篇论文</strong>通过评分，取 Top 10 推荐。
+    本周的亮点集中在 <strong>地磁 SLAM 数据集</strong> 和 <strong>边缘端视觉-语言导航</strong> 两个方向上。<br><br>
+    #1 Mag4D-SLAM 数据集是首个大规模户外地磁 SLAM 数据集——18 公里轨迹、LiDAR/相机/IMU/磁力仪多模态同步、昼夜往返采集，为地磁回环和偏航漂移校正提供了极有价值的研究平台。<br><br>
+    #2 的 Edge-BehAV 首次在完全离线（无网络）条件下实现视觉-语言导航，在 17 种边缘小模型 vs 云端大模型的系统性 benchmark 中，找到了在精度上媲美云端、速度快 9 倍的离线方案。<br><br>
+    值得注意的是本周的 <strong>LIO 工程改进</strong>（#4）和 <strong>3DGS SLAM 规模化</strong>（#5）——前者聚焦 FAST-LIO2 在嵌入式平台上的架构级优化（200 Hz 位姿输出），后者首次将 Gaussian Splatting SLAM 推向 KITTI / Oxford RobotCar 级别的大场景实时运行。<br><br>
+    <strong>⚠ 说明：</strong>本周 arXiv API 遭遇限流，数据通过备选通道获取，共覆盖 cs.RO 和 cs.CV 两个最主要的分类。当前时区为 UTC，部分论文可能仍在 arXiv 处理中，下一期将完整覆盖。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">500+</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">34</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">10</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">31</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">5.9</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">Mag4D-SLAM Dataset: A Repeated-Traversal Multi-Modal 4D Geomagnetic Dataset for Localization and Mapping</div>
+  <div class="cn-title">Mag4D-SLAM 数据集：面向定位与建图的重复遍历多模态 4D 地磁数据集</div>
+  <div class="authors">✍️ Bibhutibhusan Nayak, Hyoseok Ju, Giseop Kim</div>
+
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">地磁定位</span><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">数据集</span><span class="tag tag-accent">IMU</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">首个大规模户外地磁 SLAM 数据集，18 公里 LiDAR/相机/IMU/磁力仪多模态同步轨迹，昼夜往返重复遍历，为地磁辅助 SLAM 和长期定位提供标准评测平台。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0063~0065 课（状态估计 / 卡尔曼滤波）中的多传感器融合框架可延伸至地磁 + IMU 融合。第 0069~0071 课（回环检测）中讨论了视觉回环，而本文中的地磁回环（magnetic loop closure）提供了完全不同的模态——地磁信号不受光照变化影响，是视觉退化场景的重要补充。<br>
+      <strong>OCD SLAM</strong>（第 0083~0088 课）和 <strong>DFusion-SLAM</strong>（第 0077~0082 课）均依赖视觉/激光特征，而地磁是特征完全不同的模态，本文数据集可支撑多模态 SLAM 的交叉验证。数据集本身（SE(3) 真值 + 昼夜采集）也可直接用于 PaperLesson 课程实验的 benchmark。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 第一个大规模户外地磁 SLAM 数据集，14 序列 × 18 km，SE(3) 真值+ LiDAR / 相机 / IMU / 三轴磁力仪同步；② 昼夜成对、往返重复遍历的实验设计，分析了地磁场在跨时段（昼夜）的可重复性、全局偏航估计能力、跨会话地点识别能力；③ 为地磁辅助 SLAM（偏航漂移校正 / 地磁回环 / 长期定位）建立了标准化研究平台，填补了户外 SLAM 数据集在磁模态上的空白。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>地磁传感提供了一种无需基础设施的绝对方向参考，对 GNSS 失效和视觉退化具有鲁棒性，但目前尚无大规模户外机器人数据集支持其在 SLAM 中的系统研究。现有磁数据集局限于小规模室内环境，缺乏同步多模态感知、重复遍历结构和地磁 SLAM 研究所需的高精度 6-DoF 真值。本文提出 Mag4D-SLAM，首个大规模户外地磁 SLAM 数据集。它包含 14 个序列共超过 18 公里的同步 LiDAR、相机、IMU、三轴磁力仪和 GNSS 测量数据，附有 SE(3) 真值位姿，沿结构化校园轨迹在昼夜条件下往返采集。通过重复遍历实验，分析了三个核心性质：磁场的跨时段可重复性、无漂移全局偏航估计、以及跨会话地点识别中的位置区分性磁信号。该数据集旨在支持偏航漂移校正、磁回环检测和长期定位研究，为地磁传感如何补充视觉/LiDAR 模态提供研究平台。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 不是提出新算法，而是做了一个新数据集——专门研究"能不能用地磁场来帮机器人定位"。<br><br>
+
+      <strong>地磁场定位是什么？</strong> 地球本身就是一个大磁铁，不同位置的地磁场强度和方向各不相同。如果你能测量精确的地磁场"指纹"，就可以推断自己在哪里。而且地磁不需要卫星（不怕遮挡）、不受光照影响（黑暗中也行）——这对于室内/地下/林下等 GNSS 退化的场景非常有用。<br><br>
+
+      <strong>为什么还需要数据集？</strong> 地磁 SLAM 的研究过去靠小范围室内数据（在楼道里走一圈、用手持设备记录磁场变化），数据和真值都很有限。本文在校园里采集了 18 公里的数据，用 LiDAR + RTK-GNSS 给出厘米级真值位姿，同时记录了磁力仪数据。而且设计得很聪明：同一段路白天走一遍、晚上走一遍、正着走一遍、反着走一遍——这样就能分析地磁场会不会因为时间/方向不同而变化。<br><br>
+
+      <strong>三个关键发现：</strong><br>
+      ① <strong>可重复性</strong>：同一位置白天的磁场和晚上的磁场基本一致（日变化很小）——这对长期定位很重要。<br>
+      ② <strong>偏航估计</strong>：地磁能给出绝对方向（类似指南针），但比普通电子罗盘更精确——可以用来校正 LiDAR/视觉 SLAM 的累积偏航漂移。<br>
+      ③ <strong>地点识别</strong>：某些位置的磁场信号非常独特，即使没有视觉/LiDAR 特征也能认出"我来过这里"——这为回环检测提供了新维度。<br><br>
+
+      <strong>对 SLAM 的意义？</strong> 传统 SLAM 用视觉特征或激光几何来做定位和回环。地磁是一个完全正交的模态——它不受场景几何结构变化（比如房间重新布置）的影响，也不受光照变化的影响。把地磁加入 SLAM 系统，有望在长时期运行和恶劣环境下显著提升鲁棒性。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.21986v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">5.7</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">Offline Vision-Language Navigation with Geometric Goal Localization for Outdoor Environments</div>
+  <div class="cn-title">面向户外环境的离线视觉-语言导航——几何目标定位方法</div>
+  <div class="authors">✍️ Ali Salmasi, Xianjia Yu, Tomi Westerlund</div>
+
+  <div class="keywords"><span class="tag tag-accent">VLN</span><span class="tag tag-accent">边缘部署</span><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">小模型</span><span class="tag tag-accent">自主导航</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出 Edge-BehAV——首个完全离线（无网络）的视觉-语言导航系统，17 种边缘小模型 vs 云端 API 的系统 benchmark 表明，最佳离线模型在指令分解精度上媲美云端、速度快 9 倍，结合轻量混合语义-几何目标定位在 32 次户外实验成功 31 次。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>E2Map</strong>（第 0001~0005 课）同样是语言驱动导航，但 E2Map 侧重室内情感/经验地图，本文专注户外 + 离线部署。E2Map 中 LLM 驱动路径选择，本文用 SLM（小语言模型）做指令分解 + 开放词汇检测做语义定位——两者在语言→导航链条上形成了室内 vs 户外、云端 LLM vs 边缘 SLM 的互补。<br>
+      <strong>VLMaps</strong>（第 0006 课）提供了视觉-语言地图的框架，本文的目标定位模块（开放词汇检测 + LiDAR 几何估计）可与 VLMaps 的语义地图自然衔接。<br>
+      <strong>LSeg</strong>（第 0007~0013 课）的开放词汇分割技术是本文语义定位模块的技术基础。<br>
+      <strong>视觉 SLAM 十四讲</strong> 第 0032~0036 课（相机模型 / RGB-D）和第 0060 课（Nav2）是导航栈的基础。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 第一个系统性的边缘小模型（17 种）vs 云端 API 导航指令分解 benchmark，覆盖三种计算平台，给出离线小模型选型指南；② 提出轻量混合语义-几何目标定位框架，将开放词汇检测/分割与 LiDAR 几何结合，目标距离误差从 2.05 m 降至 0.20 m；③ 集成为 Edge-BehAV 完全离线导航系统，32 次户外实验成功 31 次，验证了不依赖网络的 VLN 是可行的。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>基于基础模型的视觉-语言导航（VLN）通过使机器人理解自然语言指令、识别语义目标并遵循用户指定的行为规则，推动了自主机器人导航的进步。然而，现有 VLN 系统严重依赖云托管基础模型进行语言理解和语义定位，限制了其在网络不可用且需要可靠度量目标定位的场景中的适用性。虽然近期的小语言模型（SLM）实现了完全板载推理，但它们在导航指令分解中的适用性尚未被系统评估。本文对 17 种可边缘部署的 SLM 与 4 种在线 API 进行了系统性对比，评估了在三种计算平台上人工标注指令的准确率和延迟。其次，提出轻量混合语义-几何目标定位框架，结合开放词汇目标检测、提示分割和 LiDAR 几何估计度量目标。最后将上述进展集成为 Edge-BehAV 架构。实验表明，最佳离线 SLM 在指令分解性能上媲美最强云端 API，同时速度快约 9 倍。目标定位将距离误差从 2.05 m 降至 0.20 m，完整系统在 32 次闭环户外实验中成功 31 次。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>问题：VLN 太依赖网络了。</strong> 你对机器人说"去北门等我"，机器人需要理解这句话、找到北门、导航过去。但现有的 VLN 系统每一步都要问云端大模型——"北门是什么？""北门在哪？"——一旦断网，机器人就变成呆子。<br><br>
+
+      <strong>本文的核心洞察：</strong> 不一定需要大模型。最近的"小语言模型"（SLM，参数少、可跑在手机上那种）已经够聪明了。但没人系统地比较过：哪些 SLM 够格做导航指令理解？和云端 API 比差多少？<br><br>
+
+      <strong>他们做了什么：</strong> 测试了 17 种 SLM 在三种计算平台（Jetson、树莓派、笔记本）上的性能，发现 Qwen3-8B 等模型在指令分解上完全不输 GPT-4o等云端 API，而且快 9 倍——因为不经过网络延迟。<br><br>
+
+      <strong>第二个问题：找到目标在哪。</strong> 光认识"北门"不够，还得知道北门在机器人坐标系里的具体位置（x, y, z）。传统做法靠深度学习估计深度，但误差很大（2 米以上）。本文的创新：用开放词汇检测（认出图像中的门） + LiDAR 几何（直接量出距离）混合，将误差降到 0.2 米。这很巧妙——当你需要精确位置时，别依赖深度学习"猜"，直接用量角器（LiDAR）量。<br><br>
+
+      <strong>对 TurtleBot 的意义：</strong> 本文在三种计算平台上都跑通了，包括 Jetson 级别的嵌入式设备。如果把这套框架移植到 TurtleBot 上，就能实现"对着 TurtleBot 说中文指令，它离线也能理解并执行"——这对 PaperLesson 的实验平台是很好的扩展方向。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.22226v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">5.6</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Safe Learning Predictive Control for Ego-World Robotic Systems</div>
+  <div class="cn-title">面向自我-世界机器人系统的安全学习预测控制</div>
+  <div class="authors">✍️ Davide Valenti, Giuseppe Notarstefano</div>
+
+  <div class="keywords"><span class="tag tag-accent">MPC</span><span class="tag tag-accent">ROS 2</span><span class="tag tag-accent">高斯过程</span><span class="tag tag-accent">安全导航</span><span class="tag tag-accent">在线学习</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">提出 SOWL-MPC 框架——结合稀疏变分高斯过程在线学习与滚动时域控制的预测控制方案，在未知机器人行为环境中安全导航，ROS 2 仿真和真实室内实验验证了实时可行性与安全性保证。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0054~0057 课（MPC / 模型预测控制）和第 0060~0062 课（运动规划）构成本文 MPC 控制器的理论基础。本文的在线学习 + 滚动时域控制在 Gazebo 仿真 + ROS 2 上的实验流程与 PaperLesson 实验平台高度一致。<br>
+      <strong>E2Map</strong>（第 0004 课·导航与实验）中的导航链路可与之对比——E2Map 侧重高层路径选择中的语义引导，本文侧重底层控制层面的安全保证。两者在自主导航栈中处于不同层级，可以互补。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出"自我-世界机器人"框架——自我机器人（ego）通过在线学习推断未知世界机器人（world）的控制策略，在不假设通信或先验知识的情况下保证安全；② 稀疏变分高斯过程（SVGP）+ 在线变分调节（OVC）实现流式数据实时更新；③ 近似矩传播将学习到的不确定性传递给 MPC，实现不确定性感知的安全规划；④ 在 ROS 2 中完成蒙特卡洛虚拟实验和真实室内硬件验证。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>在共享环境中安全自主导航需要预测和响应周围机器人的潜在行为。本文提出 SOWL-MPC，一种针对"自我-世界机器人"场景的安全学习预测控制策略。在此场景中，世界机器人的控制策略未知，自我机器人利用数据在线学习并执行安全机动。该架构结合了基于稀疏变分高斯过程（SVGP）的在线学习机制与滚动时域控制方案。仅依靠带噪声的状态测量，该方法推断世界策略的后验分布，并通过在线变分调节（OVC）在流式数据上更新。学习到的策略通过近似矩传播经过非线性世界动力学传播，并馈入不确定性感知的 MPC。在 ROS 2 中的蒙特卡洛虚拟实验和真实室内硬件设备上验证了实时可行性和安全保证。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>要解决什么问题？</strong> 你的机器人在走廊里走，对面也来了一台机器人。你不知道它会怎么走——它会靠右吗？它会停下来吗？它会突然转向吗？你需要在不知道对方意图的情况下，保证自己不撞到它。<br><br>
+
+      <strong>"自我-世界机器人"是什么？</strong> 把你控制的机器人叫"自我"（ego），其他的移动物体叫"世界"（world）。世界机器人的控制策略是未知的——你不能假设它会遵守任何规则。本文就是在不假设通信（你们不能聊天）、不假设先验知识（你没见过它）的情况下安全导航。<br><br>
+
+      <strong>怎么做到？</strong> 三步循环：① 观察——自我机器人观察世界机器人的运动轨迹（位置和速度）；② 学习——用高斯过程（一种机器学习方法，擅长在小数据量和不确定性下做预测）在线推断世界机器人的"策略"（它倾向于怎么走）；③ 控制——MPC（模型预测控制，一种滚动优化的控制方法）把这个预测考虑进去，规划出一条安全的路径。每一步都在线更新，所以随着观察增多，预测越来越准。<br><br>
+
+      <strong>为什么在 ROS 2 上验证？</strong> ROS 2 是机器人社区的事实标准，本文在 ROS 2 中搭建了完整的仿真和实验框架。Gazebo 仿真中跑了大量蒙特卡洛实验，然后在真实室内场地用硬件验证。这意味着整个框架可以直接在 PaperLesson 的 TurtleBot ROS 2 环境下复现和对比。<br><br>
+
+      <strong>和 TurtleBot 的关系？</strong> 多机器人协同是自主导航的重要场景。如果实验室有多台 TurtleBot，SOWL-MPC 提供了一种不依赖通信的避碰方案——每台机器人独立学习对方的运动模式，各自安全规划。这在群体机器人实验中很有价值。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.22225v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">5.5</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">Flight-Ready LiDAR-Inertial Odometry for Embedded Drone Platforms</div>
+  <div class="cn-title">面向嵌入式无人机平台的飞行就绪 LiDAR-惯性里程计</div>
+  <div class="authors">✍️ Alvaro J. Gaona, David Perez-Saura, Francisco J. Anguita, Pascual Campoy</div>
+
+  <div class="keywords"><span class="tag tag-accent">LIO</span><span class="tag tag-accent">FAST-LIO2</span><span class="tag tag-accent">IMU</span><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">嵌入式</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">系统分析 FAST-LIO2 在嵌入式无人机部署中的五大架构缺陷，提出 IMU 速率前向传播、SLERP 平滑等工程改进，将位姿输出从 10 Hz 提升至 200 Hz，并在 Livox Mid-360 + Pixhawk 自主无人机上验证通过。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0027~0030 课（状态估计 / EKF）和第 0075 课（开源方案巡礼：LIO-SAM / FAST-LIO2）直接相关。本文提出的\"IMU 速率前向传播\"与第 0029 课中的 ESKF 预测步骤在数学上相通。<br>
+      本文针对 FAST-LIO2 的工程优化（双执行器隔离、互斥锁保护、SLERP 平滑）虽面向无人机场景，但 <strong>这些工程问题在 TurtleBot 的 ROS 2 部署中同样存在</strong>——位姿发布延迟、执行器阻塞、时间戳同步——优化方案可直接迁移。<br>
+      <strong>OCD SLAM</strong>（第 0083~0088 课）中的 ORB-SLAM2 也有类似的实时性问题（10 Hz 跟踪 vs 30 Hz 图像），本文的架构隔离思路可借鉴。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 识别出 LIO 系统在嵌入式部署中的 5 个架构缺陷：位姿发布绑定 LiDAR 频率（10 Hz）、缺失速度输出、执行瓶颈阻塞 IMU、互斥锁竞争、同步竞态条件；② 针对每个缺陷提出工程解：IMU 速率前向传播、直接机体速度发布、SLERP 平滑、双执行器隔离、显式同步保护；③ 输出频率从 ~10 Hz 稳定提升到 200 Hz，每个 IMU 采样点完整 Twist 状态，LiDAR 短暂丢失时输出保持连续。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>开源 LiDAR-惯性里程计（LIO）系统在基准测试上取得了显著精度，但目前最先进的实现主要针对评测性能而非实时闭环飞行控制的需求进行了优化。当部署在无人机上时，这会引入限制飞行性能的局限性。本文识别了一个代表性紧耦合 IESKF 基 LIO 实现中的五个架构缺陷：绑定 LiDAR 频率的位姿发布（10 Hz 而非 IMU 的 200 Hz）、缺失速度输出、阻塞 IMU 处理的执行瓶颈、互斥锁竞争和同步竞态条件。本文引入了相应的修改，包括 IMU 速率前向传播、直接机体速度发布、SLERP 平滑、双执行器隔离和显式同步保护。改进后的系统将里程计输出从 ~10 Hz 提升到稳定 200 Hz，在每个 IMU 采样点提供完整 Twist 状态，并在 LiDAR 短暂丢失时保持连续性。使用 Livox Mid-360 / Pixhawk 4 Mini 自主无人机和运动捕捉真值进行了实验验证。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文在干什么？</strong> 这是典型的\"看到坑了，填上它\"的工程论文——不做新算法，而是优化现有系统的工程实现，让它在真实硬件上真正跑好。<br><br>
+
+      <strong>FAST-LIO2 不是已经很好了吗？</strong> FAST-LIO2 在 KITTI 等数据集上精度很高，但那是离线评测。一旦把它放到无人机上，飞手会发现：无人机晃来晃去，控制器来不及响应。因为 FAST-LIO2 的位姿输出只有 10 Hz（每 100ms 一次），但无人机的飞控需要 200 Hz（每 5ms 一次）的控制指令——差了一个数量级。<br><br>
+
+      <strong>为什么只有 10 Hz？</strong> 因为 LiDAR 扫描频率就是 10 Hz。但 IMU 是 200 Hz。传统做法是：等 LiDAR 扫完一帧 → 和地图配准得到位姿 → 发布位姿 → 等待下一帧。这 100ms 里发生了什么？IMU 在跑、无人机在动、但控制器收不到新位姿。<br><br>
+
+      <strong>五个问题的工程解决：</strong><br>
+      ① 不加等 LiDAR，IMU 每收到一个数据就做前向传播（用 IMU 积分预测位姿）→ 200 Hz 输出。<br>
+      ② 不单发位姿，还发速度（Twist），因为飞控需要速度来做 PID 控制。<br>
+      ③ 把 IMU 处理和 LiDAR 处理放在不同线程，不让 LiDAR 的耗时操作阻塞 IMU 的实时处理。<br>
+      ④ 加互斥锁保护共享数据不被线程冲突破坏。<br>
+      ⑤ LiDAR 偶尔丢一帧时，用 SLERP（球面线性插值）平滑过渡，不让位姿突变。<br><br>
+
+      <strong>对 TurtleBot 的启发？</strong> 虽然 TurtleBot 是地面机器人，但同样的工程问题同样存在：ROS 2 的 Nav2 要求 20-50 Hz 的里程计，但 LiDAR 可能只有 10 Hz。IMU 前向传播的思路可以直接移植到 TurtleBot 的 EKF 融合节点中，提升里程计更新率。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.22145v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.6</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">GLAM-SLAM: Real-time Gaussian Large-scale Mapping via Flow Densification and Spatial Decomposition</div>
+  <div class="cn-title">GLAM-SLAM：基于流致密化与空间分解的实时高斯大规模建图</div>
+  <div class="authors">✍️ Panagiotis Mermigkas, Argyris Manetas, Petros Maragos</div>
+
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">3DGS</span><span class="tag tag-accent">大场景</span><span class="tag tag-accent">实时</span><span class="tag tag-accent">单目</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">解耦式 3D Gaussian Splatting SLAM，用特征法前端保持轻量跟踪 + 结构化稀疏锚点网格 + 几何流致密化 + 场景分解策略，首次在 KITTI Odometry / Oxford RobotCar 长序列上实现实时 3DGS SLAM，重建质量超第二名 15%。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0046~0053 课（特征点法 / ORB-SLAM）构成本文轻量前端的基础。第 0072~0074 课（建图 / 稠密重建 / TSDF）与本文的 3DGS 建图都是\"从稀疏到稠密\"的路径，但 3DGS 提供了更高质量的新视图渲染和可微优化框架。<br>
+      本文在 KITTI Odometry 上实时运行，这与第 0075 课开源方案巡礼中的经典系统（ORB-SLAM3 / LIO-SAM 等）形成了直接对比——3DGS SLAM 正在从\"学术玩具\"走向\"可用工具\"。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）中的动态过滤与本文的场景分解（将大场景划分为子场景）在思路上互补——都是把大问题拆成小问题来解决。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 解耦式架构：基于 ORB 特征的轻量跟踪前端 + 3DGS 建图后端，两者独立运行避免传统联合优化的 GPU 瓶颈；② 结构化稀疏锚点网格 + 基于极线几何的流致密化策略，满足 3DGS 的稠密初始化需求；③ 场景分解（Mapping as Multi-Scene）：MLP 初始化的子场景 Gaussian 带来空间归纳偏置；④ 在 KITTI Odometry、Oxford RobotCar、Málaga 等长序列上实时运行，重建 PSNR 超第二名 15%。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>现有基于高斯泼溅的单目 SLAM 系统要么针对短序列设计，要么无法实时运行，要么 GPU 内存需求过高，限制了其在真实长期场景中的适用性。本文提出 GLAM-SLAM，一种专为大尺度户外场景设计的实时解耦式高斯泼溅 SLAM 系统。轻量跟踪使用鲁棒的基于特征的 SLAM 前端，建图采用结构化稀疏锚点网格表示，确保可扩展性和跨长期序列的场景一致性。为满足 3DGS 的稠密初始化需求，引入基于极线几何的流致密化锚定策略。通过将建图视为多场景问题，提出场景分解策略，利用 MLP 初始化引入强空间归纳偏置以生成局部高斯体。在 KITTI Odometry、Oxford RobotCar 和 Málaga 数据集上的评估表明，重建质量超第二名 15%，同时保持实时性能并支持更长序列。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>3D Gaussian Splatting (3DGS) 是什么？</strong> 一种用成千上万个\"小椭圆\"（3D 高斯体）来表示三维场景的方法。每个小椭圆有自己的位置、形状、颜色和透明度。把它们合在一起，就能从任意视角渲染出逼真的图像。2023 年提出以来火爆 3D 视觉界。<br><br>
+
+      <strong>3DGS SLAM 为什么难？</strong> 因为 3DGS 需要场景的稠密初始化（大量高斯体），而且优化过程很贵（GPU 显存需求大）。之前的工作要么只能跑短序列（几米的室内），要么无法实时（一帧要算几秒）。本文的目标是：在几公里长的户外序列上实时跑 3DGS SLAM。<br><br>
+
+      <strong>怎么做到的？</strong> 三个关键思路：<br>
+      ① <strong>解耦</strong>：跟踪（估计机器人位置）和建图（建立 3DGS 地图）分成两个独立模块。跟踪用经典的 ORB 特征法（轻量、快速），建图用 3DGS（高质量、慢但只在后台跑）。这样不互相拖累。<br>
+      ② <strong>别一次建全图，拆成子场景</strong>：大场景（比如 KITTI 的 5 公里路）建一个全局 3DGS 地图会撑爆 GPU。本文的策略是把场景切成小段，每段建一个子地图，每个子地图用不同的 MLP 初始化——相当于每个小段有自己专属的\"画风\"。<br>
+      ③ <strong>几何流致密化</strong>：3DGS 需要初始点云才能开始优化。传统做法用 COLMAP（离线、慢）。本文用极线几何（epipolar geometry）约束在线生成初始点——跟踪过程中自然产生对应点，不用等完整的 SfM 过程。<br><br>
+
+      <strong>结果如何？</strong> 在 KITTI Odometry 上的重建质量（PSNR）比第二名方法高 15%，而且做到实时（>30 FPS）。这是 3DGS SLAM 首次真正\"跑出实验室\"，在车载级大场景上验证了可行性。<br><br>
+
+      <strong>和 TurtleBot 的关系？</strong> TurtleBot 常用的 RGB-D 相机（如 RealSense D435）很适合 3DGS 建图——深度信息可以直接初始化高斯体。GLAM-SLAM 的解耦式设计意味着如果前端换成一个轻量的视觉里程计，TurtleBot 也可以跑一个 3DGS 建图后台，产出高质量三维场景模型。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.21416v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<!-- #6 DB-VIO -->
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 4.7</span>
+  <div class="mini-title">DB-VIO: Dual-Branch Visual Inertial Odometry with Enhanced Visual-Inertial Representation</div>
+  <div class="mini-cn">DB-VIO：双分支视觉惯性里程计——增强视觉-惯性表示</div>
+  <div class="mini-oneliner">📌 提出双分支 VIO 架构，将位姿估计解耦为旋转和 translation 两个独立分支，引入深度线索辅助单目视觉 + 显式积分姿态先验增强 IMU 旋转表示，在 EuRoC 上旋转精度提升 65.7%。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0027~0030 课（VIO / ESKF）和第 0046~0049 课（PnP / 位姿估计）直接相关。\"双分支\"（旋转和位置分别估算）的设计理念可借鉴到 TurtleBot 的 EKF 融合节点中——旋转和位置误差来源不同，分开处理可能更合理。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.22123v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #7 DTIF -->
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 4.6</span>
+  <div class="mini-title">DTIF: Robust Loop Closure Detection via Delaunay Triangle Topology in Complex Forests</div>
+  <div class="mini-cn">DTIF：基于 Delaunay 三角拓扑的复杂森林鲁棒回环检测</div>
+  <div class="mini-oneliner">📌 针对低端 LiDAR 在森林场景中树干重复度高、几何地标少导致的感知混淆问题，用 Delaunay 三角化编码树干拓扑结构作为场景签名，在仿真和真实森林中实现轻量级回环检测与全局配准。</div>
+  <div class="mini-conn">🔗 与 <strong>视觉 SLAM 十四讲</strong>第 0069~0071 课（回环检测 / 词袋模型）对应——本文用树干拓扑代替视觉词袋，在特殊场景（森林）中提供了正交的回环检测方案。其\"提取稳定结构→拓扑编码→一致性验证\"的思路可迁移到室内结构化场景。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.21138v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #8 Factorized Spatio-Temporal (Human Pose from Planar LiDAR) -->
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 4.9</span>
+  <div class="mini-title">Factorized Spatio-Temporal Convolutions for Human Pose Estimation from Planar Lidar</div>
+  <div class="mini-cn">基于分解时空卷积的平面激光雷达人体姿态估计</div>
+  <div class="mini-oneliner">📌 面向服务机器人的轻量网络，从单线 LiDAR 序列中估计人体位置、距离和朝向，Space-Time Block 分离空间（扫描射线方向）与时间（帧间）处理，在 CPU 上实时运行，服务机器人实物验证。</div>
+  <div class="mini-conn">🔗 \"LiDAR\" + \"service robot\" 关键词匹配。与 <strong>视觉 SLAM 十四讲</strong>第 0076 课（未来方向 / 语义 SLAM）中的行人感知相关。TurtleBot 如配备单线 LiDAR 做人体跟随，可采用本文方法替代传统的基于检测器的方法，显著降低计算开销。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.21309v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #9 Visual Relocalization -->
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 4.3</span>
+  <div class="mini-title">Visual Relocalization from Sparse Views in Aliased and Low-Texture Environments via Novel View Synthesis</div>
+  <div class="mini-cn">通过新视角合成实现混叠低纹理环境中的稀疏视图视觉重定位</div>
+  <div class="mini-oneliner">📌 将 3DGS 作为可微分地图表示，直接在其上估计单帧 6-DoF 位姿，并用 MVS + LiDAR 深度联合监督训练，在类行星表面（低纹理 / 感知混叠）上实现鲁棒重定位。</div>
+  <div class="mini-conn">🔗 \"localization\" + \"LiDAR\" 关键词匹配。与 <strong>视觉 SLAM 十四讲</strong>第 0027~0030 课（状态估计 / 重定位）和第 0070~0071 课（词袋模型 / 重定位）的技术路线不同——本文用 3DGS 的可微渲染做位姿估计，为长期重定位提供了新思路。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.22147v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #10 ImiPath -->
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 4.0</span>
+  <div class="mini-title">Learning Spatiotemporal Decision Priors for Efficient Path Planning under Partial Observability</div>
+  <div class="mini-cn">ImiPath：学习时空决策先验用于部分可观测下的高效路径规划</div>
+  <div class="mini-oneliner">📌 从示范轨迹中蒸馏可复用的时空决策先验，作为方向性引导注入异构规划器，减少局部可观测下的冗余节点扩展，在磁控微机器人平台上验证了物理部署可行性。</div>
+  <div class="mini-conn">🔗 \"path planning\" 关键词匹配。与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（路径规划 / RRT / A*）对应。\"学习先验→注入规划器\"的混合范式在 TurtleBot 平台上有直接应用价值——通过记录人工遥控轨迹学习先验，然后指导自动规划提高效率。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.22166v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ 地磁 SLAM：一个新的正交模态正在萌芽</h4>
+  <p>本周 #1 的 Mag4D-SLAM 数据集有标志性意义。地磁场作为 SLAM 的信号源有两个独特优势：绝对方向参考（不受累积漂移影响）和长期可重复性（不受光照/季节变化影响）。过去地磁之所以没被 SLAM 社区采用，很大程度上是因为缺少标准化的评测数据。这个 18 公里多模态数据集的出现，可能会像 KITTI 推动视觉 SLAM 发展一样，推动地磁辅助 SLAM 成为一个新的活跃子方向。对于搭载了磁力计的 TurtleBot 来说，这是一个值得跟进的方向。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ 小语言模型正在接管边缘端导航推理</h4>
+  <p>#2 的工作系统地证明了 SLM（小语言模型）在导航指令理解上已不输云端大模型，且速度快 9 倍。这意味着 VLN 系统的架构正在从"手机信号塔上的大脑"转向"机器人本体上的大脑"。离线、实时、低延迟——这是实际部署的刚需。当 Qwen3-8B 这样的模型在 Jetson 上跑通指令分解时，语言→导航的闭环就真正具备了工程可行性。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 3DGS SLAM 从"室内玩具"走向"户外工具"</h4>
+  <p>#5 GLAM-SLAM 在 KITTI Odometry 上的实时运行是 3DGS SLAM 的里程碑——它首次证明 3DGS SLAM 可以在公里级户外场景中实时运行，且重建质量显著优于现有方法。结合 #9 用 3DGS 做重定位的工作，3DGS 正在从"纯建图方法"演变为"定位+建图的全栈方案"。这波趋势与 NeRF SLAM 的发展路径类似，但 3DGS 的渲染速度和可微优化能力让它更有潜力。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ LIO 系统走向"出厂级工程优化"</h4>
+  <p>#4 的贡献不是新算法，而是系统级的工程调试——它揭示了 FAST-LIO2 等主流 LIO 系统在真实嵌入式部署中的五个隐性缺陷，并给出了可复用的工程解决方案。这标志着 LIO 社区正在从"论文里的算法"走向"产品里的系统"。随着 LiDAR 成本持续下降（Livox Mid-360 等），LIO 将越来越多地出现在消费级和服务级机器人上，工程优化和系统鲁棒性会变得越来越重要。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 · 第 31 周</span>
+  <a href="https://arxiv.org/list/cs.RO/2026-07-27">📄 arXiv cs.RO</a>
+</div>
+
+<div style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:var(--text-sm);color:var(--ink-40);">
+  <p>🤖 生成时间：2026-07-27 · 数据来源：arXiv · 评分体系：相关性 50% · 时效性 20% · 热度 15% · 质量 15%</p>
+  <p style="margin-top:var(--space-1);">—— 顾清然</p>
+</div>
+
+</div>
+</body>
+</html>
