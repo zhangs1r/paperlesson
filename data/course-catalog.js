@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 31 周。本期亮点：首个大规模户外地磁 SLAM 数据集 Mag4D-SLAM（#1）、完全离线的视觉-语言导航 Edge-BehAV 在 32 次户外实验中 31 次成功（#2）、SOWL-MPC 在 ROS 2 上的安全预测控制（#3）、FAST-LIO2 嵌入式工程优化实现 200 Hz 输出（#4）、GLAM-SLAM 首度在 KITTI 长序列上实时跑通 3DGS SLAM（#5）。本周 Top 5 覆盖 SLAM/导航/定位/控制四个核心方向。#2 的小模型 vs 大模型 benchmark 为边缘端导航模型选型提供了直接参考。",
-      quickOpen: "start weekly-reports/weekly-2026-w31.html",
+      description: "第 32 周。本期亮点：SpikePEFT 首个脉冲点云模型参数高效微调框架、仅更新 5% 参数达 ModelNet40 92.4%（#1）、自监督点云编码器能否替代 8×A100 级多模态对齐的系统评测（#2）、农业叶片重建的滚动时域 NBV 规划器（#3）、SafeNexus 跨模态通用安全神经元（#4）、FOCUS 免训练零样本显著目标检测（#5）。本周主旋律是\"轻量高效\"：点云感知从省参数到省算力，免训练几何方法集体回归。贴近机器人本体的还有 X-NavDP 导航扩散策略 RL 后训练（真实硬核场景成功率 10%→65%）与无参考路径的同伦感知走廊生成。",
+      quickOpen: "start weekly-reports/weekly-2026-w32.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {

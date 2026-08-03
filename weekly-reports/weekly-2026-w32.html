@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W32</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 32 周 · 2026.07.27 — 2026.08.03</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共检索 <strong>300 篇新论文</strong>，经四维评分筛选后，<strong>17 篇论文</strong>通过核心关键词门槛，取 Top 10 推荐。
+    本周的叙事主线是<strong>"轻量高效"</strong>：无论是点云感知（#1 脉冲网络参数高效微调、#2 自监督编码器替代昂贵多模态对齐），还是对"堆参数"范式的集体反思（#8 CorrelationFlow 直接喊话"该质疑的是公式本身，而不是无脑扩大规模"），都在指向同一种务实取向——<strong>用更少的资源，把感知这件事做扎实</strong>。<br><br>
+    #1 SpikePEFT 是首个面向脉冲点云模型的参数高效微调框架，只更新约 5% 参数就在 ModelNet40 上拿到 92.4% 精度；#3 的滚动时域 NBV 规划器把主动感知推进到农业场景，在草莓叶片重建任务上把误差最多压低 10%。<br><br>
+    真正贴着机器人本体走的还有 <strong>X-NavDP</strong>（#7，导航扩散策略 + RL 后训练，真实世界硬核场景成功率从 10% 拉到 65%）和 <strong>Homotopy-Aware Corridor</strong>（#9，摆脱参考路径依赖的同伦感知走廊生成）。<br><br>
+    <strong>⚠ 说明：</strong>本周不少论文是靠 "localization" 关键词命中的，但其中相当一部分是视觉任务里的"定位"（异常定位、伪造定位、显著目标定位），与机器人定位关系较弱——评分系统已如实反映在相关性分数中，请在阅读时留意区分。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">17</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">10</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">32</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">4.07</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">Parameter-Efficient Fine-Tuning for Spiking Point Cloud Models</div>
+  <div class="cn-title">SpikePEFT：脉冲点云模型的参数高效微调</div>
+  <div class="authors">✍️ Zihao Guo, Jihua Zhu, Yiding Sun, Lin Chen, Danwei Wang</div>
+
+  <div class="keywords"><span class="tag tag-accent">脉冲神经网络</span><span class="tag tag-accent">点云</span><span class="tag tag-accent">参数高效微调</span><span class="tag tag-accent">边缘部署</span><span class="tag tag-accent">低功耗感知</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">首个面向脉冲点云模型的参数高效微调框架 SpikePEFT，通过内在动力学微调 + 静默态消歧适应，只更新约 5% 的可训练参数，就在 ModelNet40 达到 92.4% 精度，同时保持 SNN 的事件驱动低功耗优势。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0037 课（拼接点云实践）和第 0074 课（点云/OctoMap/TSDF 地图表达）涉及点云数据结构；第 0076 课（未来方向）讨论了新型传感器与边缘部署。本文的脉冲点云模型正是"低功耗点云感知"方向的代表——如果未来把视觉前端换成事件相机 + 脉冲网络，<strong>第 0076 课展望的"更省电的感知"就有了落地方案</strong>。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）中轻量检测器的选型逻辑（精度 vs 计算开销权衡）与本文"只微调 5% 参数"的思路一致——嵌入式平台上的每一个 FLOP 都值得计较。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 SpikePEFT——首个脉冲点云模型参数高效微调框架：Intrinsic Dynamics Tuning（IDT）冻结预训练突触变换，仅自适应调节膜衰减常数与发放阈值，实现神经元内在动力学的高效适配；② Silent-State Disambiguation Adaptation（SSDA）从"静默态"中恢复与任务相关的亚阈值信息，弥补二进制脉冲传播的信息损失；③ 多个基准验证：ModelNet40 达 92.4%、最难的 ScanObjectNN(PB_T50_RS) 达 85.6%，仅更新约 5% 可训练参数，且保持 SNN 能耗效率。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>脉冲神经网络（SNN）通过事件驱动计算，为资源受限设备上的点云分析提供了低功耗解决方案。然而，现有的预训练脉冲点云模型在适配下游任务时依赖全参数微调，带来巨大的参数与存储开销；此外，二进制脉冲传播会压制与任务相关的亚阈值信息。针对这些问题，本文提出 SpikePEFT——首个面向脉冲点云模型的参数高效微调框架。其中，内在动力学微调（IDT）自适应调节膜衰减与发放阈值，在保持预训练突触变换冻结的同时实现高效的神经元内在适配；静默态消歧适应（SSDA）从信息丰富的静默态中恢复任务相关信息，为下游适配提供更充分的证据。在多个基准上的大量实验验证了 SpikePEFT 的有效性与高效性：在 ModelNet40 上达到 92.4% 精度，在最难的分类划分 ScanObjectNN(PB_T50_RS) 上达到 85.6%，仅更新约 5% 的可训练参数，并保持 SNN 的能耗效率。这项工作为神经形态视觉模型的参数高效适配迈出了有希望的一步。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让"脉冲神经网络"（SNN）做点云识别时，不需要把整个模型重新训练一遍，只动 5% 的旋钮就能达到接近全量微调的效果。<br><br>
+
+      <strong>脉冲神经网络（SNN）是什么？</strong> 普通神经网络（ANN）的神经元之间传递的是连续的数值（比如 0.7、0.3）。脉冲网络模仿生物神经元：平时安静，只有"电压"超过一个阈值时才"啪"地发放一个脉冲（1），否则就是 0。这种"有事件才计算"的方式非常省电——就像走廊的感应灯，有人走过才亮。对电池供电的机器人来说，这是很大的诱惑。<br><br>
+
+      <strong>参数高效微调（PEFT）是什么？</strong> 想象你买了一套精装修的房子，现在要改成工作室。全量微调 = 把房子推倒重装，费钱费力；参数高效微调 = 只换窗帘、挪沙发、加一盏灯，花小钱办大事。具体到神经网络：冻结绝大部分参数（突触权重），只调节少数关键部分。<br><br>
+
+      <strong>这篇论文的两个巧妙之处：</strong><br>
+      ① <strong>IDT——调节的不是突触，而是"神经元的脾气"</strong>。每个脉冲神经元有两个内在参数：膜衰减（电压漏电多快）和发放阈值（多激动才发脉冲）。论文发现：冻结突触连接（神经之间的"线路"），只调这些内在参数，就能高效适配新任务。相当于不动房子的结构，只调空调温度和灯光亮度。<br>
+      ② <strong>SSDA——抢救"沉默的神经元"</strong>。脉冲网络的输出只有 0/1，很多神经元没发脉冲就"沉默"了，但它们的亚阈值电压里其实藏着有用信息（就像没喊出声的口型）。SSDA 把这些静默态的信息也利用起来，让模型"听"得更全。<br><br>
+
+      <strong>为什么和移动机器人有关？</strong> TurtleBot 级别的机器人算力有限，如果点云感知能跑在脉冲网络上，功耗和发热都会显著下降。本文的"只微调 5%"意味着一个预训练好的脉冲点云模型可以低成本适配到不同机器人的专属任务（比如识别你实验室的椅子 vs 别人的椅子），这很符合边缘部署的实际需求。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.29048v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.04</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">On the Efficacy of Self-Supervised Point Cloud Encoders for Efficient 3D Large Language Models</div>
+  <div class="cn-title">自监督点云编码器能否撑起高效的 3D 大语言模型？</div>
+  <div class="authors">✍️ Yao Zheng, Tian Zhang</div>
+
+  <div class="keywords"><span class="tag tag-accent">3D-LLM</span><span class="tag tag-accent">点云编码器</span><span class="tag tag-accent">自监督</span><span class="tag tag-accent">开放词汇</span><span class="tag tag-accent">高效训练</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">系统评测低成本自监督点云编码器（PCP-MAE / Point-MAE）在 3D-LLM 中的表现：12 组训练配置发现编码器架构与预训练目标存在强交叉作用（PCP-MAE+MaskTransformer 达 59% 开放词汇精度），且随机初始化的编码器端到端训练也能逼近顶级预训练变体。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>LSeg</strong>（第 0007~0013 课）的核心是"开放词汇"——用 CLIP 文本-图像对齐把分割从固定类别解放出来。本文讨论的 3D-LLM 正是这一思想向三维的延伸：<strong>开放词汇 3D 理解</strong>。LSeg 中"语言驱动视觉"的脉络可以平滑迁移到"语言驱动点云"。<br>
+      <strong>VLMaps</strong>（第 0006 课）和 <strong>E2Map</strong>（第 0001~0005 课）都把语言模型接入导航链路，而 3D-LLM 提供的是"用自然语言直接问场景问题"的能力（比如"桌上有几个杯子？"）——与 VLMaps 的语义地图查询是互补的感知入口。<br>
+      <strong>视觉 SLAM 十四讲</strong> 第 0037 课（点云实践）是理解点云表示的基础。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首次系统研究"低成本自监督点云编码器能否替代昂贵的多模态对齐编码器（ULIP-2，需 8×A100 算力）"，以 MiniGPT-3D 为测试台覆盖 7 种初始化 × 冻结/微调 × 2 种架构 × 2 个数据集共 12 组配置；② 三大发现：随机初始化端到端训练可达 52.50% 开放词汇精度（逼近预训练变体）；架构与预训练目标强交叉（PCP-MAE+MaskTransformer 59.00% 最佳，Point-MAE+同架构骤降至 46.50%）；闭集 ModelNet40 分类仍是纯几何编码器的核心短板（仅 13-18% vs 多模态基线 62%）。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>3D 点云-语言模型（3D-LLM）通过将点云编码器与大语言模型配对实现三维理解，但现有方法依赖昂贵的多模态编码器（如 ULIP-2），需要在 8×A100 规模的计算上做图像-文本-点云对齐，为研究与部署设置了高门槛。本文系统考察低成本自监督点云编码器（PCP-MAE 与 Point-MAE）能否成为有效替代。以 MiniGPT-3D 为测试台，评估了 7 种编码器初始化/预训练配置（1 个多模态基线、5 个自监督、1 个随机初始化）在冻结与微调两种模式下的表现（共 12 组），覆盖 2 种架构（MaskTransformer、PointTransformer）、3 种目标（PCP-MAE、Point-MAE、随机初始化）与 2 个数据集（Objaverse 660K、ShapeNet55-34 约 50K）。实验揭示三点关键发现：（1）四阶段 MiniGPT-3D 流水线可以有效地从随机初始化训练 3D 编码器：端到端训练的随机初始化编码器达到 52.50% 开放词汇精度与 44.45 描述评分，逼近顶级预训练变体；（2）架构与预训练目标存在强交叉作用：PCP-MAE + MaskTransformer 达到 59.00% 精度（自监督最佳），而 Point-MAE + MaskTransformer 降至 46.50%，且该模式在 PointTransformer 上发生反转；（3）闭集 ModelNet40 分类仍是纯几何编码器的核心短板，仅约 13-18% 精度，而多模态基线约为 62%，即使经过端到端微调亦然。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>要解决什么问题？</strong> 让机器人"看懂"三维场景并回答自然语言问题（"冰箱里有几瓶可乐？"），需要把点云翻译成大语言模型能理解的"语言"。翻译官就是点云编码器。<br><br>
+
+      <strong>现有编码器为什么贵？</strong> 主流方案（ULIP-2）要把点云、图像、文本三样东西"对齐"在一起训练——同一物体的点云、照片、文字描述要映射到相近的向量空间。这需要 8 张 A100 显卡跑很久。对普通实验室和机器人开发者来说，门槛太高了。<br><br>
+
+      <strong>便宜的选择：自监督编码器。</strong> 自监督学习不需要人工标注：把点云"打码"一部分（比如遮住半边椅子），让网络学会补全，过程中就学到了三维结构。PCP-MAE 和 Point-MAE 就是这类方法，训练成本低一个数量级。问题是：它们够格当 3D-LLM 的翻译官吗？<br><br>
+
+      <strong>三个有趣发现：</strong><br>
+      ① <strong>不预训练也行？</strong> 随机初始化的编码器跟着 3D-LLM 一起端到端训练，能达到 52.5% 的开放词汇精度——离顶级预训练变体不远。就像新员工跟着老团队干几个月，也能上手。<br>
+      ② <strong>架构和预训练目标要"对脾气"。</strong> PCP-MAE（预测点云补全任务）配 MaskTransformer 架构效果最好（59%），但换成 Point-MAE 就掉到 46.5%；换架构结论还会反转。说明"哪个预训练方法好"不能孤立回答，必须说"配什么架构"。<br>
+      ③ <strong>闭集分类是硬伤。</strong> 让模型在固定类别表（ModelNet40 的 40 类）里分类时，纯几何编码器只有 13-18% 精度。就好比开放词汇考试能写作文，但选择题全蒙不对——语言对齐带来的"常识"在纯几何表征里是缺失的。<br><br>
+
+      <strong>对 PaperLesson 的意义：</strong> 这条"低成本替代"路线意味着 3D-LLM 不再是 8×A100 的专属玩具。如果机器人端用自监督编码器 + 小语言模型，<strong>本地就能回答三维场景的自然语言查询</strong>——这正好接上 E2Map/VLMaps 课程里的"语言与空间结合"主线，且门槛大幅降低。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.29136v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.04</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Receding-Horizon Next-Best-View Planner for Autonomous Leaf Surface Reconstruction</div>
+  <div class="cn-title">面向自主叶片表面重建的滚动时域 Next-Best-View 规划器</div>
+  <div class="authors">✍️ Arif Ahmed, Sajal K. Das, Parikshit Maini</div>
+
+  <div class="keywords"><span class="tag tag-accent">NBV</span><span class="tag tag-accent">主动感知</span><span class="tag tag-accent">点云重建</span><span class="tag tag-accent">农业机器人</span><span class="tag tag-accent">信息增益</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">面向田间草莓叶片重建的滚动时域 Next-Best-View 规划器，提出质心信息增益（CIG）函数衡量观测点分布质量，在 LAST-STRAW 数据集上把表面重建误差最高降低 10%，遮挡加剧时优势更明显。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0072~0074 课（建图 / 稠密重建 / TSDF）是"如何从传感器数据重建场景"的基础；本文讨论的是"重建任务反过来决定机器人该往哪看"——<strong>主动感知（active perception）是建图的闭环</strong>，第十四讲（第 0076 课）展望的自主探索方向正是本文的落点。<br>
+      <strong>E2Map</strong>（第 0001~0005 课）涉及机器人导航中"去哪里"的决策；NBV 也是"去哪里"的决策，但目标函数是信息增益而非路径成本——两种视角可以对照学习。<br>
+      滚动时域（receding-horizon）的思想与第 0060~0062 课运动规划中的局部规划窗口一脉相承。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 Centroid-based Information Gain（CIG）函数：衡量已观测点相对于点云质心的空间分布，直接刻画"还有哪些表面没看到"，替代传统的可见性计数式信息增益；② 提出滚动时域变体，在路径预算约束下推理未来多个视点而非贪心单步；③ 在公开 LAST-STRAW 草莓数据集（多生长阶段）上与 attention-driven NBV 基线对比，跨阶段一致降低表面重建误差、提升几何保真度，遮挡加剧场景下最高提升 10%。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>精确的植物叶片建模是植物生长监测、产量估测表型分析等下游任务的基础。面向大规模田间部署的自主机器人重建，必须在机器人规划预算与计算资源受限的前提下，优化视点效用以实现叶片表面重建。现有方法要么聚焦刚体目标、要么聚焦点云覆盖或整体植物重建，没有充分应对系统限制，也没有利用任务驱动的点云效用。本文研究带行程约束的叶片表面重建 NBV 规划。提出一种新颖的质心信息增益（CIG）函数，通过衡量已观测点相对现有点云质心的空间分布来计算视点效用；并开发滚动时域变体，对未来视点进行推理。基准测试使用包含不同生长阶段草莓植株点云的公开 LAST-STRAW 数据集，与采用基于可见性信息增益的 attention-driven NBV 方法对比。所提滚动时域方法在多个生长阶段持续降低表面重建误差并提升几何保真度，尤其在叶间遮挡加剧时表现突出。结果表明，相比基线，该方法能够访问更多有效视点，将表面重建误差最高降低 10%，并提升重建精度。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>场景是什么？</strong> 一台农业机器人在草莓田里转悠，用 3D 相机扫草莓植株，想建一个完整的叶片三维模型——用来监测生长、估产量。问题来了：叶片又密又互相遮挡，机器人的视角有限，它必须自己决定"下一步往哪看"。<br><br>
+
+      <strong>Next-Best-View（NBV）是什么？</strong> 就是"下一个最佳视角"规划：机器人每走一步，都问自己——站在哪个新位置拍，能获得最多的新信息？这是主动感知（active perception）的核心问题：不满足于被动地边走边拍，而是主动寻找信息量最大的观测位置。<br><br>
+
+      <strong>以前的方法为什么不行？</strong> 传统 NBV 用"可见性信息增益"打分：数一数从某个视角能新看到多少个点，看得多就给高分。但这种方式不考虑"这些点分布在哪"——可能 90% 的新点都堆在同一片叶子上，另一片叶子还是没看到。就像拍照时只顾着把镜头怼在花上，旁边的花瓶始终拍不全。<br><br>
+
+      <strong>本文的 CIG 函数怎么改进？</strong> 质心信息增益：把已经建好的点云看成一团点，算出它们的"质心"（重心），然后衡量新观测的点相对质心的空间分布。如果一个视角能把观测点"摊开"到不同的空间区域，而不是堆在一起，得分就高。这从"点数多少"升级为"覆盖是否均匀"——更贴近"重建整个表面"这个真实目标。<br><br>
+
+      <strong>滚动时域（Receding-Horizon）又是什么？</strong> 贪心策略是"只看下一步"；滚动时域是"看未来几步"——规划未来 3 个视角，走一步后重新规划。就像下棋时不只看眼前这一步，而是想三步，但每走一步都重新思考。旅行约束（机器人走位要花钱花时间）下，这种前瞻性规划能少走冤枉路。<br><br>
+
+      <strong>为什么值得关注？</strong> 农业机器人是移动机器人商业化的重要赛道。NBV 把"探索"从随机游走变成了有目标的信息收集——这与 TurtleBot 做室内探索建图是同一个数学问题，只是目标函数从"覆盖房间"换成了"覆盖叶片"。理解了 CIG 的思路，就能迁移到任何"重建任务驱动的视点规划"场景。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.28995v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.89</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">SafeNexus: Discovering and Steering Modality-Universal Safety Neurons in MLLMs</div>
+  <div class="cn-title">SafeNexus：发现并引导多模态大语言模型中的跨模态通用安全神经元</div>
+  <div class="authors">✍️ Jian Yu, Fei Shen, Cong Wang, Jian Wang, Lu Jin, Xiaoyu Du, Jinhui Tang, Tat-Seng Chua</div>
+
+  <div class="keywords"><span class="tag tag-accent">MLLM 安全</span><span class="tag tag-accent">神经元定位</span><span class="tag tag-accent">跨模态对齐</span><span class="tag tag-accent">模型可解释性</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">在多模态大语言模型中定位"跨模态通用安全神经元"（US-Neurons），通过激活放大与定向校准两条干预路线实现跨模态安全对齐，在多种模态组合的安全基准上超越现有 SOTA，同时基本不损失模型能力。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>说明：</strong> 这篇论文属于 MLLM 安全方向，"localization"命中的是<strong>神经元定位</strong>（找出模型内部管安全的功能单元），与机器人空间定位不是一回事，相关性分数（1.0）已如实反映。它与 PaperLesson 的关联偏间接——<br>
+      <strong>LSeg</strong>（第 0007~0013 课）的开放词汇感知、<strong>E2Map</strong>（第 0001~0005 课）的语言导航都依赖多模态大模型；当机器人带着 VLM 进入物理世界时，<strong>模型安全同样关系到物理安全</strong>（被越狱的机器人感知系统可能输出危险指令）。本文"找到管某类行为的神经元并精确干预"的思路，也是模型可解释性研究的代表方法，与第 0076 课"语义 SLAM 与未来方向"中对模型内部机制的好奇同源。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出神经元定位范式：通过中间层激活模式刻画 + 重要性评分量化功能显著性，识别功能特化神经元；② 利用对比数据识别模态绑定安全神经元（BS-Neurons），经跨模态分析提炼出模态通用安全神经元（US-Neurons）——抑制它们会在所有模态上显著降低安全性能，而几乎不影响模型效用；③ 提出两条安全对齐策略：激活级安全放大器（amplify US-Neurons 激活幅度）与安全神经元校准器（定向微调校准），在多模态组合安全基准上超越 SOTA 并保持效用。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>尽管大语言模型（LLM）已展现出良好的安全性能，但将其扩展为多模态大语言模型（MLLM）后，扩展的多模态能力与现有安全机制之间出现了显著鸿沟。现有防御手段大多局限于特定模态设置，难以应对更广泛的跨模态威胁。为此，本文提出 SafeNexus——一种采用神经元级干预策略的跨模态安全对齐框架。首先形式化神经元定位范式：刻画中间层激活模式、通过重要性评分量化功能显著性，从而识别功能特化的神经元。基于该范式，利用对比数据识别模态绑定安全神经元（BS-Neurons），并通过定向抑制验证其在各模态内调控安全行为的作用。进一步的跨模态分析将模态通用安全神经元（US-Neurons）定义为各模态 BS-Neurons 的共享子集，作为抵御有害跨模态攻击的核心。实验观察到，抑制这些神经元会在各模态显著降低安全性能，而整体效用基本不受影响。基于这些发现，提出两种安全对齐策略：激活级安全放大器与安全神经元校准器，分别通过放大 US-Neurons 的激活幅度与定向微调校准来增强模型安全。大量实验表明，该方法在覆盖多种模态组合的安全基准上优于现有 SOTA 方法，同时有效保持模型效用。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>背景：多模态大模型（MLLM）是什么？</strong> 就是在文字之外还能看图、听声的"大模型全家桶"（比如能同时理解"图片里有什么"和"文字在说什么"的模型）。安全对齐则是让模型"守规矩"——不回答有害问题、不生成危险内容。<br><br>
+
+      <strong>问题出在哪？</strong> 文字模型的安全做得不错了，但一加上图像、音频输入，安全就漏风：攻击者可以把有害指令藏在图片里（比如图片中嵌一段文字，模型读图后照做），而现有的防御大多是"单模态"的——防住了文字攻击，防不住图像攻击。<br><br>
+
+      <strong>神经元定位是什么意思？</strong> 神经网络里有几亿个神经元，但研究发现：某些行为其实由一小撮"专责神经元"掌管（就像公司里负责安全的保安部门）。神经元定位就是在大脑（网络）里找出"哪个神经元管安全"。方法：给模型喂正常/有害的对比样本，观察哪些神经元的激活模式明显不同，再按重要性打分排序。<br><br>
+
+      <strong>本文的关键发现：</strong> 有些安全神经元只在处理图像时活跃（模态绑定，BS-Neurons），但有一批神经元<strong>不管输入是文字还是图像都负责安全</strong>（模态通用，US-Neurons）。找到这批"通用保安"后，干预它们就能同时加固所有模态的安全——比逐模态防御高效得多。<br><br>
+
+      <strong>两条干预路线：</strong> ① 安全放大器：把 US-Neurons 的激活"音量"调大，让模型更警觉；② 安全校准器：对这些神经元做定向微调（只动这一小撮参数，不碰其他部分）。两条路线都验证了"安全性能大幅提升、正常能力几乎不掉"。<br><br>
+
+      <strong>和机器人有什么关系？</strong> 当 VLM 被装到机器人上做感知（比如让 TurtleBot 用语言模型理解场景），模型的安全边界就变成了机器人的行为边界。理解"安全神经元"这类机制，是未来给机器人感知模型做可信部署的第一步。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.28969v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.84</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">Is It Time for the Renaissance of Salient Object Detection in the Era of MLLMs?</div>
+  <div class="cn-title">MLLM 时代，显著目标检测是否该迎来复兴？——FOCUS 框架</div>
+  <div class="authors">✍️ Wenzhuo Zhao, Xiuzhi Li, Zhongkuan Mao, Ronghao Xian, Yao Jiang, Zhao Gao, Keren Fu, Qijun Zhao, Jian Cheng</div>
+
+  <div class="keywords"><span class="tag tag-accent">显著目标检测</span><span class="tag tag-accent">MLLM</span><span class="tag tag-accent">开放词汇</span><span class="tag tag-accent">零样本</span><span class="tag tag-accent">免训练</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">建立 SaliLLM 诊断基准发现 MLLM"定位强、分割弱"的能力错配，据此提出免训练 FOCUS 框架——用格式塔启发的协作注意力把零样本显著目标检测重铸为"前景组织"，在 13 个 RGB/RGB-D/RGB-T 基准上全面超越 SOTA。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>LSeg</strong>（第 0007~0013 课）的开放词汇语义分割是本文"前景组织 + 通用分割器"的技术同源——FOCUS 产出目标区域提示词后交给通用分割器（如 LSeg 风格的开放词汇分割器）完成分割，<strong>两篇论文的技术栈可以直接拼接</strong>。<br>
+      <strong>VLMaps</strong>（第 0006 课）中"语言地图"的目标发现环节与显著目标检测在任务结构上相通：都是从场景中找出"值得注意的目标"。<br>
+      机器人视觉中，显著目标检测常被用作注意力先验（先找显著区域，再做精细识别），与 <strong>DFusion-SLAM</strong>（第 0077~0082 课）的动态目标检测可以形成"显著性 → 动态性"的两级筛选管线。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 将显著目标检测（SOD）解耦为定位 + 分割，重构数据集（短语/框/属性标注）建立 SaliLLM 诊断基准，发现 MLLM 定位远超 SOTA 方法、分割却明显偏弱的能力错配，并归因于前景基数/粒度/范围三个层面的标注错配；② 提出免训练 FOCUS 框架：顶层贝叶斯惊异校准 + 底层基于自监督特征感知流形的 MLLM 证据传播，输出连贯目标范围作为通用分割器的提示；③ 13 个 RGB/RGB-D/RGB-T 基准上全面超越 SOTA，MAE 相对全监督/弱监督/自监督方法分别降低 11%、34%、48%。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>多模态大语言模型（MLLM）的零样本能力正推动显著目标检测（SOD）超越任务特定的监督范式。为在传统掩码评估之外剖析 MLLM，本文将 SOD 解耦为定位与分割两个子任务，并用短语、框与属性重新构建数据集，建立了面向 MLLM 显著性感知的诊断基准 SaliLLM。SaliLLM 揭示了惊人的能力错配：MLLM 在定位上超越 SOTA 方法，但在分割上明显偏弱。进一步分析将这一差距主要归因于 MLLM 与标注在前景基数、粒度与范围上的错配。基于这一诊断，本文将零样本 SOD 重铸为协议对齐的"前景组织"任务，并首次提出免训练框架 FOCUS：将格式塔启发的协作注意力用于统一 SOD，顶层用贝叶斯惊异校准协议条件的前景粒度，底层沿自监督特征诱导的实体中心感知流形传播 MLLM 证据，从而产出连贯的目标范围作为通用分割器的提示。在 13 个 RGB、RGB-D、RGB-T SOD 基准上，FOCUS 无需训练即普遍超越 SOTA 方法，平均绝对误差相对全监督、弱监督与自监督方法分别降低 11%、34% 与 48%。研究结果表明 SOD 正在复兴：从任务特定监督走向零样本前景组织。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>显著目标检测（SOD）是什么？</strong> 找出图片里"最显眼的东西"——一片绿叶中的红花、客厅里的沙发。传统 SOD 靠专门训练的网络（需要大量人工标注"哪里显著"），是计算机视觉的经典任务。<br><br>
+
+      <strong>MLLM 时代为什么重提 SOD？</strong> 多模态大模型"看一眼图就能说"的能力（零样本，不用专门训练）让人好奇：它能不能直接当显著目标检测器？本文先建了个诊断基准 SaliLLM 测了测，结果很有意思——<br><br>
+
+      <strong>发现 1：定位很强，分割很弱。</strong> MLLM 能准确说出"图里显著的东西在哪"（画个框框得很准），但让它把目标完整地"抠"出来（逐像素分割）就拉胯了。打个比方：它知道"苹果在桌上"，但不知道苹果的具体轮廓。<br><br>
+
+      <strong>发现 2：错配的根源。</strong> 作者分析发现，MLLM 的"显著观"和人类标注不一样：MLLM 倾向于把多个相似物体算成一个整体（基数错配）、关注粒度不同（它觉得"整片花田"是一件事，标注者却标了单朵花）。<br><br>
+
+      <strong>FOCUS 怎么解决？</strong> 核心思想：<strong>扬长避短</strong>——让 MLLM 干它擅长的"定位"，把"分割"外包给通用分割器。中间桥梁是"前景组织"：① 顶层用贝叶斯惊异校准（根据提示确定"该分多细"）；② 底层沿着自监督特征构建的"感知流形"传播 MLLM 的证据，把零散的注意力汇聚成连贯的目标区域；③ 把区域作为提示词交给通用分割器精修。全程免训练——开箱即用。<br><br>
+
+      <strong>关键术语：</strong> 格式塔（Gestalt）原理——人类视觉把相近、相似的东西自动归组（"近朱者赤"式的组织倾向），FOCUS 用协作注意力模拟这种归组；贝叶斯惊异（Bayesian surprise）——衡量新证据和预期差多少，用来判断"这个区域该算一个目标还是多个"。<br><br>
+
+      <strong>与机器人感知的关联：</strong> 免训练 + 零样本意味着可以随时给机器人换新的"显著性理解"（今天关注红色目标、明天关注运动目标），不必重新训练。配合 LSeg 式开放词汇分割器，就构成了一条"显著区域 → 语义分割 → 目标级感知"的完整轻量管线，适合作为 TurtleBot 视觉感知的注意力先验模块。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2607.29222v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<!-- #6 VFAD -->
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 3.74</span>
+  <div class="mini-title">VFAD: Variational Semantic Prompting Meets Frequency-Adaptive Representation Learning for Zero-Shot Anomaly Detection</div>
+  <div class="mini-cn">VFAD：变分语义提示 + 频域自适应表示学习的零样本异常检测</div>
+  <div class="mini-oneliner">📌 用变分语义提示提取器（VSPE）从小块特征中聚合异常相关语义，配合小波分解的频域自适应聚合模块（FARA），让 CLIP 在从未见过的类别上也能检测并定位异常。</div>
+  <div class="mini-conn">🔗 "localization"命中为异常定位（视觉质量任务），与机器人空间定位关系较弱。思路可关联 <strong>LSeg</strong>（第 0007~0013 课）的 CLIP 迁移逻辑；在工业机器人质检、TurtleBot 传感器异常检测场景有借鉴价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.29370v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #7 X-NavDP -->
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 3.73</span>
+  <div class="mini-title">X-NavDP: Generalizing Navigation Diffusion Policy to Novel Behavior and Embodiments with Group Q-score Reweighted Matching</div>
+  <div class="mini-cn">X-NavDP：组 Q 分数重加权匹配——让导航扩散策略泛化到新行为与新本体</div>
+  <div class="mini-oneliner">📌 用 RL 后训练导航扩散策略：自举探索 + 行为扰动保住预训练先验，组 Q 分数归一化做高效重加权匹配，跨本体视觉导航成功率从 61.20% 提到 84.28%（仿真），真实世界硬核场景从 10% 提到 65%。</div>
+  <div class="mini-conn">🔗 与 <strong>E2Map</strong>（第 0001~0005 课，语言/经验驱动的导航决策）和 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（运动规划）相关：扩散策略是生成式规划的新范式，"预训练 + RL 后训练"的配方对 TurtleBot 导航策略训练有直接借鉴意义。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.28560v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #8 CorrelationFlow -->
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 3.71</span>
+  <div class="mini-title">CorrelationFlow: A Training-Free Geometric Approach for LiDAR Scene Flow Estimation</div>
+  <div class="mini-cn">CorrelationFlow：免训练的几何 LiDAR 场景流估计</div>
+  <div class="mini-oneliner">📌 把场景流估计还原成两招教科书操作——鸟瞰占据图上的连通域标注 + 相关最大化：物体被分离为时空连通域、运动由相关峰恢复、速度传播给所有点；在 Argoverse 2 2026 场景流挑战赛多域测试集中排名无监督方法第二，远距离退化最优雅。</div>
+  <div class="mini-conn">🔗 "LiDAR"关键词命中。与 <strong>视觉 SLAM 十四讲</strong>第 0054~0059 课（光流 / 直接法）同构——图像光流用亮度不变假设，本文用占据一致性假设；对 <strong>OCD SLAM</strong>（第 0083~0088 课）的动态目标检测是天然的补充（场景流即运动线索）。"质疑公式本身而不是堆参数"的立场值得一读。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.29237v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #9 Homotopy-Aware Corridor -->
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 3.58</span>
+  <div class="mini-title">Homotopy-Aware Corridor Generation without Predefined Reference Paths</div>
+  <div class="mini-cn">无参考路径的同伦感知走廊生成</div>
+  <div class="mini-oneliner">📌 在凸集图（GCS）上直接以凸集序列形式构建安全走廊，摆脱参考路径对走廊几何的偏置；把可见性形变从路径推广到凸集序列以融合拓扑冗余走廊，并设计采样细尺度 + 可见性粗尺度的自适应多尺度 GCS 支持局部增量更新，地面与空中机器人硬件实验验证。</div>
+  <div class="mini-conn">🔗 "motion planning" + "localization"命中。与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（路径规划）直接对应：走廊（corridor）是 Trajectory Optimization 的常见安全约束表达；"无参考路径 + 同伦保持"对 TurtleBot 在动态/未知环境中的规划很有参考价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.29513v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #10 SAGP -->
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 3.51</span>
+  <div class="mini-title">SAGP: Semantic Affordance-Guided Grasp Planning via Coarse-Zone VLM Reasoning</div>
+  <div class="mini-cn">SAGP：粗区域 VLM 推理的语义可操作度引导抓取规划</div>
+  <div class="mini-oneliner">📌 免训练管线：PCA 对齐 + 距离驱动 DBSCAN 把物体点云粗分为顶部/中部/底部/侧面/凸起区域，预训练 VLM 零样本评估各区抓取质量，分数与几何/可达性/任务对齐信号融合后重排对极抓取候选；在 PyBullet + Franka Panda 的 YCB 物体上保持几何方法的成功率、显著提升抓取的"功能合理性"。</div>
+  <div class="mini-conn">🔗 "point cloud"命中。与 <strong>LSeg</strong>（第 0007~0013 课）共享"VLM 语义 + 几何"的混合范式；机械臂抓取是移动操作（mobile manipulation）的前置模块，TurtleBot + 机械臂方案可借鉴其"粗分区代替细分割"的省钱思路。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2607.29374v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ 点云感知的"轻量化运动"：从省参数到省算力</h4>
+  <p>本周 #1（SpikePEFT，只微调 5% 参数）与 #2（自监督编码器替代 8×A100 级多模态对齐）从两个方向夹击同一个问题：点云感知的训练与部署成本。前者在"推理端"省钱（脉冲网络的能耗优势），后者在"训练端"省钱（自监督替代昂贵对齐）。加上上周的 Edge-BehAV（小模型替代云端大模型），一个清晰的信号是：<strong>移动机器人社区正在系统性地把感知模型从"大而贵"推向"小而够用"</strong>。对 TurtleBot 这类嵌入式平台，这波趋势直接决定未来两年能用上什么级别的 onboard 感知。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ "免训练"成为方法论宣言：几何方法开始反击</h4>
+  <p>本周有三篇论文不约而同地打出了"training-free"旗号：#8 CorrelationFlow（连通域 + 相关最大化解场景流）、#5 FOCUS（免训练零样本 SOD）、#10 SAGP（免训练抓取规划）。CorrelationFlow 的表述尤其尖锐——"近年的方法都在继承彼此的假设与盲区，当假设失效时一起失效；该质疑的是公式本身，而不是扩大规模"。这标志着社区对"端到端堆参数"路径的集体反思：<strong>经典几何/统计工具（连通域、相关、PCA、聚类）正在以"可解释、可迁移、零训练成本"的姿态回归</strong>，并与大模型形成"大模型负责语义、几何负责精确"的分工。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 导航策略进入"预训练 + RL 后训练"时代</h4>
+  <p>#7 X-NavDP 把扩散策略（diffusion policy）与 RL 后训练结合，解决了扩散模型似然不可解导致策略梯度不稳的老问题，其核心创新"组 Q 分数重加权匹配"本质上是给每条轨迹按状态价值重新加权——比之前的 RL-for-diffusion 方法数据效率高得多。仿真 84%、真实世界硬核场景 65% 的成绩，说明<strong>生成式导航策略正在从"模仿示范"走向"能自我修正的行为"</strong>。这与 #9 走廊生成（摆脱参考路径依赖）呼应：本周导航方向的主旋律是"去掉先验、拥抱泛化"。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 主动感知进入垂直场景：NBV 从室内走向田间</h4>
+  <p>#3 把 NBV 规划器搬进草莓田，用"质心信息增益"取代"可见性计数"，并在滚动时域下考虑行程预算——这是主动感知从通用室内探索走向<strong>任务驱动的垂直应用</strong>的信号。农业机器人、巡检机器人、搜救机器人都有自己的"信息效用"定义，NBV 的价值恰恰在于把"该往哪看"形式化为可优化的目标函数。当传感器成本下降、机器人数目上升，这类"感知闭环"工作会比单纯刷 benchmark 的建图方法更快落地。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 · 第 32 周</span>
+  <a href="https://arxiv.org/list/cs.RO/2026-08-03">📄 arXiv cs.RO</a>
+</div>
+
+<div style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:var(--text-sm);color:var(--ink-40);">
+  <p>🤖 生成时间：2026-08-03 · 数据来源：arXiv · 评分体系：相关性 50% · 时效性 20% · 热度 15% · 质量 15%</p>
+  <p style="margin-top:var(--space-1);">—— 顾清然</p>
+</div>
+
+</div>
+</body>
+</html>
