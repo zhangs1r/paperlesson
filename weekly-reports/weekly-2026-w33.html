@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W33</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 33 周 · 2026.08.03 — 2026.08.10</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共检索 <strong>300 篇新论文</strong>，经四维评分筛选后，<strong>20 篇论文</strong>通过核心关键词门槛，取 Top 10 推荐。
+    本周的叙事主线是<strong>"去先验化 + 边缘落地"</strong>：机器人系统正在集体扔掉"拐杖"——#3 ULVN 丢掉时序和里程计先验，靠无序照片集就能导航；#6 CrossTracer 跨本体导航，让同一套 VLA 模型适配轮式和足式机器人。与此同时，#1 用合成 LiDAR 数据 + 确定性降采样在树莓派 5 上跑出 50 FPS 点云分类，边缘端的 3D 感知正在从"能跑"走向"跑得动"。<br><br>
+    #2 TECDAR 是本周最"另类"的一篇：用一颗 2.5×3mm 的 6D IMU 做触觉传感，EKF 融合机器人位姿，180ms 内实现毫米级外部接触定位——<strong>触觉正在成为定位的新模态</strong>。#4 把几何先验带进支气管镜定位（医学内镜的毫米级要求），#5 则是移动机械臂搬运任意形状载荷的实时全身运动规划，来自港大 Fu Zhang 团队。<br><br>
+    <strong>⚠ 说明：</strong>本周 "localization" 关键词命中 8 次，是绝对的榜首——但其中 AnyTrack（目标跟踪）、ControlRef（图像生成）、RibAssist（医学影像）等属于视觉/图像任务里的"定位"，与机器人空间定位关系较弱，评分系统已如实反映在相关性分数中，请在阅读时留意区分。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">20</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">10</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">33</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">5.01</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">Synthetic LiDAR Data Generation and Deterministic Downsampling for Point Cloud Classification on the Edge</div>
+  <div class="cn-title">边缘端点云分类：合成 LiDAR 数据生成与确定性降采样</div>
+  <div class="authors">✍️ Niclas Meyer, Stefan Reitmann</div>
+
+  <div class="keywords"><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">点云分类</span><span class="tag tag-accent">合成数据</span><span class="tag tag-accent">边缘部署</span><span class="tag tag-accent">树莓派</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">面向树莓派 5 的硬件约束工作流：用物理仿真生成合成 LiDAR 数据集弥合"干净 CAD 数据 vs 真实传感器"的现实差距，再用特征驱动的 Critical Points Layer 把 1024 点云确定性压缩到 40~60 个关键坐标，ARM 处理器上跑出约 50 FPS、88.36% 的点云分类精度。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0037 课（点云拼接实践）和第 0074 课（点云/OctoMap/TSDF 地图表达）涉及点云数据结构；本文的"确定性降采样"正是点云在嵌入式平台落地前的关键预处理，与第 0076 课展望的边缘部署方向直接呼应。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）轻量检测器的选型逻辑（精度 vs 计算开销权衡）与本文"硬件约束优先"的工作流一致——TurtleBot 级别的平台，每一个 FLOP 都值得计较。<br>
+      <strong>sim-to-real 思路</strong>：合成数据 + 传感器感知训练，对低成本 LiDAR 方案（如 RPLIDAR）的部署有直接借鉴价值。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出硬件约束优先的完整工作流，面向树莓派 5 原生执行：用物理仿真构建合成 LiDAR 数据集，并通过跨数据集评测量化"干净 CAD 数据 → 合成 LiDAR 数据"的精度骤降，证明传感器感知训练（sensor-aware training）的必要性；② 设计特征驱动的 Critical Points Layer（CPL）作为前端滤波器，替代资源密集的距离排序预处理，确定性把 1024 点云压缩到 40~60 个唯一坐标；③ ARM Cortex-A76 上完整管线约 50 FPS 吞吐，实例分类精度 88.36%，验证边缘端确定性实时 3D 感知的可行性。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>将三维深度学习框架部署到低功耗嵌入式处理器上，一直受制于空间数据的非结构化特性，以及推理前常用的资源密集型距离排序算法。针对这一缺口，本文提出一套面向树莓派 5 原生执行的硬件约束工作流。为弥合无噪声的干净 CAD 数据集与真实传感器数据之间的现实差距，作者使用基于物理的仿真构建了合成 LiDAR 数据集。跨数据集评估表明：在干净 CAD 数据上训练的网络迁移到合成 LiDAR 传感器数据时，分类精度显著下降，凸显了传感器感知训练的关键需求。为解决边缘 CPU 上传统几何预处理的延迟瓶颈，作者集成了一个独立的、特征驱动的关键点层（Critical Points Layer, CPL）作为前端滤波器。结果表明，预训练的 CPL 可将原始 1024 点云确定性压缩为 40 到 60 个唯一坐标的子集。在 ARM Cortex-A76 处理器上评测时，完整管线达到约 50 FPS 的推理吞吐，同时保持 88.36% 的实例分类精度，验证了边缘端确定性实时 3D 感知的可行性。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让"树莓派"这么小的电脑，也能实时（每秒 50 次）对 LiDAR 点云做分类——比如认出"这是椅子、那是墙"。关键在两步：用仿真造训练数据 + 用巧妙的降采样减少计算量。<br><br>
+
+      <strong>点云是什么？</strong> LiDAR（激光雷达）每秒钟打出几万个激光点，碰到物体反弹回来，记录下每个点的三维坐标，一堆点就是"点云"——像用几千个图钉在空气里钉出物体的轮廓。<br><br>
+
+      <strong>问题一：训练数据从哪来？</strong> 手工标注 3D 点云贵得吓人，所以很多人用 CAD 模型（工业设计软件里的完美模型）生成数据训练。但真实 LiDAR 的点有噪声、有遮挡、疏密不均，和 CAD 里干干净净的点完全两回事——这就是"现实差距（reality gap）"。本文用物理仿真模拟真实的激光发射/反射过程，生成"像真实传感器拍出来"的合成数据，训练出的模型才不会"见光死"。<br><br>
+
+      <strong>问题二：点太多算不动怎么办？</strong> 1024 个点对神经网络来说不多，但传统预处理要先算"每个点到中心的距离"再排序，这种排序在 ARM 处理器上很贵。本文的 CPL（关键点层）换个思路：<strong>不按距离挑，按"特征重要性"挑</strong>——像采访一样，只留下最关键的 40~60 个"证人"，其余放行。而且这个挑选是确定性的（同样的输入永远得到同样的输出），可以离线算好、在线零开销执行。<br><br>
+
+      <strong>为什么和移动机器人有关？</strong> TurtleBot 级别的机器人装的就是树莓派/嵌入式板卡 + 低成本 LiDAR。本文证明：<strong>合成数据 + 确定性降采样 + 轻量网络，就能在嵌入式平台上实时做 3D 感知</strong>——这正是"低成本传感器 + 边缘推理"路线的样板工程。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.07106v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">5.00</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">Detection and Ranging of Transient Extrinsic Contacts Based on 6D Dynamic Tactile Sensing</div>
+  <div class="cn-title">TECDAR：基于 6D 动态触觉传感的瞬态外部接触检测与测距</div>
+  <div class="authors">✍️ Haowen Zheng, Yinghao Wu, Fuyuan Liu, Yichen Li, Yitian Shao</div>
+
+  <div class="keywords"><span class="tag tag-accent">触觉感知</span><span class="tag tag-accent">EKF 融合</span><span class="tag tag-accent">接触定位</span><span class="tag tag-accent">毫米级精度</span><span class="tag tag-accent">自主探索</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">用一颗 2.5×3mm 的 6D IMU 做动态触觉传感，7kHz 采样捕捉亚毫秒级指尖形变（数据流仅 84KB/s），经扩展卡尔曼滤波与机器人位姿融合，180ms 内实现约 7mm 精度的外部接触定位，让机械臂"盲操作"也能感知环境并实时纠偏。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0025~0030 课（状态估计与卡尔曼滤波）是理解本文 EKF 融合的数学基础：触觉数据 + 机器人位姿 = 典型的多传感器融合状态估计问题，与十四讲里 IMU/视觉融合的框架同源。<br>
+      <strong>Remote State Estimation</strong>（第 0089~0094 课）围绕状态估计与滤波展开，本文的 EKF 是同一数学内核在"接触事件"上的应用——一个估计位姿、一个估计接触点。<br>
+      <strong>自主探索</strong>：本文明确把"触觉主导环境中的自主探索"列为应用场景，与 TurtleBot 的未知环境探索主线互补——视觉看不透的地方，触觉来补。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 TECDAR：基于单颗 2.5×3mm 6D IMU 的动态触觉传感方案，7kHz 采样率捕捉亚毫秒级指尖形变，数据流仅 84KB/s——高带宽 + 小数据量兼得；② 触觉数据与机器人位姿经扩展卡尔曼滤波（EKF）融合，180ms 内实现快速精确的外部接触定位，线接触/点接触任务平均精度约 7mm；③ 近瞬时定位使机器人能在毫秒尺度修正轨迹，实现纯触觉探索与建图，面向精密装配、手术辅助和触觉主导环境的自主探索。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>精细操作常常涉及被抓取物体与环境之间瞬态而微小的碰撞。人手凭借出色的触觉灵敏度可以毫不费力地定位这些接触，但机器人系统往往缺乏获取运动规划所需信息的分辨率，导致操作笨拙甚至任务失败。本文提出瞬态外部接触检测与测距方法（TECDAR）——一种简单、快速且高效的被抓取物体外部接触检测与测距方法。夹爪指尖的设计采用动态触觉传感，仅使用一颗 2.5×3mm 的 6D 惯性测量单元（IMU），以 7kHz 采样率捕捉亚毫秒级指尖形变，数据流仅为 84KB/s。高带宽与紧凑的数据规模使系统能够快速检测并定位被抓物体与其周围环境的接触。具体而言，通过扩展卡尔曼滤波将触觉数据与机器人位姿融合，可快速精确地定位外部接触，180ms 内达到毫米级精度。实验表明，该系统在线接触和点接触定位任务中的平均定位精度约为 7mm。此外，这种近瞬时定位使机器人能在毫秒尺度修正轨迹，支持精确工具操作，并通过纯触觉探索与建图增强对复杂环境的感知。作者展望这项技术将推动需要精细操作的机器人领域发展，包括精密装配、手术辅助以及触觉主导环境中的自主探索。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>场景是什么？</strong> 机械臂抓着一个杯子往桌上放，杯底"砰"地碰到桌沿——人眼看不见（被杯子挡着），力传感器也可能反应不过来。但人手在这种情况下能瞬间感觉到"碰到了"，机器人却常常傻乎乎地继续往下压，把杯子顶翻。这就是"外部接触"问题：<strong>接触发生在被抓物体和周围环境之间，而不是机器人和环境之间</strong>，常规的关节力矩传感器很难察觉。<br><br>
+
+      <strong>IMU 是什么？</strong> 惯性测量单元，手机里就有——测量加速度和角速度的小芯片。"6D"表示它能测 3 轴加速度 + 3 轴角速度。本文的绝活是：把一颗微型 IMU 直接粘在夹爪指尖上。物体一碰到环境，指尖会产生微小的形变和振动，IMU 能以 7kHz（每秒 7000 次）捕捉这种"颤抖"——比人手还灵敏。<br><br>
+
+      <strong>扩展卡尔曼滤波（EKF）是什么？</strong> 一种经典的"最优折中"估计方法：把两个都不完美的信息来源融合起来，得到比任何单一来源都准的估计。类比：你闭着眼猜自己走了多远（里程计，会漂移），朋友在旁边偶尔报一句"你偏左了"（观测，有噪声）——EKF 就是帮你综合两者、算出最可能的真实位置。本文把"IMU 感受到的接触方向"和"机器人当前位姿"融合，就能反推出接触点在哪。<br><br>
+
+      <strong>为什么了不起？</strong> 180ms 内毫米级定位，意味着机器人可以在碰撞发生后立刻"感觉到并修正"——不是事后补救，而是边操作边纠偏。论文展示的"纯触觉探索与建图"尤其有意思：在视觉完全失效（烟尘、黑暗、遮挡）的环境里，<strong>触觉可以成为机器人探索的"盲杖"</strong>。这与我们 TurtleBot 的室内探索是互补的感知通道。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.07075v1" target="_blank">📄 arXiv 原文</a> · <a href="https://humitlab.github.io/TECDAR/" target="_blank">🌐 项目主页</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.42</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Unordered Landmark Visual Navigation</div>
+  <div class="cn-title">ULVN：无序地标视觉导航——没有时序、没有里程计，也能导航</div>
+  <div class="authors">✍️ Hao Ren, Junzhe Zhu, Yihan Li, Zetong Bi, Le Zheng, Zhi Li, Yiqing Yuan, Zhaoliang Wan, Dizhe Zhang, Lu Qi, Hui Cheng</div>
+
+  <div class="keywords"><span class="tag tag-accent">视觉导航</span><span class="tag tag-accent">拓扑地图</span><span class="tag tag-accent">去先验</span><span class="tag tag-accent">信念传播</span><span class="tag tag-accent">RGB-only</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">纯 RGB 的无序地标导航框架：不依赖时序视频、深度/LiDAR 和里程计，从无结构图像集经几何验证 + 最大生成森林构建 2D 拓扑地图，用图信念传播滤波 + 熵自适应融合做全局定位与动态子目标规划，显著缓解感知混叠和误差累积。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0031~0037 课（视觉里程计、回环检测、建图）是本文的对照系：传统 SLAM 依赖"相邻帧有连续关系"的时序先验，而 ULVN 挑战的正是这个前提；第 0060~0062 课（运动规划）对应其动态子目标规划部分。<br>
+      <strong>E2Map</strong>（第 0001~0005 课）与 <strong>VLMaps</strong>（第 0006 课）都研究"机器人怎么用已有的图导航"，ULVN 提供了一种新的建图输入形态——<strong>众包/预录的无序照片集</strong>（比如网上搜来的室内照片），成本几乎为零。<br>
+      对 TurtleBot 的启示：如果地图可以来自"随手拍的照片"，室内导航的部署成本会大幅下降。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 ULVN：统一 RGB-only 框架，彻底摆脱时序与里程计先验；② 用标定几何验证（calibrated geometric verification）+ 最大生成森林精化，从无序图像直接构建鲁棒 2D 拓扑地图；③ 闭环执行阶段放弃顺序式启发，采用基于图的信念传播滤波 + 熵自适应融合做全局定位，配合动态子目标规划，在仿真与真实部署中显著超越 SOTA。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>图像目标导航是具身智能的基础能力，但其实际部署受制于强先验假设。现有方法主要依赖时间有序的视频流或辅助传感器（如深度、LiDAR）来维持空间一致性，这种顺序式和多模态依赖严重限制了可扩展性——尤其是在使用众包或预录的无序图像集部署机器人时。一旦移除时间先验，现有方法会遭遇严重的感知混叠、噪声关联和灾难性建图失败。针对这一少有人探索的挑战，本文提出无序地标视觉导航（ULVN）——一个统一、纯 RGB、无需时序和里程计先验的框架。ULVN 通过整合建图、定位与规划系统性缓解误差累积：首先利用标定几何验证和最大生成森林精化，直接从非结构化图像构建鲁棒的 2D 拓扑地图；闭环执行阶段放弃顺序式启发，采用基于图的信念传播滤波器，结合熵自适应融合实现全局定位与动态子目标规划。在仿真和真实部署中的大量实验表明，ULVN 显著优于现有最先进方法。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>要解决什么问题？</strong> 让机器人"看一张目标照片，自己找过去"。听起来简单，但传统方法有个隐性前提：输入是<strong>按时间顺序拍的视频流</strong>（第一帧、第二帧……帧与帧之间位移很小）。可如果给你的是一堆<strong>打乱的、不知道拍摄顺序的照片</strong>呢？比如从社交平台搜来的 50 张室内照片——时间戳丢了、拍摄路线未知、甚至不是同一台设备拍的。<br><br>
+
+      <strong>为什么顺序这么重要？</strong> 视觉里程计靠"相邻两帧很像"来推算机器人动了多少。照片一打乱，这个线索就没了；而且室内走廊、办公室长得都差不多，机器人容易把"这个房间"错认成"那个房间"——这叫<strong>感知混叠（perceptual aliasing）</strong>，就像双胞胎分不清谁是谁。<br><br>
+
+      <strong>ULVN 怎么解决？</strong> 三步：<br>
+      ① <strong>建图</strong>：对每一对照片做"几何验证"（两张图能不能匹配出同一个三维场景？），能匹配的就连一条边，再用"最大生成森林"挑出最可靠的联系，得到一张<strong>拓扑地图</strong>——像地铁线路图，只关心"哪些地方连得通"，不关心精确距离。<br>
+      ② <strong>定位</strong>：机器人到了一个新位置，拿当前画面和地图里的节点比对。因为不能靠"上一帧在哪"来猜，就用<strong>信念传播</strong>——让每个节点互相"投票"传递消息，像一群人七嘴八舌讨论"机器人最可能在哪个站"，最后收敛出一个全局一致的答案。<br>
+      ③ <strong>规划</strong>：每走一段就用新观测更新"我在哪"的置信度（熵自适应融合：越不确定越谨慎），动态决定下一个子目标。<br><br>
+
+      <strong>为什么值得关注？</strong> "众包图像导航"意味着机器人不需要有人先开着它建图——网上现成的照片就能当导航地图。这对低成本、快速部署的室内机器人（正是 TurtleBot 的定位）是一个很实际的方向。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.06833v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.37</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">Geometry-Aware Camera Localization for Bronchoscopy</div>
+  <div class="cn-title">GABL：面向支气管镜的几何感知相机定位</div>
+  <div class="authors">✍️ Lumin Chen, Qingyao Tian, Jinpeng Li, Haoyu Jiang, Huai Liao, Xinyan Huang, Hongbin Liu, Dong Yi</div>
+
+  <div class="keywords"><span class="tag tag-accent">相机定位</span><span class="tag tag-accent">6-DoF 位姿</span><span class="tag tag-accent">医学内镜</span><span class="tag tag-accent">几何先验</span><span class="tag tag-accent">实时推理</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">融合术前结构先验与术中视频的统一几何感知支气管镜定位框架：图引导粗到细定位利用结构先验，Transformer 跟踪 + 新颖 RGB-深度匹配目标抑制抖动，平移/旋转误差较 SOTA 降 8.37%/31.76%，推理提速 4 倍达 33.6 FPS。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 本文是"相机位姿估计"（6-DoF）在医学场景的极端版：第 0018~0024 课（相机模型与李群李代数）是位姿表示的数学基础，第 0072~0074 课（稠密建图）对应其术前结构先验的构建与配准。<br>
+      <strong>本质关联</strong>：支气管镜定位 = 受限环境中的 VIO/VO——没有 GPS、纹理稀少、要求毫米级、还要求实时。SLAM 里"先验地图 + 实时定位"的经典范式（类似 relocalization），在这里换成了"术前 CT 重建 + 术中视频配准"。<br>
+      对 TurtleBot 的意义：<strong>先验地图辅助定位</strong>的思路（比如室内 CAD 模型辅助重定位）与本文同构。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 GABL：统一几何感知定位框架，融合术前结构先验与配对术中视频估计 6-DoF 相机位姿；② 图引导的粗到细定位方案有效利用结构先验，缓解复杂气道中的视觉歧义；③ Transformer 跟踪模型 + 新颖 RGB-深度匹配目标联合施加时空与几何一致性，抑制位姿抖动——平移/旋转误差较 SOTA 分别降 8.37% 和 31.76%，推理速度提升 4 倍（33.6 FPS），实现鲁棒实时支气管镜定位。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>支气管镜中的相机定位因严格的精度要求、实时约束和有限的训练数据而极具挑战。与自然场景相比，受限的解剖结构要求毫米级精度，而术中引导需要低延迟推理。然而，现有方法往往未能有效利用术前几何先验，限制了其鲁棒性和精度。为解决这些局限，本文提出统一的几何感知支气管镜定位框架（GABL），有效融合术前结构先验与配对术中视频，估计 6-DoF 相机位姿。具体而言，为应对复杂气道中的视觉歧义，提出图引导的粗到细定位方案，有效利用结构先验实现精确位姿估计；为抑制位姿抖动并弥合视觉-结构差距，集成基于 Transformer 的跟踪模型与新颖的 RGB-深度匹配目标，联合施加时空与几何一致性。大量实验表明，该方法在平移和旋转误差上较现有最优方法分别降低 8.37% 和 31.76%，推理速度提升 4 倍（33.6 FPS），实现鲁棒的实时支气管镜定位。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>场景是什么？</strong> 医生把一根带摄像头的软管（支气管镜）伸进患者气道，屏幕上看到的是气管内部的实时画面。问题是：<strong>医生怎么知道镜头现在在气道的哪个位置？</strong> 气道像一棵分叉很多的树，管壁纹理又少又相似，看画面很难判断"到哪了"。这就需要相机定位——实时算出镜头的 6 自由度位姿（3 个位置 + 3 个朝向）。<br><br>
+
+      <strong>6-DoF 是什么？</strong> 一个刚体在空间里的完整姿态：前后左右上下（3 个平移自由度）+ 俯仰/偏航/翻滚（3 个旋转自由度）。SLAM、机械臂、无人机都在解同一个问题——"我在哪、我朝哪看"。<br><br>
+
+      <strong>术前先验是什么？</strong> 手术前患者会做 CT 扫描，可以把气道三维结构重建出来——相当于一张"气道地图"（术前）。手术中镜头实时拍摄的画面是"当前位置"（术中）。定位就是不断回答：<strong>当前画面在地图上的哪个位置拍的？</strong> 这和 SLAM 的"重定位（relocalization）"是一回事。<br><br>
+
+      <strong>为什么难？</strong> ① 精度要求毫米级（气道很窄，差几毫米可能戳到管壁）；② 必须实时（医生等着呢）；③ 训练数据少（谁愿意拿真病人做实验？）；④ 气道里纹理少、画面模糊、还有呼吸引起的抖动。<br><br>
+
+      <strong>GABL 的三个招：</strong><br>
+      ① <strong>图引导粗到细</strong>：先在地图上粗定位（"大概在左上肺叶"），再在局部细配准（"精确到这段分支"）——像查地图先找城市再找街道，又快又不容易迷路；<br>
+      ② <strong>Transformer 跟踪</strong>：利用视频的时间连续性，上一帧在哪、这一帧就在附近，抑制位姿"跳来跳去"的抖动；<br>
+      ③ <strong>RGB-深度匹配目标</strong>：把"画面里的样子"和"地图里的几何结构"对齐起来监督训练，让视觉和几何互相印证。<br><br>
+
+      <strong>为什么值得机器人开发者看？</strong> 支气管镜定位是"SLAM 思想"在极端约束下的压力测试：毫米级、实时、弱纹理、少数据。这套"先验地图 + 视频跟踪 + 几何一致性"的组合拳，在室内机器人重定位、管线巡检等场景里是同一套方法论。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.07116v1" target="_blank">📄 arXiv 原文</a> · <a href="https://paulili08.github.io/GABL/" target="_blank">🌐 项目主页</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.13</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">Real-time Whole-Body Motion Planning for Mobile Manipulators Carrying Arbitrarily Shaped Payloads via Kinematically-Coupled SVSDF</div>
+  <div class="cn-title">KC-SVSDF：移动机械臂搬运任意形状载荷的实时全身运动规划</div>
+  <div class="authors">✍️ Yisheng Li, Longji Yin, Tingrui Zhang, Ruize Xue, Haoda Zhu, Nan Chen, Siqi Liang, Yuxi Liu, Fu Zhang</div>
+
+  <div class="keywords"><span class="tag tag-accent">全身运动规划</span><span class="tag tag-accent">SDF</span><span class="tag tag-accent">移动机械臂</span><span class="tag tag-accent">轨迹优化</span><span class="tag tag-accent">碰撞检测</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">实时全身运动规划框架：链式分解核碰撞检查保留机器人-载荷真实几何（紧凑存储 + 位级快速查询），中端预处理直接执行无碰撞路径绕过昂贵后端，运动学耦合 SVSDF 沿运动链传播避障梯度，让差速移动机械臂稳定搬运大型非凸载荷穿过狭窄通道。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0060~0062 课（运动规划与轨迹优化）是本文的直接对应板块：SDF（符号距离场）在十四讲里用于建图表达（第 0074 课 TSDF），本文把它用于碰撞避障梯度，是"同一表示、两种用途"的绝佳案例。<br>
+      <strong>TurtleBot + 机械臂</strong>：移动操作（mobile manipulation）是 TurtleBot 平台的自然延伸；本文的前端-中端-后端三段式规划架构，对低成本平台的规划器设计很有参考价值。<br>
+      作者团队（Fu Zhang，港大）是做自主无人机/移动机器人的知名组，其 FAST 系列规划器是业界标杆。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 前端：链式分解核基碰撞检查（chain-decomposed kernel-based collision check），保留机器人与载荷的真实几何，紧凑存储 + 位级快速查询；② 中端：把前端路径预处理为平滑可行轨迹，无碰撞时直接执行，绕过昂贵的后端优化；③ 后端：基于运动学耦合 SVSDF（KC-SVSDF）的轨迹优化，沿运动链传播避障梯度生成连贯全身逃逸方向——消融实验、SOTA 对比基准及差速移动机械臂真实实验共同验证，可稳定搬运大型非凸载荷通过狭窄通道与杂乱环境。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>移动机械臂越来越多地被用于在杂乱环境中运输大型非凸载荷，但现有规划器要么过度简化载荷几何，要么无法处理机械臂连杆之间的运动学耦合，导致可行空间丢失或优化停滞。本文提出一个面向搬运任意形状载荷的移动机械臂实时全身运动规划框架。前端采用链式分解的核基碰撞检查，保留机器人和载荷的真实几何，具有紧凑的存储和快速的位级查询。中端预处理阶段将前端路径转换为连续轨迹，强制执行平滑性与可行性；当轨迹无碰撞时直接执行，从而绕过昂贵的后端。当需要精化时，后端执行基于运动学耦合 SVSDF（KC-SVSDF）的轨迹优化，沿运动链传播避障梯度，产生连贯的全身逃逸方向。消融研究、与最先进基线的对比基准以及差速驱动移动机械臂上的真实实验表明，该框架能可靠地运输大型非凸载荷穿越狭窄通道和杂乱环境。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>场景是什么？</strong> 一台"会跑的机械臂"（底盘 + 机械臂 = 移动机械臂）要搬着一张不规则的桌子穿过堆满杂物的走廊。问题不只是"轮子往哪走"，还有"手臂怎么摆、桌子怎么倾斜才能过去"——底盘和手臂要<strong>一起想</strong>，这叫<strong>全身规划（whole-body planning）</strong>。<br><br>
+
+      <strong>为什么"任意形状载荷"很难？</strong> 很多规划器把载荷简化成球体或盒子来算碰撞。但搬长桌子时，把桌子当球算，会以为"转个角度就能过"，实际一转弯就卡墙——<strong>简化几何丢掉了可行空间</strong>。反过来，用真实几何做碰撞检查又很贵（每个位姿都要算几千个点碰没碰墙）。<br><br>
+
+      <strong>SDF 是什么？</strong> 符号距离场（Signed Distance Field）：给空间每个点存一个数——到最近障碍物的距离，负数表示在障碍物里面。像一张"危险程度地形图"。它的好处是：想躲开障碍物，直接沿 SDF 的梯度方向走就行，梯度会"推"着你绕开墙。本文的 SVSDF 把它用在机器人全身（底盘+手臂+载荷）上。<br><br>
+
+      <strong>运动学耦合是什么意思？</strong> 手臂一动，载荷的位置和朝向就变；载荷一变，碰撞风险就变。底盘和手臂不是独立的两件事，是一根链条上的环节。KC-SVSDF 的妙处在于：把避障的"推力"沿着运动链从载荷传到手臂、再传到底盘，让整条链朝同一个方向协调地"躲"——而不是各躲各的、互相打架。<br><br>
+
+      <strong>三段式架构（前端-中端-后端）</strong>：前端快速找一条粗略可行路径（检查碰撞，但不管轨迹好不好看）；中端把路径变成平滑轨迹，如果检查下来完全无碰撞，<strong>直接执行、跳过最贵的优化环节</strong>（大多数时候都这样，所以快）；只有碰到麻烦才启动后端做完整轨迹优化。像开车：路况好就导航直走，堵车才重新规划。<br><br>
+
+      <strong>和我们的关系？</strong> TurtleBot 加装机械臂做"取物-搬运"是常见升级路线。本文证明了：<strong>只要碰撞检查够快、SDF 梯度用对，全身规划可以实时跑</strong>——这对低成本移动操作平台是个好消息。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.07005v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<!-- #6 CrossTracer -->
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 3.98</span>
+  <div class="mini-title">CrossTracer: Cross-Embodiment Navigation via VLA Model Reasoning and Trace Residuals Adapting</div>
+  <div class="mini-cn">CrossTracer：VLA 模型推理 + 轨迹残差自适应的跨本体导航</div>
+  <div class="mini-oneliner">📌 分层框架：VL-Tracer 让预训练 VLA 模型从第一视角预测初始导航轨迹（统一为像素平面航点），CE-Adapter 按"机器人身份 + 视觉可通行性"预测残差修正；CE-RRT* 把全景分割转成机器人条件化的通行成本图，免人工标注生成训练数据。NaviTrace 基准总分 45.68，超 Gemini-2.5-Pro 28.1%，轮式/足式真机验证。</div>
+  <div class="mini-conn">🔗 "RRT"+"robot navigation"命中。与 <strong>E2Map</strong>（第 0001~0005 课）的语言导航和 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（RRT/路径规划）直接相关："语义先验 + 本体约束修正"的分层思路，对 TurtleBot 复用大模型导航能力很有启发。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.06688v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #7 AnyTrack -->
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 3.78</span>
+  <div class="mini-title">AnyTrack: Unifying Visual Object Tracking with Any Modalities</div>
+  <div class="mini-cn">AnyTrack：任意模态下的统一视觉目标跟踪</div>
+  <div class="mini-oneliner">📌 统一多模态跟踪框架：模态感知交互模块（MIM）跨模态动态交互 + 上下文理解模块（CUM）用全局-局部提示建立视觉特征与目标位置的对应；扩展基准加入灰度、语言描述和音频，完整/缺失模态设置下均达 SOTA。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>目标定位</strong>（视觉跟踪任务），与机器人空间定位关系较弱。但跟踪器是 TurtleBot 动态目标跟随的常用组件，与 <strong>OCD SLAM</strong>（第 0083~0088 课）的动态目标检测可以形成"检测-跟踪"管线；"缺失模态也能用"的鲁棒性对传感器偶尔失效的真实机器人有价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.06773v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #8 ControlRef -->
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 3.75</span>
+  <div class="mini-title">ControlRef: Efficient Layout-Guided Multi-Instance Generation via Anchored 4D-RoPE</div>
+  <div class="mini-cn">ControlRef：锚定 4D-RoPE 的高效布局引导多实例图像生成</div>
+  <div class="mini-oneliner">📌 面向多模态扩散 Transformer 的布局可控生成：UILC 注意力掩码严格解耦实例间语义交互，Anchored 4D-RoPE 把布局/参考 token 锚定到绝对几何中心并沿 z 轴堆叠，稀疏布局下推理延迟降 80%+、密集场景显存降 50%，视觉保真与定位精度 SOTA。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>图像空间定位</strong>（生成任务中的区域绑定），与机器人定位无关，相关性分数低。与 PaperLesson 课程无直接关联，仅作感知生成前沿动态了解。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.06878v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #9 RIS mmWave -->
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 3.74</span>
+  <div class="mini-title">RIS-Aided mmWave Localization Under Cross-Link Interference via Beam-Domain ML Fingerprinting</div>
+  <div class="mini-cn">跨链路干扰下基于波束域 ML 指纹的 RIS 辅助毫米波定位</div>
+  <div class="mini-oneliner">📌 6G 通信定位：把一组预定义 RIS 反射状态下的接收 SNR 映射到用户方位角与距离（无需 CSI），并扩展至跨链路干扰场景；28GHz、20×20 RIS 仿真中 KNN 达角度 MAE 0.37°、距离 4cm（干扰下 1.4°/7.6cm），并发现干扰对角度估计的损害远大于距离估计。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>无线定位</strong>（通信领域），与机器人空间定位关系较弱。但"指纹定位"思路与室内 WiFi/UWB 指纹导航类比性强，可为 TurtleBot 的室内无线辅助定位提供参考。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.07444v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #10 Vernata -->
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 3.71</span>
+  <div class="mini-title">Vernata: Self-Supervised Learning of LiDAR Point Representations</div>
+  <div class="mini-cn">Vernata：LiDAR 点云表示的自监督学习（ETH ASL Hutter 组）</div>
+  <div class="mini-oneliner">📌 基于 Sonata 架构的多模态多教师蒸馏框架：稀疏视图增强提升对不同点密度的鲁棒性、记忆库稳定资源受限训练、跨模态蒸馏用稠密高分辨率 2D 图像特征提供细粒度语义引导；TartanGround mIoU 54.7（+5.9）、Waymo 57.1（+7.3），缺失颜色/法线时仍有 49.4/50.2。</div>
+  <div class="mini-conn">🔗 "LiDAR"命中。自监督解决 3D 标注稀缺问题，与 <strong>视觉 SLAM 十四讲</strong>第 0074 课（点云地图表达）相关；ETH ASL 是追踪团队之一（config.yaml tracked_groups），其"少标注 + 强泛化"路线对低成本 LiDAR 平台部署有价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.06919v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ 导航系统开始"扔掉拐杖"：去先验化成为主线</h4>
+  <p>本周 #3 ULVN 丢掉时序和里程计先验、#6 CrossTracer 跨本体导航，两篇都在做同一件事：<strong>削弱导航系统的强假设</strong>。前者证明"无序照片集也能建图导航"（众包地图成为可能），后者证明"同一套 VLA 模型可以适配不同机器人"（轮式/足式通用）。对 TurtleBot 的意义在于：当导航能力不再绑定"特定传感器配置 + 特定建图流程"，系统的部署成本和迁移成本都会显著下降——这可能是"通用导航"从口号走向工程的第一步。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ 边缘端 3D 感知进入"工程化闭环"：合成数据 + 确定性算子</h4>
+  <p>#1 的树莓派 50 FPS 点云分类不是单纯刷指标，而是一套完整工作流：<strong>物理仿真生成传感器感知数据 → 确定性降采样压缩输入 → 轻量网络推理</strong>。合成数据解决"标注贵"，确定性算子解决"预处理贵"，两者叠加让嵌入式平台真正跑得动 3D 感知。加上 #10 Vernata 用自监督解决"标注稀缺"，本周传递的信号很明确：<strong>低成本平台的 3D 感知，瓶颈不再是算法精度，而是数据与算力的工程化</strong>。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 触觉进入定位链路：机器人开始"用手感认路"</h4>
+  <p>#2 TECDAR 用一颗微型 IMU 就实现了毫米级外部接触定位，还展示了纯触觉探索与建图。这提醒我们：定位的传感器模态正在从"看"（相机/LiDAR）扩展到"摸"（触觉）。对自主探索而言，视觉在烟尘、黑暗、遮挡环境下会失效，触觉是最后的可靠通道。低成本 IMU + EKF 的组合意味着这种能力不需要昂贵专用触觉皮肤——<strong>"触觉定位"可能比想象中更快进入普通机器人平台</strong>。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 移动操作的"全身意识"：规划从"点机器人"走向"真实几何"</h4>
+  <p>#5 KC-SVSDF 把"任意形状载荷"纳入实时全身规划，核心是把载荷真实几何和运动学耦合一起建模，而不是简化成球体盒子。这与上周 #9（无参考路径走廊）呼应：<strong>运动规划正在放弃"简化假设换速度"的老路，转而用更聪明的表示（链式碰撞检查、SDF 梯度传播）同时拿到真实性和实时性</strong>。移动机械臂（TurtleBot + 臂）是移动机器人的自然演进方向，这类"全身"规划器会是未来几周的常客。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 · 第 33 周</span>
+  <a href="https://arxiv.org/list/cs.RO/2026-08-10">📄 arXiv cs.RO</a>
+</div>
+
+<div style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:var(--text-sm);color:var(--ink-40);">
+  <p>🤖 生成时间：2026-08-10 · 数据来源：arXiv · 评分体系：相关性 50% · 时效性 20% · 热度 15% · 质量 15%</p>
+  <p style="margin-top:var(--space-1);">—— 顾清然</p>
+</div>
+
+</div>
+</body>
+</html>

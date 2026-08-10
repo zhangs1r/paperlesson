@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 32 周。本期亮点：SpikePEFT 首个脉冲点云模型参数高效微调框架、仅更新 5% 参数达 ModelNet40 92.4%（#1）、自监督点云编码器能否替代 8×A100 级多模态对齐的系统评测（#2）、农业叶片重建的滚动时域 NBV 规划器（#3）、SafeNexus 跨模态通用安全神经元（#4）、FOCUS 免训练零样本显著目标检测（#5）。本周主旋律是\"轻量高效\"：点云感知从省参数到省算力，免训练几何方法集体回归。贴近机器人本体的还有 X-NavDP 导航扩散策略 RL 后训练（真实硬核场景成功率 10%→65%）与无参考路径的同伦感知走廊生成。",
-      quickOpen: "start weekly-reports/weekly-2026-w32.html",
+      description: "第 33 周。本期亮点：合成 LiDAR 数据 + 确定性降采样，树莓派 5 上 50 FPS 点云分类 88.36%（#1）、TECDAR 用 6D IMU 触觉传感 + EKF 实现毫米级外部接触定位（#2）、ULVN 丢掉时序/里程计先验的无序地标视觉导航（#3）、GABL 几何感知支气管镜定位（#4）、KC-SVSDF 移动机械臂任意形状载荷全身运动规划（#5）。本周主旋律是\"去先验化 + 边缘落地\"：导航系统扔掉强假设拐杖，边缘端 3D 感知进入合成数据+确定性算子的工程化闭环。贴近机器人本体的还有 CrossTracer 跨本体 VLA 导航（#6）与 ETH ASL 的 Vernata 自监督 LiDAR 表示（#10）。",
+      quickOpen: "start weekly-reports/weekly-2026-w33.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {
