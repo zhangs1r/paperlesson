@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W34</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 34 周 · 2026.08.10 — 2026.08.17</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共检索 <strong>300 篇新论文</strong>，经四维评分筛选后，<strong>20 篇论文</strong>通过核心关键词门槛，取 Top 10 推荐。
+    本周的叙事主线是<strong>"并行加速 + 鲁棒感知"</strong>：#1 提出首个完全并行计算框架加速 LiDAR Bundle Adjustment，在保持建图精度的同时实现高达 10 倍的计算效率提升；#2 用不变性图神经网络处理稀疏雷达点云，在恶劣天气下实现鲁棒的 3D 目标检测；#5 则用"幻觉遮挡结构"的自监督方法提升 LiDAR 3D 检测——三篇都在从不同角度解决<strong>"如何让感知系统更高效、更鲁棒"</strong>的问题。<br><br>
+    #3 PILOT 是本周最"实用"的一篇：用特权模仿学习把计算密集的最优控制专家策略蒸馏到轻量学生策略中，UAV 运动规划计算开销降 80% 以上，且在真实室内外环境中零样本部署成功。#4 则把脉冲神经网络（SNN）带进事件相机特征检测，用语义引导的脉冲激活机制实现低功耗、高精度的视觉里程计前端。<br><br>
+    <strong>⚠ 说明：</strong>本周 "point cloud" 关键词命中 3 次，"LiDAR" 命中 3 次，"localization" 命中 4 次——但其中 PISA（开放词汇检测）、Source-Agnostic Image Translation（图像翻译）、LightTeaNet（茶叶病害检测）等属于 CV/农业任务里的"定位"，与机器人空间定位关系较弱，评分系统已如实反映在相关性分数中，请在阅读时留意区分。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">20</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">10</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">34</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">4.99</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">Accelerating Large-scale Bundle Adjustment for LiDAR Mapping via Parallel Computing</div>
+  <div class="cn-title">基于并行计算加速大规模 LiDAR 建图的 Bundle Adjustment</div>
+  <div class="authors">✍️ Yixi Cai, Rundong Li, Yuhan Xie, Qingwen Zhang, Patric Jensfelt, Fu Zhang</div>
+
+  <div class="keywords"><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">Bundle Adjustment</span><span class="tag tag-accent">并行计算</span><span class="tag tag-accent">点云建图</span><span class="tag tag-accent">GPU 加速</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">首个完全并行计算框架加速 LiDAR Bundle Adjustment：自适应异步数据加载 + 底层体素化平面特征提取 + 并行增量求解器，在保持建图精度的同时实现高达 10 倍的计算效率提升。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0064 课（Bundle Adjustment 求解与稀疏性）和第 0065 课（g2o/Ceres 实践 BA）是理解本文的核心基础：BA 正是 SLAM 后端优化的核心算法，本文把同样的优化问题从串行推向并行，让大规模 LiDAR 建图真正可行。<br>
+      <strong>OCD SLAM</strong>（第 0083~0088 课）和 <strong>DFusion-SLAM</strong>（第 0077~0082 课）都涉及位姿优化与后端精化，本文的并行 BA 思路可以为这类系统提供加速参考。<br>
+      <strong>TurtleBot 的实际意义</strong>：虽然 TurtleBot 平台本身算力有限，但 LiDAR 建图通常在工控机或云端完成后回传给机器人，本文的 10 倍加速让"实时全局一致建图"更接近现实。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出首个完全并行计算框架加速 LiDAR Bundle Adjustment，包含三个关键技术：自适应异步数据加载策略高效处理内存受限 GPU 上的大规模点云数据集；底层体素化方法提取平面特征实现完全并行化预处理；基于 majorization-minimization 公式的并行计算加速残差、Jacobian 和 Hessian 矩阵计算及并行增量求解器；② 提供时间复杂度的理论与实验分析；③ 在多个计算平台的大规模公开数据集上验证，实现高达 10 倍计算效率提升，同时保持与 SOTA 方法相当的建图精度。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>LiDAR Bundle Adjustment 广泛应用于建图中以构建全局一致的点云地图。本文提出首个完全并行计算框架来加速大规模建图中的 LiDAR Bundle Adjustment，包含三个关键技术。首先，设计了自适应异步数据加载策略，以在内存受限的 GPU 上高效处理大规模点云数据集。其次，提出了一种新颖的底层体素化方法用于提取平面特征，实现完全并行化的预处理。第三，基于 majorization-minimization 公式，通过并行计算加速优化中的计算密集型任务，包括残差、Jacobian 和 Hessian 矩阵的计算，以及并行增量求解器。为支持设计，提供了方法时间复杂度的理论和实验分析。在多个计算平台的大规模公开数据集上的广泛基准测试验证了方法的鲁棒性和适应性，在保持与 SOTA 方法相当的建图精度的同时，实现了高达 10 倍的计算效率提升。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让 LiDAR 建图的核心算法——Bundle Adjustment（BA）——在 GPU 上并行跑起来，速度提升 10 倍，精度不打折。<br><br>
+
+      <strong>Bundle Adjustment 是什么？</strong> 想象你用 LiDAR 扫描了一个房间，得到了几百帧点云。每帧点云之间有重叠区域，BA 的任务就是：<strong>同时优化所有帧的位姿和所有地图点的位置</strong>，让整体误差最小——就像把几百张拼图同时微调，让接缝处完美对齐。这是 SLAM 后端最核心的优化步骤。<br><br>
+
+      <strong>为什么需要并行？</strong> 传统 BA 是串行的：先算这一帧的误差，再算下一帧。当点云规模达到几百万个点时，串行计算要等很久。但 BA 里大部分计算其实是<strong>互相独立的</strong>——比如"帧 A 的残差"和"帧 B 的残差"互不干扰，完全可以同时算。这就是并行的切入点。<br><br>
+
+      <strong>三个关键技术：</strong><br>
+      ① <strong>自适应异步数据加载</strong>：GPU 内存有限，点云太大装不下。本文设计了"用多少加载多少"的策略，像流水线一样边算边加载，不浪费 GPU 等待时间；<br>
+      ② <strong>底层体素化</strong>：传统方法要先"排序"点云再提取特征，排序在 GPU 上很贵。本文用体素化（把空间划分成小格子，每个格子只保留一个特征点）替代排序，完全并行化；<br>
+      ③ <strong>并行增量求解器</strong>：BA 的核心是求解一个大型稀疏线性方程组。本文把残差、Jacobian 矩阵、Hessian 矩阵的计算全部并行化，最后用并行增量求解器一次性解出更新量。<br><br>
+
+      <strong>为什么值得关注？</strong> 对 LiDAR SLAM 系统而言，BA 是保证全局一致性的关键。以前因为太慢，很多系统只能用轻量后端（位姿图优化）。本文证明：<strong>只要并行做得好，大规模点云级 BA 可以实时跑</strong>——这为"高精度 + 大规模" LiDAR 建图打开了新窗口。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.14266v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.80</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">IRGNN: Efficient Invariant Radar Graph Neural Network for Radar Point Cloud Object Detection</div>
+  <div class="cn-title">IRGNN：高效不变性雷达图神经网络用于雷达点云目标检测</div>
+  <div class="authors">✍️ Xiao Guo, Wanke Xia, Lili Yang, Caicong Wu</div>
+
+  <div class="keywords"><span class="tag tag-accent">雷达点云</span><span class="tag tag-accent">图神经网络</span><span class="tag tag-accent">目标检测</span><span class="tag tag-accent">自动驾驶</span><span class="tag tag-accent">鲁棒感知</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">面向稀疏雷达点云的不变性图神经网络：平移/旋转不变特征建模 + 改进消息传递 + 虚拟节点全局上下文，在 RadarScenes 上超越现有方法，推理计算成本和内存使用显著降低。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0046~0047 课（特征点法与 ORB 特征）涉及"如何从传感器数据中提取稳定特征"的核心问题；第 0074 课（点云地图表达）讨论点云的组织与处理。本文的图神经网络处理思路是点云处理的前沿方向。<br>
+      <strong>与 LiDAR SLAM 的关系</strong>：雷达点云比 LiDAR 点云更稀疏、更无序，但不受恶劣天气影响。如果 LiDAR 在雨雪天失效，雷达可以作为备份感知模态——本文的高效检测器为这种"LiDAR + 雷达"融合方案提供了可行的感知组件。<br>
+      <strong>TurtleBot 的启示</strong>：虽然 TurtleBot 通常用 LiDAR，但理解"如何处理稀疏无序点云"的通用方法论（图表示、不变性设计）对任何点云感知任务都有价值。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 IRGNN：基于平移和旋转不变性特征设计的图神经网络，将稀疏雷达点云重建为图表示，实现对稀疏雷达测量的鲁棒建模；② 采用改进的消息传递神经网络（MPNN），结合残差连接和虚拟节点层，增强局部特征传播和全局上下文建模；③ 在 RadarScenes 数据集上超越现有雷达目标检测方法，同时显著降低推理时的计算成本和内存使用。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>感知是自动驾驶系统的基本组成部分。虽然基于 LiDAR 的方法在目标检测方面取得了显著进展，但其可靠性在恶劣天气条件下会下降。雷达点云由于对恶劣天气和低光照场景的鲁棒性，提供了一种可靠的替代方案。然而，雷达点云通常稀疏、无序且信息量少于 LiDAR 数据，使得直接应用现有的基于 LiDAR 的感知方法具有挑战性。为解决这些挑战，本文提出 IRGNN，一种用于雷达点云目标检测的不变性雷达图神经网络。IRGNN 首先使用平移和旋转不变性特征设计将雷达点云重建为图表示，实现对稀疏雷达测量的鲁棒建模。然后采用改进的消息传递神经网络（MPNN），结合残差连接和虚拟节点层，增强局部特征传播和全局上下文建模。最后，将任务特定头应用于学习到的图表示进行目标分类和边界框预测。在 RadarScenes 数据集上的实验结果表明，IRGNN 超越现有的基于雷达的目标检测方法并实现有竞争力的性能。此外，IRGNN 显著降低了推理时的计算成本和内存使用，证明了其在自动驾驶中高效基于雷达感知的有效性和实际潜力。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让雷达（不是 LiDAR）也能高效、准确地做 3D 目标检测——认出"前方有辆车、右边有个人"。<br><br>
+
+      <strong>雷达 vs LiDAR？</strong> LiDAR 用激光扫描，点云密集、精度高，但遇到雨雪雾就"瞎了"。雷达用电磁波，点云稀疏、精度低，但<strong>全天候都能用</strong>——下雨、下雪、黑夜都不影响。自动驾驶需要这种"不怕天气"的冗余感知。<br><br>
+
+      <strong>雷达点云的难点？</strong> LiDAR 一秒钟能打 10 万个点，雷达可能只有几百个点，而且<strong>完全无序</strong>（没有扫描顺序）、有大量噪声和"鬼点"。直接套用 LiDAR 的检测方法（比如 PointNet）效果很差。<br><br>
+
+      <strong>IRGNN 怎么解决？</strong> 用图神经网络（GNN）：<br>
+      ① <strong>建图</strong>：把每个雷达点当成图的"节点"，根据空间邻近关系连边，变成一张"关系图"——比直接处理无序点云更自然；<br>
+      ② <strong>不变性设计</strong>：用平移和旋转不变的特征（不管物体在图里哪个位置、朝哪个方向，特征都一样），避免模型"记位置"而不是"学特征"；<br>
+      ③ <strong>虚拟节点</strong>：加一个"超级节点"和所有其他节点相连，负责汇总全局信息——像开一个"全体大会"，让每个点都能"听到"其他所有点的意见。<br><br>
+
+      <strong>为什么值得关注？</strong> 雷达是 LiDAR 的天然互补：LiDAR 负责晴天高精度，雷达负责恶劣天气兜底。本文证明：<strong>只要图表示和不变性设计做好，稀疏雷达点云也能达到有竞争力的检测精度</strong>，而且推理更快、更省内存——这对自动驾驶的成本控制很有意义。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.14394v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.67</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">PILOT: Privileged Imitation Learning for End-to-End Motion Planning of Autonomous UAVs under Partial Observability</div>
+  <div class="cn-title">PILOT：部分可观测下自主 UAV 端到端运动规划的特权模仿学习</div>
+  <div class="authors">✍️ Qingrui Zhang, Feng Xue, Xiang Zhou, Chenghao Yu</div>
+
+  <div class="keywords"><span class="tag tag-accent">UAV</span><span class="tag tag-accent">运动规划</span><span class="tag tag-accent">模仿学习</span><span class="tag tag-accent">知识蒸馏</span><span class="tag tag-accent">部分可观测</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">特权模仿学习框架：把计算密集的最优控制专家策略蒸馏到轻量学生策略，时空感知融合模块缓解部分可观测性，UAV 运动规划计算开销降 80% 以上，室内外零样本部署成功。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0060~0062 课（运动规划与轨迹优化）是本文的直接对应板块：本文把"最优控制"（复杂规划器）的知识蒸馏到"轻量策略"（简单规划器）中，与 SLAM 里"复杂后端 + 轻量前端"的架构思路同源。<br>
+      <strong>E2Map</strong>（第 0001~0005 课）和 <strong>VLMaps</strong>（第 0006 课）都涉及"机器人如何在部分可观测环境中导航"——本文的"时空感知融合"（用历史观测弥补当前视野不足）是一种通用的解决方案。<br>
+      <strong>知识蒸馏思路</strong>：用"老师"（复杂模型）教"学生"（轻量模型），让轻量模型获得接近老师的性能——这在 TurtleBot 的边缘部署中非常实用，因为边缘设备算力有限，需要轻量但高性能的策略。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 PILOT：约束感知的特权模仿学习框架，将计算密集的最优控制专家策略蒸馏到轻量学生策略，通过双目标损失函数正则化安全性和动态要求；② 设计时空感知融合模块，使用时间卷积网络（TCN）整合历史深度图像和里程计，推断任务相关潜在上下文，增强超出瞬时视场的空间感知；③ 轨迹参数化层将网络输出映射到结构化轨迹，在训练中施加显式连续性、动态一致性和障碍物软惩罚——在四旋翼和固定翼仿真中，性能接近特权专家，计算开销降低 80% 以上，室内外零样本部署验证实用可行性。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>杂乱环境中的自主导航受部分可观测性和动态约束阻碍。本文提出 PILOT，一种约束感知的特权模仿学习框架，用于基于视觉的部分可观测 UAV 端到端运动规划。该框架将规划策略从计算密集的最优控制专家蒸馏到通过双目标损失函数正则化安全性和动态要求的学生策略。为缓解部分可观测性，开发了使用时间卷积网络（TCN）的时空感知融合模块，整合历史深度图像和里程计。该模块从历史观测中推断任务相关潜在上下文，增强超出瞬时视场的空间感知，而无需维护持久地图记忆。轨迹参数化层将网络输出映射到结构化轨迹，同时在训练中施加显式连续性、动态一致性和障碍物软惩罚，鼓励在无形式保证的情况下对未见观测满足约束。四旋翼和固定翼飞机的仿真表明，PILOT 实现了与特权专家相当的性能，同时将计算开销降低 80% 以上。成功的室内外零样本部署证实了规划器的实际可行性和跨域泛化能力。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让无人机（UAV）在复杂环境中学会"又快又安全"地飞——把一个"飞得很好但太慢"的专家策略，蒸馏成一个"飞得差不多快但轻量 10 倍"的学生策略。<br><br>
+
+      <strong>问题是什么？</strong> 无人机在杂乱环境（比如室内仓库、树林）中飞行，需要同时做到：① 到达目标点（任务完成）；② 不撞墙（安全）；③ 飞行平稳（动态约束）。传统的最优控制方法（比如 MPC）能规划出很好的轨迹，但<strong>计算太慢</strong>——在嵌入式飞控上根本跑不动。<br><br>
+
+      <strong>特权模仿学习是什么？</strong> 一种"老师教学生"的训练方法：<br>
+      ① <strong>老师（专家策略）</strong>：用 MPC 等复杂方法规划轨迹——性能好，但计算量巨大；<br>
+      ② <strong>学生（轻量策略）</strong>：用简单的神经网络，输入是当前观测，输出是下一步动作——计算快，但一开始飞得很差；<br>
+      ③ <strong>蒸馏</strong>：让学生"模仿"老师的轨迹，通过损失函数让学生的输出尽可能接近老师——最终学生学到"老师会怎么飞"，但自己只需要很轻的计算量。<br><br>
+
+      <strong>"特权"是什么意思？</strong> 老师在训练时有"特权信息"（比如完整地图、精确位姿），但学生部署时只有部分可观测的传感器输入。本文的关键创新是：<strong>用时空感知融合模块弥补学生的"视野不足"</strong>——把过去几帧的深度图和里程计拼起来，推断出"当前看不到但可能影响决策"的信息，就像人类飞行员会根据记忆预判盲区。<br><br>
+
+      <strong>为什么值得关注？</strong> 计算开销降 80% 意味着：原本需要高端 GPU 才能跑的规划器，现在在普通飞控板上就能跑。而且零样本部署（不针对特定环境微调）说明策略真正学会了"通用飞行能力"——这对 TurtleBot 的自主探索也有启发：<strong>轻量策略 + 历史融合 = 边缘端的鲁棒导航</strong>。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.14082v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.37</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">E-S2Feat: Semantic-Guided Spiking Local Feature Detection and Description for Event Cameras</div>
+  <div class="cn-title">E-S2Feat：语义引导的脉冲局部特征检测与描述（事件相机）</div>
+  <div class="authors">✍️ Yang Yi, Juntao Hua, Jinpu Zhang, Liangwei Fan, Hui Shen, Dewen Hu</div>
+
+  <div class="keywords"><span class="tag tag-accent">事件相机</span><span class="tag tag-accent">脉冲神经网络</span><span class="tag tag-accent">局部特征</span><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">视觉里程计</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">基于脉冲神经网络的事件相机局部特征检测与描述框架：模块特定脉冲激活机制保留细粒度结构线索 + 语义引导特征调制增强描述子判别性，在位姿估计上超越 SuperEvent，理论计算能效提升约 4.8 倍。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0046~0047 课（特征点法与 ORB 特征）是理解本文的直接基础：特征检测与描述是视觉 SLAM 前端的核心任务，本文把这一任务从传统相机扩展到事件相机。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）和 <strong>OCD SLAM</strong>（第 0083~0088 课）都涉及"如何在动态/恶劣环境中提取稳定特征"——事件相机的高时间分辨率（微秒级）天然适合快速运动和高动态范围场景，是传统相机的互补模态。<br>
+      <strong>脉冲神经网络（SNN）</strong>：一种模仿生物神经元的低功耗神经网络，只在"脉冲"时才计算——特别适合边缘设备的低功耗需求。对 TurtleBot 级别的平台，"用更少的电做更多的事"是永恒主题。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 E-S2Feat：基于脉冲神经网络（SNN）的事件相机局部特征检测与描述框架，联合从特征表示和选择两个角度优化局部特征学习；② 设计模块特定脉冲激活机制，在低比特、高能效推理下保留细粒度结构线索和判别信息，提升整体表示保真度；③ 语义引导特征调制机制利用语义先验精化关键点响应分布，增强局部描述子判别性——在 ECD 和 EDS 数据集上显著超越 SuperEvent 等基线方法，TUM-VIE 视觉惯性里程计实验验证完整 SLAM 系统中的有效性，理论计算能效提升约 4.8 倍。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>受益于高时间分辨率和高动态范围，基于事件的局部特征方法引起了越来越多的关注。然而，事件稀疏、噪声和有限纹理仍然阻碍着鲁棒的局部特征学习。在无人机等资源受限平台上部署此类方法还需要平衡精度和能效。为解决这些挑战，本文提出 E-S2Feat，一种用于基于事件的局部特征检测与描述的脉冲神经网络框架。该框架从特征表示和选择两个角度联合优化局部特征学习。首先，模块特定脉冲激活机制在低比特、高能效推理下保留细粒度结构线索和判别信息，从而提升整体表示保真度。此外，语义引导特征调制机制利用语义先验精化关键点响应分布并增强局部描述子判别性，从而引导模型提取具有更强几何稳定性和更强判别能力的局部特征。在 ECD 和 EDS 数据集上的实验表明，所提方法在位姿估计精度上显著超越 SuperEvent 等基线方法。同时，它在实现与人工神经网络对应物相当精度的同时，理论计算能效提升约 4.8 倍。TUM-VIE 数据集上的视觉惯性里程计实验进一步验证了所提方法在完整 SLAM 系统中的有效性和实际应用潜力。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让"事件相机"这种新型传感器也能做视觉 SLAM 前端的特征检测与描述——而且用的是低功耗的脉冲神经网络。<br><br>
+
+      <strong>事件相机是什么？</strong> 普通相机每秒拍 30 帧照片，事件相机不"拍照"，而是<strong>只记录"变化"</strong>——当某个像素的亮度发生变化时，它输出一个"事件"（位置 + 时间 + 变化方向）。好处是：① 时间分辨率微秒级（比普通相机快 1000 倍）；② 动态范围极高（同时看清极亮和极暗区域）；③ 数据量小（只记录变化，静态背景不输出）。坏处是：输出的是一串"事件流"，不是图像，传统视觉算法不能直接用。<br><br>
+
+      <strong>脉冲神经网络（SNN）是什么？</strong> 一种模仿大脑的神经网络：神经元平时"沉默"，只有输入足够强时才发一个"脉冲"（spike）。好处是：<strong>只在需要时才计算，极度省电</strong>。传统神经网络每个时间步都要算一遍，SNN 大部分时间"不工作"——特别适合电池供电的边缘设备。<br><br>
+
+      <strong>两个关键技术：</strong><br>
+      ① <strong>模块特定脉冲激活</strong>：不同模块（检测器、描述子）用不同的脉冲策略，保留"细粒度结构线索"——不是一刀切的二值化，而是根据任务需求灵活调整脉冲阈值；<br>
+      ② <strong>语义引导</strong>：用语义信息（"这是物体边缘还是平坦地面"）指导特征检测——让模型知道"该在哪里找特征"，而不是盲目搜索。<br><br>
+
+      <strong>为什么值得关注？</strong> 事件相机 + SNN 是"低功耗视觉感知"的黄金组合：事件相机输出稀疏数据，SNN 处理稀疏数据天生高效。本文证明：<strong>这对组合可以在 SLAM 前端达到传统相机+CNN 的精度，但能耗低 4.8 倍</strong>——对 TurtleBot 级别的电池供电平台，这意味着更长的续航和更低的发热。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.14027v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.19</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">GhostPoint: Self-Supervised Representation Learning by Hallucinating Occluded LiDAR Structure</div>
+  <div class="cn-title">GhostPoint：通过幻觉遮挡 LiDAR 结构的自监督表示学习</div>
+  <div class="authors">✍️ Mohamed Abdelsamad, Bin Yang, Michael Ulrich, Miao Zhang, Yakov Miron, Alexandru Paul Condurache, Abhinav Valada</div>
+
+  <div class="keywords"><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">自监督学习</span><span class="tag tag-accent">3D 目标检测</span><span class="tag tag-accent">点云表示</span><span class="tag tag-accent">遮挡推理</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">自监督 LiDAR 表示学习框架：通过实例体素膨胀"幻觉"遮挡区域的潜在特征，让模型学会推理超出可见表面的 3D 结构——在 nuScenes 和 Waymo 上实现 SOTA，稀疏扫描和有限标注下尤为显著。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0074 课（点云地图表达）讨论点云数据的组织与利用；第 0072~0073 课（稠密建图）涉及"如何从稀疏观测恢复完整结构"——本文的"幻觉遮挡结构"正是这一思想的自监督版本。<br>
+      <strong>OCD SLAM</strong>（第 0083~0088 课）中"遮挡"是动态 SLAM 的核心挑战之一：被遮挡的特征点会导致位姿估计误差。本文让模型学会"推理遮挡区域的结构"，与 OCD SLAM 处理遮挡问题的思路形成互补。<br>
+      <strong>ETH ASL</strong>（追踪团队之一）是做 LiDAR 自监督学习的知名组，本文延续其"少标注 + 强泛化"路线——对低成本 LiDAR 平台（如 RPLIDAR）的部署有价值。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 GhostPoint：自监督学习框架，通过实例体素膨胀（instance voxel dilation）"幻觉"局部邻域的潜在特征，让模型学习推理超出可见表面的 3D 结构；② 双层监督方案：可见体素匹配教师编码器目标，遮挡体素匹配教师预测器的幻觉——鼓励表示显式建模超出返回值的结构；③ 在 nuScenes 和 Waymo 上实现 SOTA，一致提升下游 3D 检测，尤其在稀疏扫描和有限标注下效果显著。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>从 LiDAR 点云进行 3D 目标检测是自动驾驶的核心问题。自监督学习（SSL）的最新进展实现了可扩展的预训练，并能很好地迁移到语义和全景分割等逐点任务，但迁移到 3D 检测仍然较弱。作者分析了最近的 SSL 方法，发现大多数目标仅在来自可见表面的测量 LiDAR 返回上定义，而遮挡和未观测区域不受约束。这种可见表面偏差对于逐点预测可能足够，但 3D 检测需要对缺失结构的鲁棒性。为解决这一差距，作者提出 GhostPoint，一个通过在发现的实例周围局部邻域中幻觉潜在特征的 SSL 框架，通过新颖的实例体素膨胀生成。在 GhostPoint 中，编码器处理观测返回，额外的预测器从观测上下文推断邻域表示。除了标准编码器级监督外，还引入了对生成邻域中采样体素的预测器级监督方案。具体而言，观测（可见/遮挡）体素匹配教师编码器目标，而未观测体素匹配教师预测器幻觉。这种设计鼓励学习到的表示显式建模超出观测返回的结构。在 nuScenes 和 Waymo 上的广泛评估表明，所提方法实现了 SOTA 性能，一致提升下游 3D 检测，尤其在稀疏扫描和有限标注下。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让 LiDAR 3D 目标检测模型学会"脑补"被遮挡的物体结构——即使只看到半个车，也能推理出完整形状。<br><br>
+
+      <strong>问题是什么？</strong> LiDAR 扫描一辆车，只能扫到面向激光的那一面（比如车头），背面完全看不到——这就是<strong>遮挡</strong>。传统 3D 检测模型只在"能看到的表面"上训练，遇到遮挡就"懵了"：它不知道被遮挡的部分长什么样，所以检测框会偏、会漏。<br><br>
+
+      <strong>GhostPoint 怎么解决？</strong> "幻觉"（hallucinate）——不是瞎猜，而是<strong>根据已知结构推理未知区域</strong>：<br>
+      ① <strong>实例体素膨胀</strong>：找到一个物体的可见部分后，把它"膨胀"成一个更大的体素区域——这个区域包含了"理论上应该存在但被遮挡"的部分；<br>
+      ② <strong>双层监督</strong>：对可见部分，用"教师编码器"的真实特征监督；对遮挡部分，用"教师预测器"的幻觉特征监督——模型被迫学习"推理被遮挡的结构"；<br>
+      ③ <strong>自监督</strong>：不需要人工标注 3D 框，模型自己从数据中学习。<br><br>
+
+      <strong>为什么值得关注？</strong> 3D 标注极其昂贵（标一帧 nuScenes 的 3D 框要几十分钟），自监督方法可以大幅降低数据成本。更重要的是：<strong>"推理遮挡结构"是人类视觉的核心能力</strong>——你看到半张脸就能脑补出完整人脸，GhostPoint 让 LiDAR 检测器也获得了这种能力。对 TurtleBot 的 LiDAR 感知（尤其是室内狭窄空间，遮挡无处不在），这种"补全思维"很有价值。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.14428v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<!-- #6 PISA -->
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 3.90</span>
+  <div class="mini-title">PISA: A Pseudo-Individual Source-Domain Feature Adaptation Framework for Test-Time Open-Vocabulary Object Detection</div>
+  <div class="mini-cn">PISA：伪个体源域特征自适应的测试时开放词汇目标检测</div>
+  <div class="mini-oneliner">📌 无源域的测试时自适应：利用 CLIP 视觉特征的腐败不变性提取鲁棒特征，通过特征对齐模块将其转化为接近原始源域的伪个体源域特征，在 COCO-C 上 AP@50 超越现有方法 3.92%。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>目标定位</strong>（检测任务中的定位精度），与机器人空间定位关系较弱。与 PaperLesson 课程无直接关联，仅作开放词汇视觉检测前沿动态了解。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.14142v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #7 Expected Free Energy -->
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 3.87</span>
+  <div class="mini-title">Expected Free Energy-based Informative Path Planning for Robotic Mars Exploration</div>
+  <div class="mini-cn">基于期望自由能的机器人火星探测信息路径规划</div>
+  <div class="mini-oneliner">📌 用主动推理中的期望自由能（EFE）统一"信息收集"与"价值搜索"两个目标，在硬路径长度约束下规划连续轨迹，同时构建准确信息地图并定位高价值区域——超越信息论基线。</div>
+  <div class="mini-conn">🔗 "path planning"+"autonomous robot"命中。与 <strong>E2Map</strong>（第 0001~0005 课）的自主探索和 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（路径规划）直接相关；EFE 的"统一信息收集与价值搜索"思路对 TurtleBot 的未知环境探索策略有启发——用单一目标函数替代多目标调参。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.14466v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #8 Source-Agnostic Image Translation -->
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 3.81</span>
+  <div class="mini-title">Source-Agnostic Image Translation Based on Latent Aware Adaptive Masking</div>
+  <div class="mini-cn">基于潜在感知自适应掩码的源无关图像翻译</div>
+  <div class="mini-oneliner">📌 无需源域训练的图像翻译：在扩散模型逆向过程中动态精化二值掩码，用时间依赖的统计阈值隔离域特定区域——在 FID/KID 真实性和 SSIM/LPIPS 保真度上超越 SOTA。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>图像空间定位</strong>（掩码的区域隔离），与机器人定位无关，相关性分数低。与 PaperLesson 课程无直接关联。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.14046v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #9 Rethinking Automated Program Repair -->
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 3.68</span>
+  <div class="mini-title">Rethinking Automated Program Repair: The Impact of Bug Complexity, Fault Localization, and LLM Cost-efficiency</div>
+  <div class="mini-cn">重思自动程序修复：Bug 复杂度、故障定位与 LLM 成本效率的影响</div>
+  <div class="mini-oneliner">📌 LLM 自动修复的系统性评测：50% 以上中等复杂度 bug 可被低成本 LLM 修复；不精确的故障定位会放大修复方法间的性能差距；高成本 LLM 和强推理设置并不总能带来更好的成本效率。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>故障定位</strong>（软件工程术语），与机器人定位无关。与 PaperLesson 课程无直接关联，仅作 LLM 工程化应用前沿动态了解。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.14065v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #10 LightTeaNet -->
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 3.64</span>
+  <div class="mini-title">LightTeaNet: A Weakly Supervised Lightweight CNN for Multi-Label Tea Leaf Disease Detection and Localization</div>
+  <div class="mini-cn">LightTeaNet：弱监督轻量 CNN 用于多标签茶叶病害检测与定位</div>
+  <div class="mini-oneliner">📌 面向农业的轻量弱监督检测：从图像级标签学习多标签分类 + CAM 自动定位病害区域，深度可分离卷积 + 通道注意力实现参数高效，Precision 0.96、F1 0.92，无需边界框标注。</div>
+  <div class="mini-conn">🔗 "localization"命中为<strong>病害区域定位</strong>（农业视觉任务），与机器人定位无关。与 PaperLesson 课程无直接关联，仅作轻量视觉模型在边缘设备应用的案例参考。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.14178v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ LiDAR 建图进入"并行时代"：BA 从串行瓶颈走向 GPU 加速</h4>
+  <p>#1 的完全并行 BA 框架不是简单的"把代码改成 GPU 版"，而是在数据加载、特征提取、优化求解三个环节全面并行化——10 倍加速 + 精度不损。这传递的信号很明确：<strong>大规模 LiDAR 建图的瓶颈不再是算法本身，而是工程实现</strong>。对 SLAM 社区而言，这意味着"全局一致的点云建图"从理论可行走向工程可行，为高精度自动驾驶地图和大规模机器人部署扫清了关键障碍。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ 雷达感知的"图表示"范式：从稀疏无序到结构化建模</h4>
+  <p>#2 IRGNN 用图神经网络处理稀疏雷达点云，核心洞察是：<strong>点云处理的下一步不是"更密的点"，而是"更好的表示"</strong>。雷达点云天然稀疏，硬塞进体素或点集表示会丢失结构信息；图表示把点之间的关系显式建模，反而能从稀疏中提取更多信息。加上不变性设计（平移/旋转不敏感），模型的泛化能力大幅提升。这种"稀疏数据 + 图表示 + 不变性"的组合拳，可能成为未来雷达/稀疏 LiDAR 感知的主流范式。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 知识蒸馏进入运动规划：计算密集策略的"轻量化落地"</h4>
+  <p>#3 PILOT 把"最优控制专家"蒸馏到"轻量学生策略"，计算开销降 80%+。这与上周 #1 的"合成数据+确定性算子"思路一脉相承：<strong>复杂能力的落地路径不是"等硬件追上来"，而是"把知识压缩到轻量模型里"</strong>。对 UAV 和 TurtleBot 这类边缘平台，"专家蒸馏"可能是最实用的策略——不需要自己从头训练，借用云端/工控机上训练好的专家策略，蒸馏后部署到边缘设备。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ 自监督 + 幻觉推理：让模型学会"脑补"缺失信息</h4>
+  <p>#5 GhostPoint 让 LiDAR 检测器"幻觉"遮挡区域的结构，#4 E-S2Feat 用语义引导增强事件相机特征的判别性。两篇都在做同一件事：<strong>让模型不仅"看到什么学什么"，还"推理没看到的部分"</strong>。这种"补全思维"对机器人感知至关重要——真实环境中遮挡、缺失、模糊无处不在，能"脑补"的模型才真正鲁棒。自监督 + 幻觉推理的组合，可能是下一个重要的感知范式。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 · 第 34 周</span>
+  <a href="https://arxiv.org/list/cs.RO/2026-08-17">📄 arXiv cs.RO</a>
+</div>
+
+<div style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:var(--text-sm);color:var(--ink-40);">
+  <p>🤖 生成时间：2026-08-17 · 数据来源：arXiv · 评分体系：相关性 50% · 时效性 20% · 热度 15% · 质量 15%</p>
+  <p style="margin-top:var(--space-1);">—— 顾清然</p>
+</div>
+
+</div>
+</body>
+</html>

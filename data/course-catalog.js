@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 33 周。本期亮点：合成 LiDAR 数据 + 确定性降采样，树莓派 5 上 50 FPS 点云分类 88.36%（#1）、TECDAR 用 6D IMU 触觉传感 + EKF 实现毫米级外部接触定位（#2）、ULVN 丢掉时序/里程计先验的无序地标视觉导航（#3）、GABL 几何感知支气管镜定位（#4）、KC-SVSDF 移动机械臂任意形状载荷全身运动规划（#5）。本周主旋律是\"去先验化 + 边缘落地\"：导航系统扔掉强假设拐杖，边缘端 3D 感知进入合成数据+确定性算子的工程化闭环。贴近机器人本体的还有 CrossTracer 跨本体 VLA 导航（#6）与 ETH ASL 的 Vernata 自监督 LiDAR 表示（#10）。",
-      quickOpen: "start weekly-reports/weekly-2026-w33.html",
+      description: "第 34 周。本期亮点：完全并行 LiDAR Bundle Adjustment 框架实现 10 倍加速（#1）、IRGNN 不变性图神经网络处理稀疏雷达点云目标检测（#2）、PILOT 特权模仿学习让 UAV 运动规划计算开销降 80%+（#3）、E-S2Feat 脉冲神经网络事件相机特征检测能效提升 4.8 倍（#4）、GhostPoint 自监督幻觉遮挡 LiDAR 结构实现 SOTA 3D 检测（#5）。本周主旋律是\"并行加速 + 鲁棒感知\"：LiDAR 建图进入 GPU 并行时代，雷达感知走向图表示范式，知识蒸馏让计算密集策略轻量化落地，自监督+幻觉推理让模型学会脑补缺失信息。",
+      quickOpen: "start weekly-reports/weekly-2026-w34.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {
