@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaperLesson · 移动机器人周报 2026-W36</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.7; }
+  .report-container { max-width: 820px; margin: 0 auto; padding: var(--space-6); }
+  .report-header { text-align: center; margin-bottom: var(--space-8); padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+  .report-header h1 { font-family: var(--font-serif); font-size: var(--text-3xl); margin-bottom: var(--space-2); }
+  .report-header h1 span { color: var(--accent); }
+  .report-header .subtitle { color: var(--ink-60); font-size: var(--text-sm); }
+  .report-header .meta { color: var(--ink-40); font-size: var(--text-xs); margin-top: var(--space-3); }
+
+  .intro-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+  .intro-box h2 { margin-top: 0; font-family: var(--font-serif); font-size: var(--text-xl); color: var(--accent-deep); }
+  .intro-box p { color: var(--ink-60); font-size: var(--text-sm); }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat-card { flex: 1; min-width: 140px; background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; }
+  .stat-card .num { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 700; color: var(--accent-deep); display: block; }
+  .stat-card .label { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .paper-card { background: var(--paper-light); border-left: 4px solid var(--accent-light); border-radius: var(--radius-md); padding: var(--space-5); margin-bottom: var(--space-5); }
+  .paper-card.top1 { border-left-color: var(--accent); background: #faf5ef; }
+  .paper-card .paper-score { display: inline-block; background: var(--accent-dim); color: var(--accent-deep); padding: .1em .6em; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-xs); margin-bottom: var(--space-2); }
+  .paper-card .paper-rank { font-family: var(--font-serif); font-size: var(--text-base); color: var(--accent-deep); font-weight: 700; }
+  .paper-card .en-title { font-family: var(--font-serif); font-size: var(--text-base); font-weight: 600; color: var(--ink); margin: var(--space-1) 0; line-height: 1.4; }
+  .paper-card .cn-title { font-size: var(--text-sm); color: var(--accent-deep); margin: var(--space-1) 0 var(--space-2); font-weight: 500; }
+  .paper-card .authors { font-size: var(--text-xs); color: var(--ink-40); margin-bottom: var(--space-3); }
+  .paper-card .section { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); }
+  .paper-card .section-label { font-size: var(--text-xs); font-weight: 600; display: block; margin-bottom: var(--space-1); }
+  .paper-card .one-liner { background: rgba(204, 120, 92, 0.06); border-left: 3px solid var(--accent); }
+  .paper-card .one-liner .section-label { color: var(--accent-deep); }
+  .paper-card .connection-box { background: rgba(90, 158, 111, 0.08); border-left: 3px solid var(--success); }
+  .paper-card .connection-box .section-label { color: var(--success); }
+  .paper-card .contribution { background: rgba(66, 133, 244, 0.06); border-left: 3px solid #1a5fb4; }
+  .paper-card .contribution .section-label { color: #1a5fb4; }
+  .paper-card .abstract-box { background: var(--paper); border: 1px solid var(--border); }
+  .paper-card .abstract-box .section-label { color: var(--ink-60); }
+  .paper-card .abstract-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .explain-box { background: rgba(204, 120, 92, 0.04); border: 1px dashed var(--accent-light); }
+  .paper-card .explain-box .section-label { color: var(--accent-deep); }
+  .paper-card .explain-box p { font-size: var(--text-xs); color: var(--ink-60); line-height: 1.8; margin: 0; }
+  .paper-card .keywords { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+  .paper-card .keywords .tag { font-size: .65rem; padding: .1em .5em; }
+  .paper-card .links { margin-top: var(--space-2); font-size: var(--text-xs); }
+  .paper-card .links a { color: var(--accent-deep); }
+
+  .trend-box { background: var(--paper-light); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-4); }
+  .trend-box h4 { font-family: var(--font-serif); font-size: var(--text-base); margin: 0 0 var(--space-2); color: var(--accent-deep); }
+  .trend-box p { font-size: var(--text-sm); color: var(--ink-60); margin: 0; }
+
+  .mini-paper { padding: var(--space-3); margin-bottom: var(--space-3); background: var(--paper-light); border-left: 3px solid var(--border-light); border-radius: var(--radius-md); }
+  .mini-paper .mini-rank { font-family: var(--font-serif); color: var(--accent-deep); font-weight: 700; font-size: var(--text-sm); }
+  .mini-paper .mini-score { color: var(--ink-40); font-size: var(--text-xs); }
+  .mini-paper .mini-title { font-weight: 600; font-size: var(--text-sm); margin: var(--space-1) 0; }
+  .mini-paper .mini-cn { font-size: var(--text-xs); color: var(--accent-deep); }
+  .mini-paper .mini-oneliner { font-size: var(--text-xs); color: var(--ink-60); margin: var(--space-1) 0; }
+  .mini-paper .mini-conn { font-size: var(--text-xs); color: var(--ink-40); }
+
+  .nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--text-sm); }
+  .nav-footer a { color: var(--accent-deep); }
+</style>
+</head>
+<body>
+<div class="report-container">
+
+<div class="report-header">
+  <h1>📡 <span>PaperLesson</span> · 移动机器人周报</h1>
+  <div class="subtitle">第 36 周 · 2026.08.24 — 2026.08.31</div>
+  <div class="meta">基于 arXiv 论文检索 · 移动机器人 / SLAM / 导航 · 署名：顾清然</div>
+</div>
+
+<div class="intro-box">
+  <h2>📖 本周导览</h2>
+  <p>
+    本周从 arXiv cs.RO / cs.CV / cs.AI / cs.LG / cs.SY 共检索 <strong>300 篇新论文</strong>，经四维评分筛选后，<strong>22 篇论文</strong>通过核心关键词门槛，取 Top 10 推荐。
+    本周的叙事主线是<strong>"野外长期部署 + 跨模态鲁棒性"</strong>：#1 是一份沉甸甸的实地报告——移动机器人在亚北极森林部署一整年、跑完 64 km 数据，用九种里程计/定位/建图方法系统揭示<strong>季节变化是 SOTA SLAM 最大的敌人</strong>：复杂算法相比简单本体感受基线精度增益有限、脆弱性却显著上升，视觉 SLAM 被季节变化"伤"得最重，跨季节定位只有 LiDAR 扛得住。<br><br>
+    #2 则换了个角度谈鲁棒性：多机器人气体源定位里，每个机器人的传感器都"没标定、响应不一致"，作者用对缩放和非线性<strong>不变的"秩特征"</strong>绕过标定环节，把局部信念用 product of experts 融合成全局一致估计——对低成本异构传感器集群非常友好。#3、#4 都踩在点云上：#3 把点云渲染结果直接注入扩散模型的初始噪声流形做视频重拍，相机控制误差最高降 32%；#4 用"上一生长阶段补全当前阶段"的时间点云补全重建作物 3D 结构，顺便把株高、冠幅、凸包体积这些表型性状也提了出来。<br><br>
+    <strong>⚠ 说明：</strong>本周 "localization" 关键词命中 6 次（居首），但其中 FUSED（AI 图像修复取证）、LUCID（云机器人 QoS）等属于图像空间/系统层面的"定位"，与机器人空间定位关系较弱，评分系统已如实反映在相关性分数中；"point cloud" 命中 3 次，其中两篇偏 CV（视频重拍、作物重建），阅读时请留意区分。
+  </p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><span class="num">300</span><span class="label">检索论文</span></div>
+  <div class="stat-card"><span class="num">22</span><span class="label">评分通过</span></div>
+  <div class="stat-card"><span class="num">10</span><span class="label">推荐论文</span></div>
+  <div class="stat-card"><span class="num">36</span><span class="label">周数</span></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin-bottom:var(--space-4);">🏆 本周推荐 Top 5</h2>
+
+<!-- ═══════════ Paper 1 ═══════════ -->
+<div class="paper-card top1">
+  <span class="paper-score">6.58</span> <span class="paper-rank">#1</span>
+
+  <div class="en-title">One year in a forest: Analyzing the challenges of autonomous navigation in subarctic environments</div>
+  <div class="cn-title">在森林里待一整年：亚北极环境下自主导航挑战的系统分析</div>
+  <div class="authors">✍️ Matěj Boxan, Nicolas Lauzon, Veronica Vannini, Mathis Turgeon-Roy, François Pomerleau</div>
+
+  <div class="keywords"><span class="tag tag-accent">SLAM</span><span class="tag tag-accent">跨季节评测</span><span class="tag tag-accent">LiDAR</span><span class="tag tag-accent">长期自主</span><span class="tag tag-accent">Teach &amp; Repeat</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">亚北极森林一整年、64 km 数据的移动机器人实地报告：九种里程计/定位/建图方法跨季节评测，发现季节变化显著打击 SOTA 方法——复杂 SLAM 精度增益有限却更脆弱，视觉 SLAM 受伤最重，跨季节定位只有 LiDAR 扛得住。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0015 课（SLAM 系统框架与核心模块）帮你把"里程计 → 定位 → 建图 → 回环"的模块骨架立起来，本文正是用一整年的野外数据给这套骨架做"压力测试"；第 0072~0074 课（稠密建图与点云地图）对应文中 LiDAR 建图与跨季节先验地图定位实验。<br>
+      <strong>DFusion-SLAM</strong>（第 0077~0082 课）和 <strong>OCD SLAM</strong>（第 0083~0088 课）都在解决"环境变化（动态物体）如何伤害视觉 SLAM"——本文给出一个更极端的答案：季节变化下视觉特征大规模失效，光靠动态过滤救不回来，需要重新审视传感器选型与系统复杂度。<br>
+      <strong>TurtleBot 的启示</strong>：文中"复杂 SLAM 相对简单本体感受基线增益有限、脆弱性却更高"的结论，对低成本平台的方案选型很有参考价值——有时候"够用且稳"的轻量方案，比"理论上更强但一遇环境变化就崩"的复杂方案更适合长期部署。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 首次提供亚北极北方森林中为期一整年的移动机器人部署实地报告，用 64 km 数据系统性评测九种里程计/定位/建图方法在四季变化下的表现；② 实验揭示环境变化显著损害 SOTA 技术性能，自相似场景（如密林）和高雪堆条件下系统脆弱性明显上升；③ 通过将位置漂移与特征及置信权重分布相关联，证明视觉 SLAM 方法受季节变化影响最严重；④ 跨季节先验地图定位实验显示 LiDAR 方法可成功跨季节定位，而雷达与视觉方法即使在同季节内也常因匹配特征过少而失败；⑤ 给出含雷达与 LiDAR 两条流水线的多季节 Teach &amp; Repeat（T&amp;R）评估及实战经验教训。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>亚北极地区有望在林业、采矿和环境监测等应用中增加自主机器人的部署。在这些条件下，由于茂密的树冠和大气衰减，自主系统对 GNSS 或云计算的依赖是岌岌可危的，必须依赖机载感知与数据处理。然而，已确立的外部感知模态（包括相机、激光雷达和雷达）通常在结构化的城市环境或缺乏显著季节变化的环境中评估。为解决这一问题，本文提供了一份移动机器人在亚北极北方森林中部署一年的实地报告。我们使用九种里程计、定位和建图方法评估了 64 km 的数据，并评估了它们在季节变化下的性能。实验表明，环境变化显著妨碍了 SOTA 技术的性能，在面对以自相似场景或高雪堆为特征的条件时，这些技术表现出更高的脆弱性。此外，复杂的同步定位与建图（SLAM）算法相比本体感受基线仅提供有限的精度增益，却显著增加了系统脆弱性。进一步地，通过将位置漂移与特征和置信权重分布相关联，我们证明基于视觉的 SLAM 方法尤其受季节变化影响。我们还研究了在先验地图中进行跨季节定位的任务：虽然基于 LiDAR 的方法成功完成了季节间的定位运行，但雷达和视觉方法即使在同季节内也容易因运行之间匹配特征过少而失败。最后，我们详细介绍了这一年试验中的挑战和经验教训，包括使用基于雷达和 LiDAR 的流水线进行的多季节"教与重复"（T&amp;R）评估。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 把一台移动机器人扔进加拿大北方的森林里，让它跑了一整年（春夏秋冬都跑），然后系统地看看：<strong>季节一变，各种 SLAM/定位算法到底还靠不靠谱？</strong><br><br>
+
+      <strong>为什么选森林？</strong> 森林是机器人自主导航的"地狱模式"：树冠遮住 GPS 信号（GNSS 失效）、场景长得都差不多（自相似，特征难匹配）、冬天积雪堆成墙（LiDAR 扫描视角被挡住）、春天树叶一变整片环境"换脸"。相比之下，城市里那些评测基准（有清晰的建筑、路标、固定场景）简直是"温室"——测不出算法的真实水平。<br><br>
+
+      <strong>SLAM 是什么？</strong> 同步定位与建图：机器人一边走路一边画地图，同时用地图确定自己在哪里。如果环境"变脸"了（夏天绿叶 vs 冬天雪地），之前画的地图就"对不上号"了，定位就会漂移甚至失败。<br><br>
+
+      <strong>几个反直觉的发现：</strong><br>
+      ① <strong>复杂的 SLAM 不一定更好</strong>：复杂的视觉/激光 SLAM 系统相比"只用轮子编码器+惯性测量单元"的简单基线（proprioceptive baseline，纯靠自身运动感觉推算位置），精度只高了一点点，但脆弱性高了很多——环境一变就崩。就像"全副武装的探险家"在森林里未必比"只带指南针的老猎人"走得稳；<br>
+      ② <strong>视觉 SLAM 最怕季节</strong>：夏天拍的树叶特征，冬天全没了；雪天白茫茫一片，特征点少得可怜。文中把位置漂移和"特征数量+置信度"联系起来看，证实视觉方法被季节"伤"得最重；<br>
+      ③ <strong>跨季节定位只有 LiDAR 扛得住</strong>：拿"春天建的地图"去"冬天"里定位，激光雷达还能找到自己，相机和雷达基本失败——哪怕在同一季节内，雷达和视觉也经常因为可匹配特征太少而失败。<br><br>
+
+      <strong>Teach &amp; Repeat（教与重复）是什么？</strong> 一种很务实的自主导航策略：先由人（或第一次探索）带着机器人走一遍并记录轨迹和沿途感知（"教"），之后机器人沿着这条轨迹重复走（"重复"），每次走都对照沿途感知修正自己。它的好处是不需要全局地图，只要"记得这条路长什么样"。本文用雷达和 LiDAR 两条流水线做了跨季节的 T&amp;R 评测。<br><br>
+
+      <strong>为什么值得关注？</strong> 这篇论文是"SLAM 鲁棒性"的一次诚实体检：<strong>实验室里跑得飞快的算法，放到真实野外四季轮转里，很可能不如一个简单的基线稳</strong>。对我们做 TurtleBot 室内 SLAM 的人来说，最大的启发是选方案时别只盯着论文里的 benchmark 分数，还要问一句：我的环境会"变脸"吗？变化来了，它还稳吗？
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.27628v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 2 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.50</span> <span class="paper-rank">#2</span>
+
+  <div class="en-title">Probabilistic Multi-Robot Gas Source Localization with Uncalibrated Sensors: A Distributed Estimation Approach</div>
+  <div class="cn-title">未标定传感器下的多机器人气体源定位：一种分布式概率估计方法</div>
+  <div class="authors">✍️ Wanting Jin, Marc Zoel Arias Mitjà, Alcherio Martinoli</div>
+
+  <div class="keywords"><span class="tag tag-accent">多机器人</span><span class="tag tag-accent">气体源定位</span><span class="tag tag-accent">分布式估计</span><span class="tag tag-accent">免标定</span><span class="tag tag-accent">路径规划</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">多机器人气体源定位的分布式概率框架：用对传感器缩放/非线性不变的"秩特征"绕过标定，product of experts 融合局部信念，配合信息区域分配与路径规划减少冗余探索——强传感器异构下仍可靠定位。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0060~0062 课（路径规划与轨迹优化）对应文中的"信息区域分配 + 路径规划"模块；第 0039~0045 课（状态估计与最小二乘/图优化）帮助你理解"多机器人信念融合"背后的概率估计思想——product of experts 本质上是把多个独立估计"相乘归一"，和贝叶斯融合同源。<br>
+      <strong>自主探索主题</strong>：本文的"减少冗余探索 + 平衡探索/利用"与 E2Map（第 0001~0005 课）中机器人主动探索环境的思想一致，只是目标从"建图"换成了"找气体源"——探索策略的通用方法论可以互相迁移。<br>
+      <strong>TurtleBot 的启示</strong>：低成本平台最常见的坑就是"传感器没标定好"（不同批次的便宜传感器响应差很多）。本文证明：<strong>不标定也能干活</strong>——只要特征设计得对缩放/非线性不敏感，异构传感器集群照样能协作。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出基于秩（rank）特征的局部信念估计：该特征捕捉观测的相对演化，对传感器缩放与非线性不变，使未标定的异构传感器无需标定即可参与融合；② 通过 product of experts 公式融合各机器人局部信念，得到团队级全局一致估计；③ 引入信息区域分配与路径规划策略，在降低冗余探索的同时平衡探索与利用；④ 在含真实气体传感器模型的高保真仿真中，显著优于基于标准测量聚合的基准方法，在强传感器异构下仍保持可靠的源定位精度。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>当机器人配备未标定且因此异构的传感器时，多机器人系统的环境状态估计变得特别具有挑战性，这些传感器非线性和不一致的响应阻碍了可靠的信息融合。本文针对源定位任务提出一种分布式概率框架，能够在传感器异构的情况下实现免标定的估计。核心思想是：每个机器人独立地使用基于秩的特征估计一个局部信念，该特征捕捉观测的相对演化，并且对传感器缩放和非线性保持不变。然后通过 product of experts 公式融合这些局部信念，以获得整个团队的全局一致估计。为进一步提高团队协调效率，本文引入一种信息区域分配与路径规划策略，在降低冗余探索的同时平衡探索与利用。我们使用具有真实气体传感器模型的高保真仿真验证了所提框架。结果表明，与基于标准测量聚合的基准方法相比，我们的方法显著更优，在强传感器异构下仍能实现可靠的源定位精度。更广泛地说，这项工作证明了免标定感知表示可以有效地扩展到分布式机器人系统，为它们在其他涉及异构传感器的估计任务中的应用铺平了道路。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让一群机器人协作"闻"出气体泄漏源在哪里（比如化工厂泄漏、废墟搜救），而且<strong>每个机器人的"鼻子"都不用事先校准</strong>——它们响应不一样也能一起干活。<br><br>
+
+      <strong>气体源定位是什么？</strong> 想象一个房间里有个煤气罐在漏气，你派几个机器人进去找泄漏点。机器人只能靠传感器测"这里浓度高不高"，沿着浓度升高的方向走，最终逼近源头。应用场景包括搜救、环境监测、化工厂巡检。<br><br>
+
+      <strong>问题：传感器没标定怎么办？</strong> 现实中每个机器人的气体传感器都不一样：同样的浓度，A 机器人报 100，B 机器人报 50，C 机器人报 200——响应关系还是非线性的。传统做法是先逐个标定（拿标准气体去"对表"），很麻烦，而且传感器老化后标定又失效。如果直接把这些"口径不一"的数据融合，结论会互相打架。<br><br>
+
+      <strong>"秩特征"怎么绕过标定？</strong> 关键洞察：<strong>别看数值，看排名</strong>。A 机器人在位置 1 测到 100、位置 2 测到 120、位置 3 测到 90，那它对三个位置的"感觉排序"就是 2 &gt; 1 &gt; 3；B 机器人虽然数值不同（50、60、40），但排序也是一样的 2 &gt; 1 &gt; 3。数值会因传感器而异，但"哪里浓度在上升"的相对趋势是一致的——秩（rank）特征抓的就是这个"相对演化"，所以天然对缩放和非线性免疫。<br><br>
+
+      <strong>Product of Experts（专家乘积）是什么？</strong> 每个机器人相当于一位"专家"，各自对"源头在哪里"有一个概率分布（信念）。Product of experts 就是把所有专家的分布相乘再归一化：<strong>大家都觉得"这里像源头"的地方，乘积最大</strong>。少数专家被噪声带偏没关系，多数共识会赢。<br><br>
+
+      <strong>为什么要规划路径？</strong> 机器人不能满屋子乱转。本文让机器人把空间划分成"信息区域"，优先派机器人去"信息量最大、最可能藏源头"的区域，同时避免多台机器人挤在同一片区域做无用功——这就是"减少冗余探索、平衡探索与利用"。<br><br>
+
+      <strong>为什么值得关注？</strong> 它示范了一种很实用的工程思路：<strong>与其花大力气把传感器标定得整整齐齐，不如设计对传感器差异"免疫"的算法</strong>。这对低成本机器人集群（比如多台 TurtleBot 各配一个便宜传感器）特别有意义——便宜传感器批次差异大，但"看趋势不看绝对值"的思路照样能用。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.28214v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 3 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">4.10</span> <span class="paper-rank">#3</span>
+
+  <div class="en-title">Manifold4D: Denoising on Point Cloud Rendered Manifolds for Video Re-shooting</div>
+  <div class="cn-title">Manifold4D：在点云渲染流形上做去噪的视频重拍</div>
+  <div class="authors">✍️ Yongqi Mao, Zijia Dai, Zhishuo Liu, Wei Xu, Kaiwei Wang, Guotao Meng</div>
+
+  <div class="keywords"><span class="tag tag-accent">点云</span><span class="tag tag-accent">4D 渲染</span><span class="tag tag-accent">Flow Matching</span><span class="tag tag-accent">视频重拍</span><span class="tag tag-accent">相机控制</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">视频重拍新范式：不再把点云渲染结果当"条件"喂给生成模型，而是直接注入 flow matching 的初始噪声形成"几何噪声流形"——渲染只用一次，模型专注源视频，相机旋转误差降 25%~27%、平移误差降 32%。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0037 课（拼接点云实践）和第 0074 课（点云地图表达）是理解"把深度图抬升成 4D 点云、再沿轨迹光栅化"的基础：本文的 4D 点云渲染管线本质上就是"用估计的深度 + 相机位姿把视频变成空间几何"。<br>
+      <strong>与建图的关系</strong>：视频重拍要解决"渲染几何与源视频如何对齐/信任"的问题，这与 SLAM 中"几何先验（地图）与实时观测如何融合"是同构的——先验给方向、观测给细节，谁也别压过谁。<br>
+      <strong>说明</strong>：本篇偏计算机视觉（视频生成），与移动机器人核心任务距离较远，相关性评分中等；但对机器人仿真数据生成（用几何先验驱动逼真视频渲染）有参考价值。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 MANIFOLD4D：将像素对齐的渲染结果直接注入 flow matching 的初始噪声，使生成从"标准高斯噪声"变为携带几何信息的"噪声流形"，渲染仅被使用一次，网络无需学习如何读取渲染；② 解决渲染与源视频同时作为条件导致的"信任困境"（模型不知道该信谁），让后续去噪步骤专注于源视频；③ 在 DAVIS-Traj 基准和 Vista4D 评测集上取得全部相机控制指标最优，旋转误差较最强基线降低 25% 与 27%，平移误差最高降低 32%，视频保真度持平，真实世界新视角光度质量领先；④ 用户研究确认轨迹跟随与动态一致性优势，且偏航幅度超出训练范围时优势进一步扩大。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>视频重拍（video re-shooting）沿用户指定的相机轨迹重新渲染动态场景的单目视频，主流方案是显式提供目标几何：逐帧深度将源视频抬升为 4D 点云，再沿轨迹光栅化为点云渲染结果。由于渲染结果和源视频都被作为视觉条件交给网络，它们在每一步去噪中相互竞争，使模型陷入"信任困境"——该相信多少渲染结果——这会在训练分布之外的数据上削弱轨迹控制或视觉质量。本文认为，已经与目标视角像素对齐的渲染结果根本不需要作为显式条件流输入。我们提出 MANIFOLD4D，将渲染结果直接注入 flow matching 的初始噪声，使生成不再从标准高斯噪声出发，而是从一个携带几何信息的新噪声流形出发，源视频成为唯一的视觉条件。渲染因此只被使用一次，网络也无需学习如何读取它；在随后的去噪步骤中，模型可以专注于源视频。在 DAVIS-Traj 基准和 Vista4D 评测集上，MANIFOLD4D 在每项指标上都取得最佳相机控制精度，相比最强基线将旋转误差降低 25% 和 27%，平移误差最高降低 32%，同时视频保真度与之持平，并在真实世界新视角光度质量上领先。用户研究中，我们的方法在轨迹跟随和动态一致性方面优势明显。当偏航幅度超出训练范围时差距进一步扩大，且当渲染结果被刻意破坏时，模型仍能从源视频恢复正确的动态运动，证实几何先验引导生成但不会覆盖生成。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让"视频重拍"更听话：给你一段手机拍的视频，你想让镜头沿着另一条轨迹"重新拍一遍"（比如从侧面绕过去看同一个场景），本文的方法让生成的视频<strong>更严格地跟随你指定的相机轨迹</strong>，而且画面质量不降。<br><br>
+
+      <strong>视频重拍是什么？</strong> 简单说：输入一段单目视频（只有一个相机拍的），输出"换一个相机视角的同一场景视频"。难点在于源视频里没有真实的三维信息，只有 2D 像素。主流做法是先用深度估计把每帧变成 3D 点云（4D 点云 = 空间 + 时间），然后沿着新轨迹把点云"投影"成新视角的画面，再交给生成模型补全细节。<br><br>
+
+      <strong>"信任困境"是什么？</strong> 旧方法把两样东西同时喂给生成模型：① 源视频（真实内容）；② 点云渲染的新视角画面（几何信息）。模型每走一步都要纠结："这俩打架了，我信谁？"信渲染，画面可能不自然；信源视频，轨迹就不听话。两个"老师"抢着教一个学生，学生就懵了。<br><br>
+
+      <strong>MANIFOLD4D 怎么解决？</strong> 干脆不让渲染当"老师"了——把它揉进"起跑线"里：<br>
+      ① <strong>Flow Matching / 扩散模型是什么？</strong> 一种生成模型：先从纯噪声出发，一步步"去噪"直到变成清晰图像/视频。旧方法在每一步都把渲染当条件输入（一直"念经"）；<br>
+      ② <strong>注入初始噪声</strong>：本文只在一开始把渲染画面混进初始噪声里，生成就从"带几何提示的噪声"出发——好比出发时给了张"地图"，之后的每一步模型自己看着源视频走，不用再被地图牵着鼻子。<br><br>
+
+      <strong>为什么值得关注？</strong> 它示范了一个很优雅的思想：<strong>先验信息不一定要全程参与决策，在"起点"注入一次就够</strong>。这个"几何先验引导生成、但不覆盖生成"的思路，和机器人领域"先验地图辅助定位、但实时观测说了算"的设计哲学是相通的——先验是拐杖，不是枷锁。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.28174v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 4 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.95</span> <span class="paper-rank">#4</span>
+
+  <div class="en-title">Denoising-Aware Temporal Point Cloud Completion for 3D Crop Architecture Recovery and Phenotypic Trait Extraction</div>
+  <div class="cn-title">感知去噪的时间点云补全：用于作物 3D 结构恢复与表型性状提取</div>
+  <div class="authors">✍️ Mrudul Mittal, Soumyashree Kar</div>
+
+  <div class="keywords"><span class="tag tag-accent">点云补全</span><span class="tag tag-accent">时间序列</span><span class="tag tag-accent">作物表型</span><span class="tag tag-accent">合成数据集</span><span class="tag tag-accent">3D 重建</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">面向作物 3D 重建的时间点云补全流水线：程序化合成数据集 SynthCrop4D + 空间去噪 + 自适应时间 PoinTr 用上一生长阶段补全当前阶段，Chamfer Distance 达 0.0061，并直接支撑株高/冠幅/凸包体积等表型性状提取。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>视觉 SLAM 十四讲</strong> — 第 0074 课（点云地图表达）与第 0037 课（拼接点云实践）涉及点云的组织、去噪与补全的底层问题；本文的"去噪 + 补全"两阶段流水线与 SLAM 建图里"先滤波再配准/融合"的处理链条一脉相承。<br>
+      <strong>DFusion-SLAM / OCD SLAM</strong>（第 0077~0088 课）的核心难题是"遮挡区域的信息丢失"——本文用"上一时间步的信息补全当前时间步被遮挡的部分"，与动态 SLAM 里"用历史观测估计被遮挡区域"的思路形成有趣的对照：一个处理动态场景的遮挡，一个处理植物自遮挡。<br>
+      <strong>实际意义</strong>：作物表型平台（农业机器人）是移动机器人的重要落地场景，本文的时间补全方法对"植物生长过程 3D 监控"有直接价值。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 SynthCrop4D：程序化生成的时空演化植物点云合成数据集，提供可控噪声、遮挡与完整几何真值，为时间补全方法提供缺失已久的评测基准；② 两阶段流水线：去噪模块先移除激光扫描的伪影，再由自适应时间 PoinTr 利用上一生长阶段（t-1）重建当前阶段（t），恢复自遮挡导致的缺失区域；③ 在 SynthCrop4D 与真实 Pheno4D 数据集（番茄、玉米）上验证：最佳配置（Temporal PoinTr + Mamba-DG）Chamfer Distance 达 0.0061（合成）、F-Score 0.2080（真实）；④ 用补全后的点云提取株高、冠幅、凸包体积等表型性状，凸包体积 MAE 分别为 0.021（合成）与 0.343（真实）。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>高通量表型分析依赖于跨生长阶段对植物进行精确的 3D 重建，然而时间补全方法的开发与评估受到缺乏完整几何真值数据集的限制。为应对这一挑战，本文引入 SynthCrop4D，一个程序化生成的随时间演化的植物点云合成数据集，提供可控噪声、遮挡和完整植物几何，用于重建方法的基准测试。利用该数据集，我们评估了一个结合空间去噪与时间点云补全的两阶段流水线。首先，去噪模块移除原始激光扫描点云中的结构伪影。随后，自适应时间 PoinTr 模型利用上一阶段（t-1）的信息重建当前生长阶段（t），从而恢复因自遮挡而缺失的区域。我们在 SynthCrop4D 和真实世界 Pheno4D 数据集（番茄与玉米）上，在有/无去噪的设置下评估了该框架。结果表明，去噪显著提升了重建质量，最佳配置（Temporal PoinTr + Mamba-DG）在 SynthCrop4D 上取得 0.0061 的 Chamfer Distance，在 Pheno4D 上取得 0.2080 的 F-Score。我们进一步展示了利用补全点云提取表型性状（包括株高、冠幅和凸包体积）的能力，在合成数据上凸包体积 MAE 为 0.021，真实数据上为 0.343。综上，SynthCrop4D 与所提流水线为时间植物重建和高通量作物表型分析提供了基准与方法。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 让机器人/扫描设备能"脑补"植物的完整 3D 形状——一棵玉米被叶子挡住的部分，用<strong>上周扫描的形状</strong>来补全今天的缺口，然后自动量出株高、冠幅这些农学指标。<br><br>
+
+      <strong>表型（Phenotype）是什么？</strong> 生物的"外在表现"，比如植物的株高、叶面积、果实大小。农业科学家要靠这些数据判断品种好坏、施肥效果。传统靠人工拿尺子量，又慢又主观；"高通量表型"就是用传感器（激光雷达、相机）自动、大批量地测——这是农业机器人最热门的落地场景之一。<br><br>
+
+      <strong>问题：激光扫描植物的坑？</strong> ① <strong>自遮挡</strong>：激光只能扫到"朝外的叶子"，被外层叶子挡住的内部结构完全扫不到——就像你从外面只能看到一棵树的树冠表面，看不到里面的枝干；② <strong>噪声伪影</strong>：叶片又薄又密，扫描经常产生"鬼影"点。<br><br>
+
+      <strong>为什么"时间"是关键？</strong> 植物是<strong>会长大的</strong>。上周扫的时候，某片区域可能没被挡住；这周被新长出的叶子挡了。本文的思路很朴素但有效：<strong>用上周（t-1）的完整形状，帮这周（t）补全被挡住的区域</strong>——反正植物长得慢，上周的形状大概率还八九不离十。这就是"时间点云补全"：不只是空间上补洞，还把时间当信息用。<br><br>
+
+      <strong>PoinTr 是什么？</strong> 一个点云补全模型（Transformer 架构）：输入残缺的点云，输出完整的点云。本文的"自适应时间 PoinTr"额外把上一时间步的点云作为参考输入，让模型知道"这棵植物上周长这样"。<br><br>
+
+      <strong>为什么要造合成数据（SynthCrop4D）？</strong> 因为真实植物的"完整真值"极难获取——你不可能既扫到内部结构又让植物保持原样。程序化生成（用计算机图形学生长模型模拟植物）就能"作弊"：我知道每一片叶子的真实位置，可以任意制造遮挡和噪声，还能精确算误差。<br><br>
+
+      <strong>为什么值得关注？</strong> 它是"点云补全 × 时间序列 × 农业机器人"的交叉样本，而且补完的形状直接能算表型指标（不是补着玩）。对做移动机器人的我们，值得记下这个方法论：<strong>当空间信息不够时，时间信息是免费的补充</strong>——这在动态 SLAM、探索建图里同样适用。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.28343v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<!-- ═══════════ Paper 5 ═══════════ -->
+<div class="paper-card">
+  <span class="paper-score">3.82</span> <span class="paper-rank">#5</span>
+
+  <div class="en-title">FUSED: Forensic-Semantic Mixture-of-Experts for AI Inpainting Detection and Localization</div>
+  <div class="cn-title">FUSED：面向 AI 图像修复检测与定位的取证-语义混合专家模型</div>
+  <div class="authors">✍️ Anton Nuzhdin, Marcel Worring, Ivona Najdenkoska</div>
+
+  <div class="keywords"><span class="tag tag-accent">AI 取证</span><span class="tag tag-accent">图像修复</span><span class="tag tag-accent">MoE</span><span class="tag tag-accent">篡改定位</span><span class="tag tag-accent">扩散模型</span></div>
+
+  <!-- 一句话概括 -->
+  <div class="section one-liner">
+    <span class="section-label">📌 一句话概括</span>
+    <p style="margin:0;font-size:var(--text-sm);">统一 AI 图像修复检测与定位框架：低层取证线索 + 高层语义特征经稀疏门控 MoE 逐 token 自适应融合，跨生成器泛化最强，在 AutoSplice/CocoGlide 上定位性能翻倍。</p>
+  </div>
+
+  <!-- 与你关联 -->
+  <div class="section connection-box">
+    <span class="section-label">🔗 与你关联（PaperLesson 课程体系）</span>
+    <p style="margin:0;font-size:var(--text-sm);">
+      <strong>相关性说明</strong>：本篇"localization"命中是<strong>图像篡改区域的定位</strong>，与机器人空间定位无关，相关性分数低，仅作视觉前沿了解。<br>
+      <strong>LSeg</strong>（第 0007~0013 课）教你理解"高层语义特征"如何从图像中提取（开放词汇语义分割）；本文把"语义特征"和"低层取证痕迹"结合起来做判断，可类比 LSeg 中"语言先验 + 视觉特征"的融合思路。<br>
+      <strong>延伸思考</strong>：对机器人感知的启发在"多信号融合"层面——一个任务往往同时有"低级线索"（像素级痕迹）和"高级线索"（语义理解），用门控机制让模型自己决定信谁，比手工加权更灵活。
+    </p>
+  </div>
+
+  <!-- 核心贡献 -->
+  <div class="section contribution">
+    <span class="section-label">💡 核心贡献</span>
+    <p style="margin:0;font-size:var(--text-sm);">① 提出 FUSED：统一框架联合完成 AI 修复图像的检测与定位，同时预测图像级篡改分数与像素级修复掩码；② 采用稀疏门控 Mixture-of-Experts 架构，融合低层取证线索与高层语义特征，使模型能针对每个 token 自适应优先选择最相关的信号；③ 在 OpenSDID 跨生成器基准上取得最佳平均检测与定位性能，对未见生成器的增益最大；④ 直接迁移到未见过的 AutoSplice 与 CocoGlide 基准，定位性能提升一倍以上；⑤ 通过有无"全局生成器伪影"的对照实验，揭示所有方法（含本方法）都会部分依赖该伪影作为篡改证据，而 FUSED 在两种条件下均为最强。</p>
+  </div>
+
+  <!-- 中文摘要 -->
+  <div class="section abstract-box">
+    <span class="section-label">📄 中文摘要</span>
+    <p>基于扩散的图像修复模型只修改图像的局部区域，而许多 AI 图像检测器依赖全局伪影且不进行定位。这些伪影因生成器而异，限制了检测器在分布偏移下的迁移能力。近期工作表明，恢复修复区域之外的原始像素会消除这些线索，并可能削弱预训练检测器的性能。为应对这一问题，本文提出 FUSED，一个联合检测与定位 AI 生成修复的统一框架。FUSED 使用稀疏门控的 Mixture-of-Experts 架构将低层取证线索与高层语义特征相结合，使模型能够针对每个 token 自适应地优先选择最相关的信号。对于每个输入，FUSED 同时预测图像级篡改分数和修复区域的像素级掩码。在 OpenSDID 跨生成器基准上，FUSED 取得最佳的平均检测与定位性能，对未见生成器的增益最大。同一模型直接迁移到留出的 AutoSplice 和 CocoGlide 基准，定位性能提升一倍以上。对每个留出基准在有无全局生成器伪影的条件下进行评估进一步表明，所有被评估的方法（包括我们的）都会部分地将该伪影作为篡改证据，而 FUSED 在两种条件下都是最强的。代码与预训练模型已开源：https://github.com/AntonNuzhdin/FUSED。</p>
+  </div>
+
+  <!-- 通俗讲解 -->
+  <div class="section explain-box">
+    <span class="section-label">🎓 通俗讲解（小白友好）</span>
+    <p>
+      <strong>这篇论文做了啥？</strong> 训练一个"AI 修图侦探"：既能判断一张图"有没有被 AI 修过（inpainting）"，还能精确指出"修的是哪一块"——而且面对没见过的新修图工具也照样管用。<br><br>
+
+      <strong>Inpainting（图像修复）是什么？</strong> 就是"P 图补洞"：把图片里的一块区域（比如一个人、一个物体）删掉，再让 AI 根据周围像素"脑补"出合理的背景填进去。现在的扩散模型修得太逼真，肉眼根本看不出来——这就成了虚假信息（深度伪造）的重灾区。<br><br>
+
+      <strong>为什么难检测？</strong> ① 修复只动"局部"，全局检测器（看整张图有没有不自然的痕迹）容易漏；② 不同修图工具留下的"指纹"（伪影）不一样，训练时见过的工具能识别，没见过的就抓瞎——这叫"分布偏移"；③ 有人发现：如果把修复区域以外的部分还原成"原始像素"，很多检测器就失灵了，说明它们其实在"抄近道"（依赖全局伪影而不是真正的修复痕迹）。<br><br>
+
+      <strong>FUSED 怎么做？</strong> ① <strong>两种信号</strong>：低层取证线索（像素级的统计异常、噪点模式——像"指纹鉴定"）＋ 高层语义特征（"这里本来应该是个桌子，怎么变成墙了"——像"动机分析"）；② <strong>MoE（Mixture-of-Experts，混合专家）</strong>：不是一个模型干所有事，而是训练一组"专家"（有的擅长看指纹、有的擅长看语义），再加一个"门控"（路由器）决定每个位置让谁发言——稀疏门控意味着每个 token 只激活少数几个专家，省算力；③ <strong>检测 + 定位一起做</strong>：一个模型同时输出"篡改概率"和"篡改区域掩码"。<br><br>
+
+      <strong>为什么值得关注？</strong> 一方面它是"AI 内容取证"领域的前沿（现在很多 AI 图像检测只能"报整图"，不能"指位置"）；另一方面，它的方法论——<strong>"低级线索 + 高级语义 + 门控融合"</strong>——对机器人感知（比如把像素级几何线索和语义理解结合做动态物体判断）也有迁移价值。
+    </p>
+  </div>
+
+  <div class="links"><a href="https://arxiv.org/abs/2608.28302v1" target="_blank">📄 arXiv 原文</a></div>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">📋 第 6–10 名 · 精简版</h2>
+
+<!-- #6 CAVE-NAV -->
+<div class="mini-paper">
+  <span class="mini-rank">#6</span> <span class="mini-score">评分 3.58</span>
+  <div class="mini-title">CAVE-NAV: VLM-Based Autonomous 3D Navigation in Underwater Cave Environments</div>
+  <div class="mini-cn">CAVE-NAV：基于视觉语言模型的水下洞穴自主 3D 导航</div>
+  <div class="mini-oneliner">📌 用 VLM + 思维链从环境线索（光强梯度、通道形态、几何复杂度）推断可航行方向，融合 RGB、深度与声纳垂直间隙多模态输入，在多种洞穴拓扑的高保真仿真中零碰撞完成全部端到端穿越。</div>
+  <div class="mini-conn">🔗 "autonomous navigation"+"localization"命中。与 <strong>E2Map</strong>（第 0001~0005 课）和 <strong>VLMaps</strong>（第 0006 课）的"语言/视觉模型驱动导航推理"路线直接相关；在特征退化环境下用语义推理替代特征匹配的思路，对 TurtleBot 的室内导航盲区场景有借鉴价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.27793v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #7 Iterative LQ Games -->
+<div class="mini-paper">
+  <span class="mini-rank">#7</span> <span class="mini-score">评分 3.58</span>
+  <div class="mini-title">Coordinated Motion Planning for Multi-Arm Systems via Iterative LQ Games</div>
+  <div class="mini-cn">基于迭代线性二次博弈的多机械臂系统协调运动规划</div>
+  <div class="mini-oneliner">📌 把多机械臂在共享工作空间中的运动规划建模为迭代 LQ 博弈：每只机械臂是独立智能体、各优化各的目标，Riccati 后向递推得到反馈 Nash 策略，并加入自碰撞/臂间碰撞可微惩罚——高维场景下生成平滑、安全、高效的轨迹。</div>
+  <div class="mini-conn">🔗 "motion planning"命中。与 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（运动规划）相关；"多智能体博弈式协调"对多机器人协作导航（如多台 TurtleBot 共享走廊）有方法论启发，但本文面向机械臂操作，与移动机器人距离中等。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.27726v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #8 Pothole -->
+<div class="mini-paper">
+  <span class="mini-rank">#8</span> <span class="mini-score">评分 3.46</span>
+  <div class="mini-title">Depth-Aware Pothole Detection Using YOLO and RT-DETR at the Edge</div>
+  <div class="mini-cn">面向边缘部署的深度感知坑洼检测：YOLO 与 RT-DETR 对比研究</div>
+  <div class="mini-oneliner">📌 RGB-D 坑洼检测与深度测量五架构对比：YOLOv8nSeg 取得最高 mAP@50=0.9556 与最准深度估计（误差 2.96cm），YOLOv8n 推理最快（3.6ms）；RANSAC 地面校正后，框级模型仍系统性高估坑深 0.16~0.21cm，证明"包含路面"偏差是结构性的而非标定伪影。</div>
+  <div class="mini-conn">🔗 "sensor fusion"命中（RGB-D 融合）。与 <strong>视觉 SLAM 十四讲</strong>第 0034 课（双目与 RGB-D 相机）和第 0035~0036 课（图像表示与 OpenCV）直接相关；坑洼检测是巡检机器人的典型感知任务，边缘部署思路对 TurtleBot 级别算力平台有参考价值。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.27633v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #9 Event Compression -->
+<div class="mini-paper">
+  <span class="mini-rank">#9</span> <span class="mini-score">评分 3.33</span>
+  <div class="mini-title">Lossy Event Compression: From Event Stream Distortion to Task Performance</div>
+  <div class="mini-cn">有损事件压缩：从事件流失真到任务性能</div>
+  <div class="mini-oneliner">📌 事件相机数据压缩双管线：JPEG 2000 聚合帧 vs G-PCC 八叉树点云原生编码，在统一任务驱动评估框架（视频重建/目标检测/光流/异步特征跟踪）下，首次证明五个分类失真指标能可靠预测压缩导致的任务级退化，可替代昂贵的逐任务评估。</div>
+  <div class="mini-conn">🔗 "point cloud"命中（事件被当作 3D 点编码）。与上期 <strong>E-S2Feat</strong>（事件相机特征检测）呼应；事件流压缩对带宽受限的机器人传感链路（无线遥操作、多机共享信道）有实际意义，与 <strong>视觉 SLAM 十四讲</strong>点云相关课程间接相关。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.28429v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<!-- #10 LUCID -->
+<div class="mini-paper">
+  <span class="mini-rank">#10</span> <span class="mini-score">评分 3.30</span>
+  <div class="mini-title">LUCID: An Agentic AI Framework on Digital-Twin in the Loop for QoS-Guaranteeing Robotic Control</div>
+  <div class="mini-cn">LUCID：数字孪生闭环上的智能体 AI 框架，保障云机器人控制 QoS</div>
+  <div class="mini-oneliner">📌 LLM 智能体编排的云机器人流水线：把"轨迹规划 + 无线资源管理"从固定优化问题变成可动态配置的问题模板，SimBridge 把大规模机器人场景转成无线仿真数字孪生反复评估，光谱半径校验器识别无线瓶颈并当场重组问题结构，保障 QoS 满足。</div>
+  <div class="mini-conn">🔗 "path planning"命中。与 <strong>E2Map</strong>（语言模型驱动机器人决策）和 <strong>视觉 SLAM 十四讲</strong>第 0060~0062 课（路径规划）相关；"LLM 智能体动态编排优化问题"是云机器人前沿方向，但对单机 TurtleBot 场景距离较远。</div>
+  <span class="links"><a href="https://arxiv.org/abs/2608.28437v1" target="_blank">📄 arXiv</a></span>
+</div>
+
+<h2 style="font-family:var(--font-serif);font-size:var(--text-xl);margin:var(--space-6) 0 var(--space-4);">🔮 趋势观察</h2>
+
+<div class="trend-box">
+  <h4>1️⃣ SLAM 评测走出实验室：长期/跨季节部署成为鲁棒性的新标尺</h4>
+  <p>#1 的亚北极森林一年部署是本轮最有力的信号：64 km 数据、四季轮转、九种方法横向对比，结论是"环境一变，SOTA 集体掉链子，视觉最惨、LiDAR 最稳、复杂系统反而不如简单基线"。这提醒我们：<strong>实验室 benchmark 分数和野外真实鲁棒性之间有一道鸿沟</strong>。对社区而言，"我能在夏天跑通"已经不够了，越来越多的工作会用"跨季节、长期、未知环境"来拷问算法——这也正是我们做 TurtleBot 建图-导航-探索一体化方案时最该关心的评价维度。</p>
+</div>
+
+<div class="trend-box">
+  <h4>2️⃣ "免标定"成为多传感器系统的新关键词</h4>
+  <p>#2 用对传感器缩放/非线性不变的秩特征绕开标定环节，让"口径不一"的异构传感器直接协作。背后是一个务实趋势：<strong>与其花成本把传感器标定得整整齐齐，不如设计对传感器差异免疫的算法</strong>。这对低成本机器人集群（多台 TurtleBot、便宜 LiDAR/相机/气体传感器混搭）特别有意义——传感器越便宜、批次差异越大，"免标定"方法的价值就越高。预计会有更多"标定无关"的特征表示与融合方法出现。</p>
+</div>
+
+<div class="trend-box">
+  <h4>3️⃣ 点云处理走向"时空维度"：补全与生成都不再只看单帧</h4>
+  <p>#3 把点云渲染结果注入生成模型的初始噪声流形（几何先验"用一次就够"），#4 用上一生长阶段补全当前阶段的作物点云（时间信息补空间缺失）。两篇合起来指向同一个方向：<strong>点云不再只是"一帧的几何快照"，而是随时间演化、可被推理补全的对象</strong>。这与动态 SLAM 里"用历史观测恢复被遮挡区域"的思想同频——从"空间补洞"走向"时空补全"，可能是 4D 感知的下一个增长点。</p>
+</div>
+
+<div class="trend-box">
+  <h4>4️⃣ VLM/LLM 深入决策回路：从"看懂环境"到"编排行动"</h4>
+  <p>#6 CAVE-NAV 用 VLM + 思维链在水下洞穴推断可航行方向，#10 LUCID 用 LLM 智能体动态编排轨迹规划与无线资源管理问题——大模型不再只是"感知助手"，而是进入规划与决策的执行回路。值得注意的是两条路线并存：一条是"语义推理直接出动作"（VLM 导航），一条是"智能体编排传统优化模块"（LLM 当调度员）。对我们而言，E2Map/VLMaps 的语言地图路线正是前者的铺垫，值得持续跟踪。</p>
+</div>
+
+<div class="nav-footer">
+  <span>📡 PaperLesson · 移动机器人周报 · 第 36 周</span>
+  <a href="https://arxiv.org/list/cs.RO/2026-08-31">📄 arXiv cs.RO</a>
+</div>
+
+<div style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:var(--text-sm);color:var(--ink-40);">
+  <p>🤖 生成时间：2026-08-31 · 数据来源：arXiv · 评分体系：相关性 50% · 时效性 20% · 热度 15% · 质量 15%</p>
+  <p style="margin-top:var(--space-1);">—— 顾清然</p>
+</div>
+
+</div>
+</body>
+</html>

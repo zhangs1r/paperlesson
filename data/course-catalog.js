@@ -93,8 +93,8 @@ window.PAPERLESSON_DATA = {
       kind: "移动机器人周报",
       title: "arXiv 论文周报",
       subtitle: "每周移动机器人 / SLAM / 导航最新论文推荐",
-      description: "第 34 周。本期亮点：完全并行 LiDAR Bundle Adjustment 框架实现 10 倍加速（#1）、IRGNN 不变性图神经网络处理稀疏雷达点云目标检测（#2）、PILOT 特权模仿学习让 UAV 运动规划计算开销降 80%+（#3）、E-S2Feat 脉冲神经网络事件相机特征检测能效提升 4.8 倍（#4）、GhostPoint 自监督幻觉遮挡 LiDAR 结构实现 SOTA 3D 检测（#5）。本周主旋律是\"并行加速 + 鲁棒感知\"：LiDAR 建图进入 GPU 并行时代，雷达感知走向图表示范式，知识蒸馏让计算密集策略轻量化落地，自监督+幻觉推理让模型学会脑补缺失信息。",
-      quickOpen: "start weekly-reports/weekly-2026-w34.html",
+      description: "第 36 周。本期亮点：亚北极森林一年部署评测揭示季节变化对 SLAM 的致命影响（#1）、多机器人气体源定位免标定分布式估计（#2）、Manifold4D 点云渲染流形注入生成实现视频重拍高精度相机控制（#3）、时间点云补全用于作物 3D 重建与表型提取（#4）、FUSED 稀疏门控 MoE 检测 AI 图像修复（#5）。本周主旋律是\"野外长期部署 + 跨模态鲁棒性\"：SLAM 评测走出实验室迈向四季野外，免标定感知让异构传感器集群免去繁琐标定，点云处理走向时空维度，VLM/LLM 深入导航与规划决策回路。",
+      quickOpen: "start weekly-reports/weekly-2026-w36.html",
       meta: ["每周一期", "arXiv 检索", "课程关联"]
     },
     {
