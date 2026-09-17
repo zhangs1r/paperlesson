@@ -18,7 +18,29 @@
 <div class="callout"><strong>本课目标与前置知识</strong><p>前置：0110–0111 课的角色归属（谁持私钥、谁选 U/T、谁能解开什么）。今天不做攻击实验，而是学会<strong>负责任地介绍安全结果</strong>：先说保护对象，再说对手能力，最后说证据支持到哪一层。学完要能回答：<strong>①</strong> 论文的 Theorem 2 究竟证明了两件事中的哪两件？<strong>②</strong> Paillier 的安全性和"这套系统"的安全性差在哪？<strong>③</strong> 哪些信息其实是公开的？<strong>④</strong> 在组会上怎样严谨地介绍这个安全结论？</p></div>
 
 <h2>1. 锁很牢，整间屋子就一定安全吗？</h2>
-<p>一把经过严格研究的锁，不能自动证明<strong>房子没有窗户</strong>。Paillier 就是那把"锁"——经过密码学界二十多年检验的成熟原语；而符号编码、随机掩码、消息组合、解密结果、公开参数……这些构成"房子"的部分，需要<strong>另外检查</strong>。这不是否定作者的安全融合思路，而是把不同层次的主张分开放：</p>
+
+<div class="callout"><strong>先花 90 秒建立"安全证明长什么样"的直觉</strong><p>工科生的默认思维是"感觉上没法破 = 安全"，但密码学里"安全"是<strong>被定义</strong>的概念。它至少要说清三件事：<strong>① 对手的目标</strong>是什么（拿到明文？区分两个候选？）；<strong>② 对手的能力</strong>是什么（能截获全部链路？能合谋？）；<strong>③ 在什么假设下</strong>成立。这三件事说完，结论才有边界。</p>
+<p style="margin-top:10px">而绝大多数密码学证明用的都是同一个形状——<strong>归约（reduction）</strong>：</p>
+<div class="demo-stage" style="margin-top:10px;background:var(--paper-light)">
+<svg viewBox="0 0 720 128" role="img" aria-label="归约直觉：攻破协议等价于解决一个公认难题">
+  <rect x="24" y="30" width="230" height="68" rx="10" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+  <text x="139" y="58" text-anchor="middle" font-size="12.5" class="svg-t">如果有人能攻破我的协议</text>
+  <text x="139" y="80" text-anchor="middle" font-size="11.5" class="svg-dim">（假设存在这样的攻击者）</text>
+  <path d="M262 64 L322 64 M314 59 l8 5 l-8 5" fill="none" stroke="var(--ink-40)" stroke-width="1.8"/>
+  <text x="292" y="52" text-anchor="middle" font-size="11" class="svg-dim">那么</text>
+  <rect x="330" y="30" width="240" height="68" rx="10" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="450" y="58" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">他就能解决一个公认难题</text>
+  <text x="450" y="80" text-anchor="middle" font-size="11.5" fill="var(--accent-deep)">（比如 DCR 假设）</text>
+  <path d="M578 64 L634 64 M626 59 l8 5 l-8 5" fill="none" stroke="var(--ink-40)" stroke-width="1.8"/>
+  <rect x="642" y="30" width="60" height="68" rx="10" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.8"/>
+  <text x="672" y="58" text-anchor="middle" font-size="12" fill="var(--green)">矛盾</text>
+  <text x="672" y="80" text-anchor="middle" font-size="10.5" fill="var(--green)">（不可能）</text>
+  <text x="360" y="118" text-anchor="middle" font-size="11.5" class="svg-dim">这就是"证明"的形状：把攻击能力"归约"到一个大家公认做不到的事情上</text>
+</svg>
+</div>
+<p style="margin-top:10px">记住这个形状即可——<strong>你不需要会做归约，只需要在读 Theorem 2 时能认出"作者引用的是哪个难题、引用得是否恰当"</strong>。本文引用的正是上一课提过的 DCR 假设。</p></div>
+
+<p>好，现在回到正题。一把经过严格研究的锁，不能自动证明<strong>房子没有窗户</strong>。Paillier 就是那把"锁"——经过密码学界二十多年检验的成熟原语；而符号编码、随机掩码、消息组合、解密结果、公开参数……这些构成"房子"的部分，需要<strong>另外检查</strong>。这不是否定作者的安全融合思路，而是把不同层次的主张分开放：</p>
 
 <div class="fig">
 <svg viewBox="0 0 720 372" role="img" aria-label="安全三层：原语层、协议层、部署层，各有不同的保证和前提">

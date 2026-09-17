@@ -18,6 +18,9 @@
 <div class="callout"><strong>本课目标与前置知识</strong><p>前置：全部前七课。本课是收束课，做三件事：<strong>①</strong> 把第 0113 课的"两个误差量"放回真实的 Fig. 3、Fig. 4 曲线里读懂；<strong>②</strong> 把论文的局限列成清单——诚实，但不刻薄；<strong>③</strong> 给出一个五步迁移框架，回答"这套方法能不能用到我的 ROS2/Nav2 系统上"。</p></div>
 
 <h2>1. 实验设置：先看清"考卷"是什么</h2>
+
+<div class="callout" style="border-left-color:var(--gold)"><strong>⚠ 读这一课前，先记住一条边界：仿真只验证"估计性能"，不验证"安全性"</strong><p>第 5 节这套实验测的是<strong>误差曲线</strong>——平均误差是否平稳、AMSE 与其他算法比是高是低。它<strong>完全没有测量</strong>任何安全性指标：没有攻击者实验、没有窃听测试、没有推断攻击的尝试。</p><p style="margin-top:8px">安全性论证在<strong>理论部分</strong>（Theorem 2，第 0112 课），走的是"字段归属 + 引用 DCR 假设"的路线——那是一条<em>独立的证据链</em>，与这里的仿真曲线没有任何关系。</p><p style="margin-top:8px"><strong>组会上最容易被说错的一句话：</strong>"论文用实验证明了隐私保护有效。"——正确说法是："<em>论文从理论上论证了隐私保护，并用数值仿真验证了估计性能的损失很小</em>。"这两件事分属不同章节，别合并。</p></div>
+
 <div class="table-wrap"><table class="tight"><thead><tr><th>项目</th><th>设置</th></tr></thead><tbody>
 <tr><td>网络规模</td><td>100 个节点（拓扑见 Fig. 2）</td></tr>
 <tr><td>时间区间</td><td>$k\in[0,200]$，共 200 步</td></tr>
