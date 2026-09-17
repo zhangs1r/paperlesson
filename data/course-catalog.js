@@ -27,7 +27,7 @@ window.PAPERLESSON_DATA = {
     }
   ],
   collections: [
-    { id:"paillier-state-estimation", groupId:"papers", kind:"论文精读", title:"Paillier · 隐私保护分布式状态估计", subtitle:"A modified Paillier cryptosystem-based approach · Automatica 2026", description:"分步精读：信息滤波、编码同态、安全融合、理论边界与实验迁移。当前已接入融合恢复基线。", quickOpen:"start lessons/0111-融合恢复与完整估计器.html", meta:["课程接入中","SVG 分步讲解","状态估计 / 隐私保护"] },
+    { id:"paillier-state-estimation", groupId:"papers", kind:"论文精读", title:"Paillier · 隐私保护分布式状态估计", subtitle:"A modified Paillier cryptosystem-based approach · Automatica 2026", description:"第 0107–0114 课，8 节精读：隐私问题全景、信息滤波与 CI、实数编码与同态、双向安全协议、融合恢复、安全边界、稳定性证明、实验与机器人迁移。每节含具象 SVG 图解与交互演示。", quickOpen:"start lessons/0107-Paillier论文全景与隐私问题.html", meta:["8 节课","约 210 分钟","状态估计 / 隐私保护"]},
     {
       id: "e2map",
       groupId: "papers",
@@ -130,7 +130,14 @@ window.PAPERLESSON_DATA = {
     },
   ],
   lessons: [
-    { id:"0111", path:"lessons/0111-融合恢复与完整估计器.html", paper:"paillier-state-estimation", title:"融合恢复与完整估计器", subtitle:"Theorem 1 · 随机权重 · SVG 分步演示", emoji:"", duration:"25 分钟", tags:["Paillier","融合","方法"], description:"先走通融合恢复基线，区分接收方实际计算与理论展开式。" },
+    { id:"0107", path:"lessons/0107-Paillier论文全景与隐私问题.html", paper:"paillier-state-estimation", title:"Paillier 论文全景与隐私问题", subtitle:"协作估计的隐私问题与八课阅读地图", emoji:"🧭", duration:"20 分钟", tags:["全景","威胁模型"], description:"从多机器人协作场景拉入，分清外部窃听与内部好奇两类对手，理解论文把估计器的哪一步换掉了。含四阶段流水线交互与威胁模型图。" },
+    { id:"0108", path:"lessons/0108-信息滤波与CI融合.html", paper:"paillier-state-estimation", title:"信息滤波与 CI 融合", subtitle:"相关性陷阱与信息形式", emoji:"⚖️", duration:"25 分钟", tags:["信息滤波","CI 融合"], description:"理解信息形式为什么让融合变成加法，以及未知相关性如何制造过度自信。含重复计数陷阱交互演示。" },
+    { id:"0109", path:"lessons/0109-改进Paillier编码与同态.html", paper:"paillier-state-estimation", title:"改进 Paillier：编码与同态", subtitle:"实数编码、量化误差界与同态运算", emoji:"🔐", duration:"25 分钟", tags:["Paillier","编码","同态"], description:"补上密码学地基（模运算、加密随机化），拖滑块亲手体验量化编码，理解 Lemma 1 的误差界与密文上加法的原理。" },
+    { id:"0110", path:"lessons/0110-双向安全通信协议.html", paper:"paillier-state-estimation", title:"双向安全通信协议", subtitle:"谁持私钥、谁选随机参数", emoji:"📡", duration:"30 分钟", tags:["协议","Algorithm 2"], description:"全文步骤最密的一课：角色知识边界、随机掩码 ξ、份额 U/T、11 步协议时序交互动画。" },
+    { id:"0111", path:"lessons/0111-融合恢复与完整估计器.html", paper:"paillier-state-estimation", title:"融合恢复与完整估计器", subtitle:"随机权重 λ、Theorem 1 与 Algorithm 3", emoji:"🔑", duration:"25 分钟", tags:["Theorem 1","Algorithm 3"], description:"看五个回传量如何拼成融合结果，用两个世界的双栏记法弄清 λ 为什么不在 i 的手里。含数值演示与算法对比。" },
+    { id:"0112", path:"lessons/0112-安全性论证与隐私边界.html", paper:"paillier-state-estimation", title:"安全性论证与隐私边界", subtitle:"区分原语、协议与部署三层安全", emoji:"🛡️", duration:"25 分钟", tags:["安全分析","Theorem 2"], description:"读懂 Theorem 2 论证，逐条列出协议公开的信息，学会在组会上准确介绍安全结论而不夸大。" },
+    { id:"0113", path:"lessons/0113-稳定性与证明审读.html", paper:"paillier-state-estimation", title:"稳定性与证明审读", subtitle:"一阶矩、矩阵界与证明中的近似", emoji:"🎯", duration:"30 分钟", tags:["稳定性","Lemma 3","Theorem 3"], description:"靶心图分清一阶矩与均方误差，椭圆夹心理解信息矩阵的边界，整理证明主线与需要标注的原文出入。" },
+    { id:"0114", path:"lessons/0114-实验解读与机器人迁移.html", paper:"paillier-state-estimation", title:"实验解读与机器人迁移", subtitle:"原文图表、论文局限与五步迁移框架", emoji:"🤖", duration:"30 分钟", tags:["实验","迁移"], description:"带读 Fig. 2–4 与 AMSE 对比，列出八条局限，给出五步迁移框架与 16 条能力自检清单。" },
     { id:"0001", path:"lessons/0001-论文全景概览.html", paper:"e2map", title:"论文全景概览", subtitle:"背景、动机与贡献", emoji:"📖", duration:"15 分钟", tags:["背景","动机"], description:"先把 E2Map 这篇论文的大问题和核心贡献摸清楚。" },
     { id:"0002", path:"lessons/0002-E2Map核心技术.html", paper:"e2map", title:"E2Map 核心技术", subtitle:"地图构建与情绪建模", emoji:"🔧", duration:"20 分钟", tags:["方法","数学"], description:"深入理解体验-情绪地图如何被构造和更新。" },
     { id:"0003", path:"lessons/0003-导航与实验分析.html", paper:"e2map", title:"导航与实验分析", subtitle:"系统流程与三场景评估", emoji:"🤖", duration:"20 分钟", tags:["系统","实验"], description:"看 E2Map 怎样融入完整导航链路，以及实验到底验证了什么。" },

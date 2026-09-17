@@ -1,0 +1,154 @@
+/* ============================================================
+   Paillier 精读系列 · 课程共享样式（v2 重构版）
+   依赖 shared/theme.css 的设计变量，禁止硬编码颜色。
+   ============================================================ */
+
+/* ─── 版式基础 ─── */
+body{background:var(--paper-light);color:var(--ink-80);margin:0}
+.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}
+.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}
+h1,h2,h3,h4{font-family:var(--font-serif);color:var(--ink)}
+h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}
+h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}
+h3{font-size:1.08rem;margin:26px 0 10px;color:var(--ink)}
+.subtitle{color:var(--ink-60)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}
+a{color:var(--accent-deep)}
+strong{color:var(--ink-80)}
+
+/* ─── 内容盒 ─── */
+.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}
+.callout{border-left:4px solid var(--accent)}
+.callout>strong:first-child{color:var(--accent-deep)}
+.formula-box{overflow-x:auto;text-align:center;border-style:dashed}
+.formula-box p{text-align:left;font-size:.95rem}
+.formula-box .fname{display:block;text-align:left;font-size:.8rem;font-weight:700;letter-spacing:.05em;color:var(--accent-deep);margin-bottom:6px}
+summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}
+.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}
+th{background:var(--paper)}
+li{margin-bottom:8px}
+
+/* ─── 图片与图 ─── */
+figure{margin:24px 0}
+figure img{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:8px}
+figcaption{font-size:.9rem;color:var(--ink-60);margin-top:12px}
+.fig{margin:28px 0;text-align:center}
+.fig svg{width:100%;height:auto;display:block;margin:0 auto;color:var(--ink)}
+.figcap{font-size:.88rem;color:var(--ink-60);margin-top:10px;text-align:left;line-height:1.65}
+.fig .figcap strong{color:var(--ink-60)}
+
+/* ─── 图片点击放大（手机查看论文原图用） ─── */
+figure img{cursor:zoom-in}
+.lightbox{position:fixed;inset:0;background:rgba(20,20,32,.92);z-index:9999;display:none;align-items:center;justify-content:center;padding:12px;overflow:auto;-webkit-overflow-scrolling:touch}
+.lightbox.on{display:flex}
+.lightbox img{max-width:none;width:auto;height:auto;min-width:min(96vw,900px);max-height:none;border-radius:6px;box-shadow:0 12px 48px rgba(0,0,0,.5)}
+.lightbox .lb-close{position:fixed;top:10px;right:12px;width:46px;height:46px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:22px;line-height:1;cursor:pointer;backdrop-filter:blur(6px)}
+.lightbox .lb-hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.68);font-size:.8rem;background:rgba(0,0,0,.35);padding:6px 14px;border-radius:999px}
+@media(min-width:760px){.lightbox img{max-width:92vw;max-height:92vh;min-width:0}}
+
+/* ─── 交互演示容器 ─── */
+.demo{background:var(--paper-light);border:1px solid var(--border);border-radius:10px;padding:18px;margin:26px 0}
+.demo-title{margin:0 0 4px;font-family:var(--font-serif);color:var(--accent-deep);font-size:1.02rem}
+.demo-hint{margin:0 0 12px;font-size:.82rem;color:var(--ink-40)}
+.demo-stage{background:var(--paper);border-radius:8px;padding:14px;border:1px solid var(--border-light);overflow:hidden}
+.demo-stage svg{width:100%;height:auto;display:block;color:var(--ink)}
+.demo-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.demo-caption{font-size:.9rem;color:var(--ink-60);margin-top:12px;min-height:2.7em;line-height:1.65}
+.demo-caption strong{color:var(--accent-deep)}
+.demo-btn{min-height:44px;padding:8px 16px;border:1px solid var(--accent);background:var(--paper-light);color:var(--ink);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.92rem;transition:background .15s,transform .15s}
+.demo-btn:hover{background:var(--accent-dim)}
+.demo-btn:active{transform:scale(.97)}
+.demo-btn:disabled{opacity:.4;cursor:default}
+.demo-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.demo-btn.primary:hover{background:var(--accent-deep)}
+.demo-readout{font-family:var(--font-mono);font-size:.86rem;background:var(--paper);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;margin-top:12px;color:var(--ink-80);white-space:pre-wrap}
+input[type=range]{accent-color:var(--accent);height:40px;max-width:100%}
+.demo-range{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.demo-range label{font-size:.86rem;color:var(--ink-60);white-space:nowrap}
+.demo-range output{font-family:var(--font-mono);font-weight:700;color:var(--accent-deep);min-width:3.4em}
+
+/* ─── 流水线阶段选择 ─── */
+.pipeline{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0;justify-content:center}
+.pipe-step{flex:1 1 130px;background:var(--paper-light);border:1px solid var(--border);border-radius:8px;padding:10px 8px;font-size:.86rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;font-family:inherit;color:var(--ink-80);min-height:44px}
+.pipe-step:hover{border-color:var(--accent)}
+.pipe-step.on{background:var(--accent-dim);border-color:var(--accent);font-weight:700;color:var(--accent-deep)}
+.pipe-step .n{display:block;font-size:.72rem;color:var(--ink-40);letter-spacing:.06em}
+
+/* ─── 概念卡片网格 ─── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0}
+.mcard{background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:14px}
+.mcard h4{margin:0 0 6px;font-size:.95rem;color:var(--accent-deep)}
+.mcard p{margin:0;font-size:.88rem;color:var(--ink-60)}
+.mcard .en{font-size:.78rem;color:var(--ink-40);display:block;margin-bottom:4px;letter-spacing:.02em}
+
+/* ─── 徽章 ─── */
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:600;margin:0 4px 4px 0}
+.pill.ok{background:var(--green-dim);color:var(--green)}
+.pill.warn{background:var(--gold-dim);color:var(--gold)}
+.pill.bad{background:var(--accent-dim);color:var(--accent-deep)}
+.pill.info{background:var(--paper);color:var(--ink-60);border:1px solid var(--border)}
+
+/* ─── 步骤列表 ─── */
+.steps{list-style:none;padding:0;margin:16px 0}
+.steps li{position:relative;padding-left:40px;margin-bottom:14px}
+.steps li::before{content:counter(stepc);counter-increment:stepc;position:absolute;left:0;top:2px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps{counter-reset:stepc}
+
+/* ─── 表格变体 ─── */
+table.tight td,table.tight th{padding:8px 10px;font-size:.88rem}
+.tbl-note{font-size:.82rem;color:var(--ink-40);margin-top:6px}
+
+/* ─── 导航与脚注 ─── */
+.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px;font-size:.9rem}
+.back-home,.footnote{color:var(--ink-60);font-size:.85rem}
+.footnote{margin-top:28px;text-align:center}
+.chain-next{background:var(--accent-glow);border-radius:8px;padding:12px 16px;font-size:.9rem;color:var(--ink-60);margin-top:16px}
+
+/* ─── 公式容器修复 ─── */
+.lesson mjx-container{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:3px;vertical-align:middle}
+.lesson mjx-container[display="true"]{display:block}
+
+/* ─── SVG 通用 ─── */
+.svg-frame{fill:var(--paper-light);stroke:var(--border);stroke-width:1}
+.svg-box{fill:var(--paper);stroke:var(--accent);stroke-width:1.6}
+.svg-box--alt{fill:var(--paper);stroke:var(--border);stroke-width:1.4}
+.svg-t{fill:currentColor;font-family:var(--font-sans)}
+.svg-mono{font-family:var(--font-mono)}
+.svg-accent{fill:var(--accent)}
+.svg-dim{fill:var(--ink-40)}
+.node-g{fill:var(--green)}
+.node-b{fill:var(--accent)}
+.node-hbc{fill:var(--gold)}
+.arrowline{stroke:var(--ink-60);stroke-width:1.6;fill:none}
+.arrowline--accent{stroke:var(--accent);stroke-width:2;fill:none}
+.arrowline--dim{stroke:var(--ink-20);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+
+/* ─── 移动端 ─── */
+@media(max-width:600px){
+  .lesson{padding:20px 16px}
+  .callout,.formula-box,.exercise-box{padding:14px}
+  th,td{padding:8px}
+  .demo{padding:12px}
+  .demo-stage{padding:8px}
+  .pipe-step{flex:1 1 44%}
+}
+
+/* ─── 手机上的宽图：保持最小宽度 + 横向滑动（否则图内文字缩到 6px 看不清） ─── */
+@media(max-width:700px){
+  .demo-stage,.fig{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .demo-stage svg,.fig svg{min-width:660px}
+  .demo::after{content:'↔ 示意图可左右滑动查看';display:block;font-size:.72rem;color:var(--ink-40);margin-top:6px}
+  .fig::after{content:'↔ 示意图可左右滑动查看';display:block;font-size:.72rem;color:var(--ink-40);margin-top:2px}
+  .demo-readout{font-size:.78rem}
+  .grid2{grid-template-columns:1fr}
+}
+
+/* ─── 打印 ─── */
+@media print{
+  .demo,.demo-controls{display:none}
+  .lesson{max-width:100%}
+}

@@ -3,66 +3,386 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>0109 · 改进版 Paillier：编码与同态 · PaperLesson</title>
+<title>0109 · 改进版 Paillier：编码与同态 · PaperLesson</title><link rel="icon" href="data:,">
 <link rel="stylesheet" href="../shared/theme.css">
-<style>
-body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
-</style>
+<link rel="stylesheet" href="assets/paillier/course.css">
 <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 <main class="lesson">
 <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
-<header><p class="subtitle">PAILLIER · 论文精读 · 第 3 课</p><h1>给实数造一把“能做加法”的锁</h1><p class="subtitle">改进版 Paillier：编码 → 加密 → 解密 → 解码，与引理 1 的误差界</p><div class="meta"><span>0109</span><span>建议 25 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 §2.5、§3.1 式 (5)–(9)、Lemma 1–2</span></div></header>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 3 课 / 共 8 课</p><h1>给实数造一把"能做加法"的锁</h1><p class="subtitle">改进版 Paillier：编码 → 加密 → 解密 → 解码，与引理 1 的误差界</p><div class="meta"><span>0109</span><span>建议 25 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 §2.5、§3.1 式 (5)–(9)、Lemma 1–2</span></div></header>
 <div class="content">
-<div class="callout"><strong>本课目标与前置知识</strong><p>前置：第 0107 课的系统模型、第 0108 课的 $(\Omega,q)$ 信息形式。不要求任何密码学背景——本课把“同态”讲成“在密文上做加法”，把“编码”讲成“换单位”。学完要能回答：为什么需要改进版？符号为什么放在密文外？量化误差有多大、由谁控制？同态的两条性质如何对应“加密的数怎么相加”？</p></div>
-<h2>1. 可能不熟的三个词：3 分钟速成</h2>
-<div class="table-wrap"><table><thead><tr><th>术语</th><th>本课中的意思</th></tr></thead><tbody>
-<tr><td>公钥 / 私钥<br>$\mathcal P/\mathcal S$</td><td>一对配套参数。任何人可用 $\mathcal P$ 把明文“锁”成密文；只有持 $\mathcal S$ 的人能解锁。$\mathcal P$ 可以公开，$\mathcal S$ 永不外传。</td></tr>
-<tr><td>加法同态<br>additive homomorphism</td><td>不解密的情况下，对密文做指定运算，解密后得到明文的和（或整数倍）。类比：密封的信封可以叠在一起，拆开时正好是“合计数”。</td></tr>
-<tr><td>判定性合数剩余假设<br>DCR</td><td>Paillier 安全性的数学基石：某个判定问题在计算上不可行。意思是没有私钥就“解不开”，这是密码学假设级别的保证，不是“比较难猜”。</td></tr>
+
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：第 0107 课的系统模型、0108 课的 $(\Omega,q)$ 信息形式。不要求任何密码学背景——本课把"同态"讲成"<strong>在密文上做加法</strong>"，把"编码"讲成"<strong>换单位</strong>"。学完要能回答：为什么需要改进版？符号为什么放在密文外？量化误差有多大、由谁控制？同态的两条性质如何对应"加密的数怎么相加"？</p></div>
+
+<h2>1. 三个词，三分钟速成（加上两块最硬的地基）</h2>
+
+<p><strong>先补第一块地基：模运算（时钟算术）。</strong>Paillier 的所有运算都不是普通整数运算，而是在"模 $N_p^2$"下进行的——像钟表一样，走到头就回到起点。这不是数学花活，而是整个安全性的来源：普通整数乘法可以无限变大，而模运算里的结果总在有限范围内"绕圈"，对方无法从结果反推过程。</p>
+<div class="fig">
+<svg viewBox="0 0 720 250" role="img" aria-label="模运算的时钟类比：数字走到边界绕回起点">
+  <!-- 时钟 1：加法 -->
+  <g>
+    <circle cx="180" cy="124" r="82" fill="none" stroke="var(--border)" stroke-width="2"/>
+    <g stroke="var(--ink-20)" stroke-width="1.4">
+      <line x1="180" y1="42" x2="180" y2="54"/>
+      <line x1="262" y1="124" x2="250" y2="124"/>
+      <line x1="180" y1="206" x2="180" y2="194"/>
+      <line x1="98" y1="124" x2="110" y2="124"/>
+    </g>
+    <text x="180" y="38" text-anchor="middle" font-size="10.5" class="svg-dim">0 / 12</text>
+    <text x="272" y="128" text-anchor="middle" font-size="10.5" class="svg-dim">3</text>
+    <text x="180" y="220" text-anchor="middle" font-size="10.5" class="svg-dim">6</text>
+    <text x="88" y="128" text-anchor="middle" font-size="10.5" class="svg-dim">9</text>
+    <path d="M180 124 L228 76" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round"/>
+    <text x="180" y="130" text-anchor="middle" font-size="11" class="svg-t">加 7</text>
+    <text x="180" y="238" text-anchor="middle" font-size="11.5" class="svg-t">11 + 7 = 18 → 绕回 <tspan font-weight="700" fill="var(--accent)">6</tspan></text>
+  </g>
+  <!-- 箭头 -->
+  <text x="352" y="130" text-anchor="middle" font-size="22" class="svg-dim">↔</text>
+  <!-- 时钟 2：密文乘法 -->
+  <g>
+    <circle cx="530" cy="124" r="82" fill="none" stroke="var(--accent-light)" stroke-width="2"/>
+    <text x="530" y="120" text-anchor="middle" font-size="12.5" class="svg-t">密文空间也是一口</text>
+    <text x="530" y="140" text-anchor="middle" font-size="12.5" class="svg-t">"有限大小的钟"</text>
+    <text x="530" y="164" text-anchor="middle" font-size="10.5" class="svg-dim">所有密文都在 0 ~ N_p²−1 之间</text>
+    <text x="530" y="238" text-anchor="middle" font-size="11.5" class="svg-t">超出上界就绕回——<tspan fill="var(--accent)">这就是"模"的含义</tspan></text>
+  </g>
+</svg>
+<p class="figcap"><strong>图 1：</strong>模运算就是"有限刻度盘上的算术"。你不需要会算，只需要记住两件事：<strong>①</strong> 结果总在有限范围内（所以密文不会无限变大）；<strong>②</strong> "越界回绕"让外层观察者难判真实数值（安全性的来源之一）。后文遇到 $\bmod N_p^2$ 时，把它理解成"在这样一口钟上做运算"即可。</p>
+</div>
+
+<p><strong>再补第二块地基：加密是"随机化"的。</strong>这是最违反直觉、又最容易被忽略的一条——<strong>同一个明文加密两次，得到的两串密文完全不同</strong>。加密过程会掺入随机因子，所以密文之间不可比大小、不可比对"是不是同一个数"。</p>
+<div class="demo" id="rand-demo">
+  <p class="demo-title">同一个数，加密两次，两个样子</p>
+  <p class="demo-hint">点按钮，看"数字 7"被加密多次的结果（示意，非真实密文）。</p>
+  <div class="demo-stage">
+    <svg id="rd-svg" viewBox="0 0 720 190" role="img" aria-label="加密随机化：同一明文加密两次得到不同密文">
+      <rect x="40" y="66" width="130" height="58" rx="9" fill="var(--green-dim)" stroke="var(--green)" stroke-width="2"/>
+      <text x="105" y="92" text-anchor="middle" font-size="14" class="svg-t">明文 7</text>
+      <text x="105" y="112" text-anchor="middle" font-size="10.5" class="svg-dim">永远是这个 7</text>
+      <text x="196" y="101" text-anchor="middle" font-size="19" class="svg-dim">→</text>
+      <g id="rd-outs"></g>
+      <text x="360" y="176" text-anchor="middle" font-size="11.5" class="svg-dim">同样的 7，每次加密出的密文都不一样——但都能被私钥解回 7</text>
+    </svg>
+  </div>
+  <p class="demo-caption" id="rd-cap">这条性质带来两个后果：<strong>①</strong> 窃听者无法把两次出现的密文"对上号"（不知道是不是同一条消息）；<strong>②</strong> "密文相乘 = 明文相加"不会因为重复出现而暴露确定性关系。<em>没有随机化，整个协议的安全模型都会塌掉。</em></p>
+  <div class="demo-controls">
+    <button class="demo-btn primary" id="rd-go" type="button">再加密一次 7</button>
+    <button class="demo-btn" id="rd-reset" type="button">清空</button>
+  </div>
+</div>
+
+<div class="table-wrap"><table class="tight"><thead><tr><th>术语</th><th>本课中的意思</th></tr></thead><tbody>
+<tr><td><strong>公钥 / 私钥</strong><br>$\mathcal P/\mathcal S$</td><td>一对配套参数。任何人可用公钥 $\mathcal P$ 把明文"锁"成密文；只有持私钥 $\mathcal S$ 的人能解锁。$\mathcal P$ 可以公开，$\mathcal S$ 永不外传。</td></tr>
+<tr><td><strong>加法同态</strong><br>additive homomorphism</td><td>不解密的前提下，对密文做特定运算，解密后得到明文的<strong>和</strong>（或整数倍）。类比：密封的盒子可以叠在一起，拆开后正好是"合计数"。</td></tr>
+<tr><td><strong>判定性合数剩余假设</strong><br>DCR</td><td>Paillier 安全性的数学基石：某个判定问题在计算上不可行。<strong>本课只需要知道它的"身份"（0112 会引用它），不需要理解它的内容。</strong>准确含义是"在参数合适、实现正确、假设成立的条件下，破解在计算上不可行"——<em>不是</em>数学意义上的绝对不可能。</td></tr>
 </tbody></table></div>
-<p>原生 Paillier（Paillier 1999）的两条规则，原文式 (2)–(3)：</p>
-<div class="formula-box">$$\mathcal C=\mathbf E(\mathcal M),\qquad \mathcal M=\mathbf D(\mathcal C),$$
+
+<div class="callout"><strong>一张纸条记住：加密黑盒的三个性质</strong><p>把 Paillier 想象成一个黑盒，它有三条性质，后面每一课都在用它们：<strong>① 可逆</strong>——加密能解密回来；<strong>② 随机化</strong>——同一明文两次加密结果不同（上面刚演示过）；<strong>③ 加法同态</strong>——密文可以做"加法"，对应明文相加或数乘（下面详细讲）。<em>除此之外它什么都不会</em>——尤其不能做密文乘法、不能做比较大小。</p></div>
+
+<p>原生 Paillier（Paillier 1999）只有两条基本规则，原文式 (2)–(3) 的写法如下：</p>
+<div class="formula-box"><span class="fname">原生 Paillier · 原文式 (2)–(3)</span>
+$$\mathcal C=\mathbf E(\mathcal M),\qquad \mathcal M=\mathbf D(\mathcal C);$$
 $$\mathbf E(\mathcal M_1+\mathcal M_2)=\mathbf E(\mathcal M_1)\,\mathbf E(\mathcal M_2),\qquad \mathbf E(\mathcal R\,\mathcal M_1)=\big[\mathbf E(\mathcal M_1)\big]^{\mathcal R}.$$
-<p><strong>是什么：</strong>加密 $\mathbf E$、解密 $\mathbf D$ 互逆；两式合称加法同态——密文相乘对应明文相加，密文自乘 $\mathcal R$ 次对应明文乘整数 $\mathcal R$。$\mathcal R$ 是已知正整数。</p><p><strong>直觉：</strong>同态加密里“密文相乘”就是“明文相加”的化身。数乘那条意味着“加权”也能做——权重必须是公开的正整数。</p><p><strong>细节：</strong>同态等式在模 $n^2$ 意义下成立（$n$ 是密钥参数），明文空间是非负整数。这带来两条硬约束：只吃<strong>非负整数</strong>，且数值不能超过密钥参数的范围。改进版就是为绕开第一条而设计的；第二条（数值范围）由假设 2 的参数上界兜底，0113 课会回到这里。</p></div>
-<div class="callout"><strong>为什么不是 ElGamal？</strong><p>同系列前作（Fu et al. 2024）用的是改进 ElGamal，但 ElGamal 天生是<strong>乘法</strong>同态：密文相乘对应明文相乘。而 0108 课已经看到，融合是“加权<strong>求和</strong>”。Paillier 的加法同态正好对上融合的代数结构——这是选型的核心理由。</p></div>
-<h2>2. 编码：把实数换成整数，符号随身携带</h2>
-<p>信息量 $\tilde q,\tilde\Omega$ 是实数（可正可负、带小数）。原生 Paillier 只收非负整数，所以要“编码”。原文式 (5)，逐元素定义：</p>
-<div class="formula-box">$$\Gamma(s,r)=\operatorname{sgn}\!\big(\Psi(s,r)\big)\cdot\operatorname{round}\!\big(|\Psi(s,r)|\cdot\mathcal O\big).$$
-<p><strong>是什么：</strong>对实矩阵 $\Psi$ 的每个元素：绝对值乘以编码尺度 $\mathcal O\in\mathbb N^+$ 后四舍五入取整，再挂回原来的正负号，得到整数矩阵 $\Gamma$。</p><p><strong>直觉：</strong>把单位从“米”换成“毫米”：数值放大 $\mathcal O$ 倍再取整。符号信息单独拎出来挂在整数前面，因为 Paillier 只认非负整数，正负号不能进锁。</p><p><strong>细节：</strong>原文用 argmin 写“取最近的整数”；两个整数一样远（恰为半整数）时取绝对值更大的那个（即远离零）。注意区分：编码参数在式 (5) 处记作 $\mathcal O$，在算法与假设 2 中记作 $\mathcal Q_k^i$——同一个角色，本系列从这课起统一写 $\mathcal Q$（算法记号），并且它与过程噪声协方差 $Q_k$ 无关，只是形近。</p></div>
+<p><strong>是什么：</strong>上排：加密 $\mathbf E$ 与解密 $\mathbf D$ 互逆。下排：加法同态的两条规则——<strong>密文相乘 = 明文相加</strong>；<strong>密文的 $\mathcal R$ 次幂 = 明文乘整数 $\mathcal R$</strong>（$\mathcal R$ 是已知正整数）。</p><p><strong>直觉：</strong>同态加密里，"密文相乘"就是"明文相加"的化身。数乘那条意味着"加权"也能在密文上做——执行幂运算的一方必须知道整数系数，但不必向别人公开这个系数。</p><p><strong>细节（两条硬约束）：</strong>同态运算在模 $N_p^2$ 下进行（$N_p$ 是密码学模数，与状态维数 $n$ 不同名不同物）；明文空间是<strong>非负整数</strong>。因此：① 实数要先编码成整数；② 编码值和同态中间结果必须检查是否落在合法消息范围内（回绕会毁掉正确性）。假设 2 并不自动保证不溢出——尤其高斯变量没有确定的幅值上界。改进版就是为绕开第 ① 条而设计的。</p></div>
+<div class="callout"><strong>为什么不用 ElGamal？</strong><p>同系列前作（Fu 等 2024）用的是改进 ElGamal，但 ElGamal 天生是<strong>乘法</strong>同态：密文相乘对应明文相乘。而 0108 已经看到，CI 融合是"加权<strong>求和</strong>"。Paillier 的加法同态正好对上融合的代数结构——这是选型的核心理由。</p></div>
+
+<h2>2. 编码：把实数换成整数，符号"随身携带"</h2>
+<p>信息量 $\tilde q,\tilde\Omega$ 是实数（可正可负、带小数）；原生 Paillier 只收非负整数。所以第一步是"编码"，原文式 (5)，逐元素定义：</p>
+<div class="formula-box"><span class="fname">原文式 (5) · 编码（实数 → 整数）</span>
+$$\Gamma(s,r)=\operatorname{sgn}\!\big(\Psi(s,r)\big)\cdot\operatorname{round}\!\big(|\Psi(s,r)|\cdot\mathcal O\big).$$
+<p><strong>是什么：</strong>对实矩阵 $\Psi$ 的每个元素：绝对值乘以编码尺度 $\mathcal O\in\mathbb N^+$ 后四舍五入取整，再挂回原来的正负号，得到整数矩阵 $\Gamma$。</p><p><strong>直觉：</strong>把单位从"米"换成"毫米"——数值放大 $\mathcal O$ 倍再取整。符号信息单独拎出来挂在整数前面，因为 Paillier 只认非负整数。</p><p><strong>细节（平局规则）：</strong>原文用 argmin 表达"取最近的整数"。当两个整数<strong>一样远</strong>（恰为半整数）时，取绝对值更大的那个（即<strong>远离零</strong>）。这条规则在 0111 课拼接时会再次出现。</p><p><strong>记号提醒：</strong>编码参数在式 (5) 处记作 $\mathcal O$，在算法与假设 2 中记作 $\mathcal Q_k^i$——同一个角色，本系列从这课起统一写 $\mathcal Q$（算法记号），且它与过程噪声协方差 $Q_k$ 无关，只是形近。</p></div>
+
+<div class="demo" id="enc-demo">
+  <p class="demo-title">动手试：编码 → 解码 一圈，误差有多大？</p>
+  <p class="demo-hint">拖动滑块选一个实数（-5.00 ~ 5.00），调编码尺度 Q，看它被量化到哪、回来差了多少。</p>
+  <div class="demo-stage">
+    <svg id="enc-svg" viewBox="0 0 720 268" role="img" aria-label="量化数轴：实数被吸附到最近的1/Q格点上">
+      <!-- 数轴 -->
+      <line x1="60" y1="150" x2="660" y2="150" stroke="var(--border)" stroke-width="2"/>
+      <g id="grid-lines"></g>
+      <!-- 刻度 -->
+      <g id="ticks"></g>
+      <!-- 真实值 -->
+      <g id="true-mark">
+        <line x1="360" y1="86" x2="360" y2="176" stroke="var(--accent)" stroke-width="2.4"/>
+        <circle cx="360" cy="86" r="6" fill="var(--accent)"/>
+        <text id="true-label" x="360" y="68" text-anchor="middle" font-size="13" class="svg-t">真实值</text>
+      </g>
+      <!-- 量化点 -->
+      <g id="q-mark">
+        <circle cx="360" cy="150" r="7" fill="var(--green)" stroke="var(--paper-light)" stroke-width="2"/>
+        <text id="q-label" x="360" y="200" text-anchor="middle" font-size="12.5" fill="var(--green)">量化点</text>
+      </g>
+      <!-- 误差弧 -->
+      <path id="err-arc" d="" fill="none" stroke="var(--gold)" stroke-width="2.4"/>
+      <text id="err-label" x="360" y="240" text-anchor="middle" font-size="12.5" class="svg-t" fill="var(--gold)"></text>
+      <text x="60" y="128" font-size="11.5" class="svg-dim">每个绿点是一个"合法整数格点"（间距 1/Q）</text>
+    </svg>
+  </div>
+  <div class="demo-range">
+    <label for="enc-x">数值 x</label>
+    <input type="range" id="enc-x" min="-5" max="5" step="0.01" value="3.1416" style="flex:1;min-width:160px">
+    <output id="enc-x-out">3.14</output>
+  </div>
+  <div class="demo-range">
+    <label for="enc-q">编码尺度 Q</label>
+    <input type="range" id="enc-q" min="1" max="100" step="1" value="10" style="flex:1;min-width:160px">
+    <output id="enc-q-out">10</output>
+  </div>
+  <div class="demo-readout" id="enc-out"></div>
+  <p class="demo-caption" id="enc-cap">放大再取整，就是"编码"；除回去，就是"解码"。差值永远不超过半格 <b>1/(2Q)</b>。</p>
+</div>
+
+<p>四个操作串起来，就是改进版 Paillier 的完整往返（原文式 (5)–(8) 的顺序）：</p>
 <div class="table-wrap"><table><thead><tr><th>环节</th><th>操作</th><th>符号去哪了</th></tr></thead><tbody>
 <tr><td>编码（式 5）</td><td>绝对值放大 $\mathcal O$ 倍取整</td><td>sgn 提出，不进 Paillier</td></tr>
 <tr><td>加密（式 6）</td><td>$\Upsilon(s,r)=\operatorname{sgn}(\Gamma(s,r))\,\mathbf E(|\Gamma(s,r)|)$</td><td>继续在密文外明文携带</td></tr>
-<tr><td>解密（式 7）</td><td>先 $\mathbf D$ 解绝对值部分，再乘回符号</td><td>与解密结果相乘还原</td></tr>
+<tr><td>解密（式 7）</td><td>先对绝对值部分做 $\mathbf D$，再乘回符号</td><td>与解密结果相乘还原</td></tr>
 <tr><td>解码（式 8）</td><td>$\tilde\Psi(s,r)=\Gamma(s,r)/\mathcal O$</td><td>已在解密时还原</td></tr>
 </tbody></table></div>
-<p>四个操作合起来记作 $\mathbf P_{\mathbf M}(\cdot\,,\mathcal O)$（modified Paillier 的完整操作）；只编码加密记 $\mathbf E_{\mathbf{NM}}$。原文式 (9) 给了这些简写，全文反复使用。</p>
-<h3>手算一遍编码</h3>
-<p>取 $\mathcal O=100$，元素值 $-3.1416$：绝对值 $3.1416$ 放大成 $314.16$，四舍五入得 $314$，符号为负 → 编码 $\Gamma=-314$。解码时 $-314/100=-3.14$——丢了 $0.0016$。这就是量化误差，下面给它一个硬上界。</p>
-<h2>3. Lemma 1：量化误差的上界</h2>
-<div class="formula-box">$$\mathcal F-\frac{n}{2\mathcal O}I\ \leq\ \mathbf P_{\mathbf M}(\mathcal F,\mathcal O)\ \leq\ \mathcal F+\frac{n}{2\mathcal O}I,\qquad\ \mathcal F>0.$$
-<p><strong>是什么：</strong>编解码往返后的矩阵与原矩阵相差不超过 $\frac{n}{2\mathcal O}I$（这里的 $n$ 是状态维数，注意与密钥参数重名——原文如此，读时看上下文）。</p><p><strong>直觉：</strong>每个元素的四舍五入误差不超过 $\frac{1}{2\mathcal O}$；对正定矩阵做最坏情况分析，误差按对角累加，就得到 $\frac{n}{2\mathcal O}$ 量级的双侧界。$\mathcal O$ 越大，锁得越精细，误差越小。</p><p><strong>细节：</strong>这是<strong>确定性的逐元素界</strong>，不是概率陈述——是“任何取值都成立”的最坏情况保证。它与假设 2 中 $\mathcal Q_k^i\le\bar g$（编码尺度有上界）一起，决定量化误差不能任意小：$\mathcal O$ 有上限，误差就有下限。这是 0113 课稳定性证明的关键输入之一。</p></div>
-<div class="callout"><strong>精度—开销的旋钮</strong><p>$\mathcal O$ 是一个旋钮：调大 → 量化误差按 $1/\mathcal O$ 缩小，但编码后的整数变大，加密、传输、同态计算的开销都上升。原文的稳定性结论（Thm 3）明确要求 $\mathcal Q_k^i$ “取得足够大”——精度保证是有代价条件的，0113 课会展开。</p></div>
-<h2>4. 同态的两条用法：为协议铺路</h2>
-<p>把 0108 的 CI 融合翻译到密文世界，需要两件事：加法怎么在密文上完成、未知系数怎么处理。Lemma 2 给出组合规则（成立条件：$\operatorname{Sgn}(\mathcal F_1)=\operatorname{Sgn}(\mathcal F_2)$，逐元素同号）：</p>
-<div class="formula-box">$$\mathbf E_{\mathbf M}\!\big(\mathcal R_1\,\mathbf E_{\mathbf N}(\mathcal F_1,\mathcal O)+\mathcal R_2\,\mathbf E_{\mathbf N}(\mathcal F_2,\mathcal O)\big)=\operatorname{Sgn}(\Gamma_1)\odot\operatorname{Exp}(\Gamma_1,\mathcal R_1)\odot\operatorname{Exp}(\Gamma_2,\mathcal R_2).$$
-<p><strong>是什么：</strong>两个编码后的量的已知正整数倍相加，可以在密文上完成：右边的 $\odot$ 是逐元素相乘（Hadamard 积），$\operatorname{Exp}(\Gamma,\mathcal R)$ 表示逐元素取 $\mathcal R$ 次幂。幂次对应明文的倍数，密文相乘对应明文相加——正是式 (3) 两条规则的逐元素版。</p><p><strong>直觉：</strong>“加权求和”这个操作，在锁着的盒子里也能完成，只要权重是公开的正整数。这是下一课邻居能在密文上代劳的根本原因。</p><p><strong>细节：</strong>成立条件是两者符号模式一致。这不是巧合限制：0110 课的协议会让掩码量刻意取成与目标量相同的符号模式，就是为了能用这条规则。</p></div>
-<p>还有一条 0110 课直接用的事实：对整数量 $\mathcal X$（编码不产生误差），加法同态精确成立，因此</p>
-<div class="formula-box">$$\mathbf P_{\mathbf M}(\mathcal F_1+\mathcal F_2,\mathcal O)\ \approx\ \mathbf P_{\mathbf M}(\mathcal F_1,\mathcal O)+\mathbf P_{\mathbf M}(\mathcal F_2,\mathcal O),$$
-<p>差值恰好是两次量化误差之和，被 Lemma 1 控制。0108 课的“融合是加权求和”加上本课的“求和可在密文上做”，方法主体就剩一个问题：<strong>权重本身不能暴露隐私时怎么办？</strong>——0110 课用随机掩码回答它。</p>
-<h2>5. 合上正文，试着回答</h2>
-<section class="exercise-box"><h3>练习一：编码三连算</h3><p>取 $\mathcal O=10$。编码 $2.7$、$-0.54$、$0.05$，再解码回去。各自的编码结果与误差是多少？</p><details><summary>展开答案与解释</summary><div class="answer">$2.7\to\operatorname{round}(27)=27$，解码 $2.7$，误差 $0$。$-0.54\to\operatorname{round}(5.4)=5$，带符号 $-5$，解码 $-0.5$，误差 $0.04$。$0.05\to\operatorname{round}(0.5)$——半整数，按规则取绝对值更大的方向，得 $1$，解码 $0.1$，误差 $0.05$（恰好是 $\frac{1}{2\mathcal O}$ 的界）。最后一个例子说明“四舍五入平局规则”有时会碰到界的边界。</div></details></section>
-<section class="exercise-box"><h3>练习二：误差界的热身</h3><p>状态维数 $n=2$，编码尺度 $\mathcal O=100$。Lemma 1 保证往返误差不超过多少（以 $I$ 的系数表示）？若 $\mathcal O=1000$ 呢？由此说明“调大 $\mathcal O$”的收益形态。</p><details><summary>展开答案与解释</summary><div class="answer">$n/(2\mathcal O)=2/200=0.01$；$\mathcal O=1000$ 时为 $0.001$。收益是 $1/\mathcal O$ 型的：尺度翻十倍，误差才缩十倍——不是免费的，编码后的整数位数也按比例涨，加密计算随之变重。这就是“旋钮”的两端。</div></details></section>
-<section class="exercise-box"><h3>练习三：符号为什么在锁外</h3><p>如果硬要把负数“塞进”Paillier（比如模掉一个大整数来表示负数），解码时会遇到什么麻烦？论文把符号放在密文外，换来了什么？</p><details><summary>展开答案与解释</summary><div class="answer">模运算下负数要靠“绕回”表示，解码时无法区分“真的是大正数”还是“负数绕回来了”，除非额外引入偏移并小心处理溢出——复杂且易错。符号放锁外则完全避开这个问题：数值部分永远非负，解密后拼回符号即可。代价是符号模式本身以明文暴露（0112 课会把它列入“公开但需讨论的信息”，不回避）。</div></details></section>
-<div class="callout"><strong>本课带走的一句话</strong><p>改进版 Paillier = 原生 Paillier + “实数 ↔ 整数”的编码层（符号在锁外）；Lemma 1 把量化误差钉在 $n/(2\mathcal O)$，Lemma 2 证明“公开整数权重的加权和”可以在密文上完成——协议的两块基石齐了。</p><p>下一课是全文最精巧的部分：邻居 $j$ 在完全看不到明文的情况下，如何用随机掩码把自己的信息“混”进 $i$ 的密文里。后续页面尚未发布，本页暂不放置无效跳转；卡住了就把小节标题或练习答案发给我。</p></div>
-<h2>原文阅读定位</h2>
-<p>本课对应原文 Section 2.5（Paillier 密码系统与式 (2)–(3)）、Section 3.1 的式 (5)–(9) 与 Lemma 1、Lemma 2。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+<p class="tbl-note">四个操作合起来记作 $\mathbf P_{\mathbf M}(\cdot\,,\mathcal O)$（modified Paillier 完整操作）；只做"编码+加密"记作 $\mathbf E_{\mathbf{NM}}$。原文式 (9) 给了这些简写，全文反复使用。</p>
+
+<h2>3. Lemma 1：量化误差的硬上界</h2>
+<p>量化误差小到什么程度？原文引理给出一个<strong>确定性的矩阵界</strong>：</p>
+<div class="formula-box"><span class="fname">原文 Lemma 1 · 编解码往返误差界</span>
+$$\mathcal F-\frac{n}{2\mathcal O}I\ \leq\ \mathbf P_{\mathbf M}(\mathcal F,\mathcal O)\ \leq\ \mathcal F+\frac{n}{2\mathcal O}I,\qquad \mathcal F>0.$$
+<p><strong>是什么：</strong>编解码往返后的矩阵与原矩阵之差，不超过 $\frac{n}{2\mathcal O}I$（$n$ 是状态维数；矩阵不等号是<strong>半正定序</strong>）。</p><p><strong>直觉：</strong>每个元素的四舍五入误差不超过 $\frac{1}{2\mathcal O}$（上面演示里亲眼看到的半格）；对正定矩阵做最坏情况分析，谱范数最多放大 $n$ 倍，就得到 $\frac{n}{2\mathcal O}$ 量级的双侧界。<strong>$\mathcal O$ 越大，锁得越精细，误差越小。</strong></p><p><strong>细节（三个不要搞混的点）：</strong>① 这是确定性的最坏情况保证，不是概率陈述；② "最坏情况上界"不等于"实际误差"，落在量化网格上的数误差仍然是零；③ 半正定序比较的是"任意方向上的二次型"，不是逐元素比大小——第 0113 课会用一整段速成把这件事讲透。</p></div>
+
+<div class="demo" id="bound-demo">
+  <p class="demo-title">误差界怎么随 Q 收缩？</p>
+  <p class="demo-hint">拖动 Q，看 $n/(2\mathcal O)$ 这条"可靠性天花板"的变化（对数感受更直观：Q 翻十倍，界才缩十倍）。</p>
+  <div class="demo-range">
+    <label for="bd-q">编码尺度 Q</label>
+    <input type="range" id="bd-q" min="1" max="4" step="0.05" value="1" style="flex:1;min-width:180px">
+    <output id="bd-out">Q = 10</output>
+  </div>
+  <div class="demo-readout" id="bd-readout"></div>
+  <p class="demo-caption">收益是 $1/\mathcal O$ 型的：尺度翻 10 倍，误差界缩到 1/10。代价是编码整数的位长随之增长（约 +3.32 bit/10 倍），且假设 2 要求 $\mathcal Q_k^i\le\bar g$——<b>理论框架里编码尺度是有上界的，"无限调大 Q"不是可执行的选项</b>。这个张力在第 0111 课还会回来。</p>
 </div>
-<nav class="nav"><a href="0108-信息滤波与CI融合.html">← 上一课：信息滤波与 CI 融合</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+
+<div class="callout"><strong>精度—开销的旋钮</strong><p>$\mathcal O$ 是一个旋钮：调大 → 最坏情况量化误差界按 $1/\mathcal O$ 缩小，但编码值变大、消息空间余量变小，密文长度与计算开销也可能受影响。原文的稳定性结论（Theorem 3）明确要求 $\mathcal Q_k^i$ "取得足够大"——精度保证是有代价条件的，第 0113 课展开。</p></div>
+
+<h2>4. 同态的两条用法：为协议铺路</h2>
+<p>把 0108 的 CI 融合翻译到密文世界，需要两件事：<strong>加法怎么在密文上完成</strong>、<strong>未知系数怎么处理</strong>。原文 Lemma 2 给出组合规则（成立条件：两个量的<strong>符号模式逐元素一致</strong>）：</p>
+<div class="formula-box"><span class="fname">原文 Lemma 2 · 密文上的加权组合</span>
+$$\mathbf E_{\mathbf M}\!\big(\mathcal R_1\,\mathbf E_{\mathbf N}(\mathcal F_1,\mathcal O)+\mathcal R_2\,\mathbf E_{\mathbf N}(\mathcal F_2,\mathcal O)\big)=\operatorname{Sgn}(\Gamma_1)\odot\operatorname{Exp}(\Gamma_1,\mathcal R_1)\odot\operatorname{Exp}(\Gamma_2,\mathcal R_2).$$
+<p><strong>是什么：</strong>两个编码量的已知正整数倍相加，可以在密文上完成。右边：$\odot$ 是逐元素相乘（Hadamard 积），$\operatorname{Exp}(\Gamma,\mathcal R)$ 表示逐元素取 $\mathcal R$ 次幂。注解：这里的 $\Gamma_1,\Gamma_2$ 指已编码加密的量；$\mathbf E_{\mathbf N}$ 只是编码，别误读成"编码加密"。</p><p><strong>直觉：</strong>"加权求和"这个操作，在锁着的盒子里也能完成——只要执行计算的一方掌握正整数系数。这就是下一课里邻居能在密文上替 $i$ 代劳的根本原因。</p><p><strong>细节（为什么要求同号）：</strong>同号保证"绝对值相加再挂同一个符号"这件事在数学上干净成立。0110 课的协议会让掩码量<strong>刻意取成与目标量相同的符号模式</strong>——就是为了满足这条规则。"设计为引理服务"，这是个典型例子。</p></div>
+
+<div class="demo" id="homo-demo">
+  <p class="demo-title">同态长什么样：三个盒子叠一叠</p>
+  <p class="demo-hint">8 和 5 都被锁着。点"叠加并开锁"，看锁着的盒子能不能直接加起来。</p>
+  <div class="demo-stage">
+    <svg id="homo-svg" viewBox="0 0 720 240" role="img" aria-label="同态演示：两个锁着的盒子叠加，开锁后得到数字之和">
+      <!-- 盒子 A -->
+      <g id="hb-a">
+        <rect x="60" y="60" width="130" height="100" rx="12" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="125" y="105" text-anchor="middle" font-size="26" class="svg-t">🔒</text>
+        <text x="125" y="140" text-anchor="middle" font-size="12.5" class="svg-dim">加密的 8</text>
+      </g>
+      <text x="220" y="115" text-anchor="middle" font-size="22" class="svg-t">+</text>
+      <!-- 盒子 B -->
+      <g id="hb-b">
+        <rect x="250" y="60" width="130" height="100" rx="12" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="315" y="105" text-anchor="middle" font-size="26" class="svg-t">🔒</text>
+        <text x="315" y="140" text-anchor="middle" font-size="12.5" class="svg-dim">加密的 5</text>
+      </g>
+      <text x="410" y="115" text-anchor="middle" font-size="22" class="svg-t">=</text>
+      <!-- 结果盒子 -->
+      <g id="hb-r">
+        <rect x="440" y="60" width="130" height="100" rx="12" fill="var(--paper)" stroke="var(--border)" stroke-width="2"/>
+        <text x="505" y="105" text-anchor="middle" font-size="26" class="svg-t">🔒</text>
+        <text x="505" y="140" text-anchor="middle" font-size="12.5" class="svg-dim">加密的 ???</text>
+      </g>
+      <!-- 开锁结果 -->
+      <g id="hb-open" opacity="0">
+        <rect x="600" y="60" width="96" height="100" rx="12" fill="var(--green-dim)" stroke="var(--green)" stroke-width="2"/>
+        <text x="648" y="100" text-anchor="middle" font-size="26" class="svg-t">🔓</text>
+        <text x="648" y="136" text-anchor="middle" font-size="24" font-weight="700" fill="var(--green)">13</text>
+      </g>
+      <text id="homo-note" x="360" y="212" text-anchor="middle" font-size="13" class="svg-t">点下面的按钮演示</text>
+    </svg>
+  </div>
+  <p class="demo-caption" id="homo-cap">没有任何一步需要"先解密再相加"。执行运算的人自始至终看不到 8 和 5。</p>
+  <div class="demo-controls">
+    <button class="demo-btn primary" id="homo-go" type="button">叠加并开锁</button>
+    <button class="demo-btn" id="homo-reset" type="button">重置</button>
+  </div>
+</div>
+
+<p>还有一条 0110 课直接用得上的事实：对<strong>整数量</strong>（编码不产生误差的数），加法同态精确成立，因此</p>
+<div class="formula-box"><span class="fname">整数掩码的"精确拼接"</span>
+$$\mathbf P_{\mathbf M}(\mathcal F_1+\mathcal F_2,\mathcal O)\ \approx\ \mathbf P_{\mathbf M}(\mathcal F_1,\mathcal O)+\mathbf P_{\mathbf M}(\mathcal F_2,\mathcal O).$$
+<p><strong>是什么：</strong>当 $\mathcal F_1,\mathcal F_2$ 落在量化网格上（编码无损）时，两者"先加再走密文往返"与"分别走往返再相加"结果一致。</p><p><strong>细节（注意是 ≈ 不是 =）：</strong>三个量化余项都会出现；原文在 Theorem 1 中利用整数掩码做平移拼接；按式 (5) 的半格"远离零"规则，跨过零的恰好半格情形需要特别核对。课程不能把它当作对任意输入<strong>无条件精确成立</strong>的恒等式——0111 课会标出这个边界。</p></div>
+
+<h2>5. 两块基石齐了，还差什么？</h2>
+<p>0108 的"融合是加权求和" + 本课的"求和可以在密文上做"，方法论主体就只剩最后一个问题：<strong>权重本身不能暴露时怎么办？</strong></p>
+<div class="demo" id="gap-demo">
+  <p class="demo-title">顺手记：现在的进展到哪了</p>
+  <div class="demo-stage">
+    <svg viewBox="0 0 720 176" role="img" aria-label="三块拼图：加权求和的结构、密文上做加法、还缺随机权重">
+      <g>
+        <rect x="20" y="36" width="196" height="104" rx="10" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.8"/>
+        <text x="118" y="72" text-anchor="middle" font-size="13.5" class="svg-t">✓ 融合 = 加权求和</text>
+        <text x="118" y="96" text-anchor="middle" font-size="11.5" class="svg-dim">0108 信息形式</text>
+        <text x="118" y="118" text-anchor="middle" font-size="11.5" class="svg-dim">结构已确认</text>
+      </g>
+      <g>
+        <rect x="238" y="36" width="196" height="104" rx="10" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.8"/>
+        <text x="336" y="72" text-anchor="middle" font-size="13.5" class="svg-t">✓ 密文上能求和</text>
+        <text x="336" y="96" text-anchor="middle" font-size="11.5" class="svg-dim">Lemma 2 同态</text>
+        <text x="336" y="118" text-anchor="middle" font-size="11.5" class="svg-dim">本课已备好</text>
+      </g>
+      <g>
+        <rect x="456" y="36" width="246" height="104" rx="10" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 5"/>
+        <text x="579" y="72" text-anchor="middle" font-size="13.5" class="svg-t">? 权重不能暴露</text>
+        <text x="579" y="96" text-anchor="middle" font-size="11.5" class="svg-dim">怎么让邻居"帮你算"</text>
+        <text x="579" y="118" text-anchor="middle" font-size="11.5" class="svg-dim">又不泄露双方数据</text>
+      </g>
+      <text x="360" y="170" text-anchor="middle" font-size="12.5" class="svg-dim">→ 下一课：用随机掩码和整数份数 U、T 回答它</text>
+    </svg>
+  </div>
+  <p class="demo-caption">下一课是全文最精巧的部分：邻居 $j$ 在完全看不到明文的情况下，如何用<strong>随机掩码</strong>把自己的信息"混"进 $i$ 的密文里。</p>
+</div>
+
+<h2>6. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：编码三连算</h3><p>取 $\mathcal O=10$。对 $2.7$、$-0.54$、$0.05$ 三个数做"编码 → 解码"，各自的编码结果与误差是多少？（注意最后一个的半整数平局规则）</p><details><summary>展开答案与解释</summary><div class="answer">$2.7\to\text{round}(27)=27$，解码 $2.7$，误差 $0$。$-0.54\to\text{round}(5.4)=5$，挂负号得 $-5$，解码 $-0.5$，误差 $0.04$。$0.05\to\text{round}(0.5)$——<strong>半整数</strong>，按"远离零"规则取 $1$，解码 $0.1$，误差 $0.05$，恰好落在 $\frac{1}{2\mathcal O}$ 的边界上。最后一个例子说明平局规则有时会碰到界的边界。</div></details></section>
+<section class="exercise-box"><h3>练习二：误差界的热身</h3><p>状态维数 $n=2$、编码尺度 $\mathcal O=100$。Lemma 1 保证的往返误差上界是多少（以 $I$ 的系数表示）？若 $\mathcal O=1000$ 呢？由此说明"调大 $\mathcal O$"的收益形态。</p><details><summary>展开答案与解释</summary><div class="answer">$n/(2\mathcal O)=2/200=0.01$；$\mathcal O=1000$ 时为 $0.001$。<strong>收益是 $1/\mathcal O$ 型的</strong>：尺度翻十倍，误差界才缩到 1/10——不是免费的。编码整数的大小扩大十倍，位长约增加 3.32 bit；密文长度主要取决于密钥模数，实际计算开销需要实测。这就是"旋钮"的两端。</div></details></section>
+<section class="exercise-box"><h3>练习三：符号为什么在锁外</h3><p>如果硬要把负数"塞进" Paillier（比如用模一个大整数的办法表示负数），解码时会遇到什么麻烦？论文把符号放在密文外，换来了什么？</p><details><summary>展开答案与解释</summary><div class="answer">模运算下负数要靠"绕回"表示，解码时无法区分"真的是个大正数"还是"负数绕回来了"，除非额外引入偏移并小心处理溢出——复杂且易错。符号放锁外则完全避开这个问题：数值部分永远非负，解密后拼回符号即可。<strong>代价是符号模式本身以明文暴露</strong>——第 0112 课会把它列进"公开但需要讨论"的信息清单，课程不回避这一点。</div></details></section>
+
+<div class="callout"><strong>本课带走的一句话</strong><p>改进版 Paillier = 原生 Paillier + "实数 ↔ 整数"的编码层（<strong>符号在锁外</strong>）；Lemma 1 把量化误差钉在 $n/(2\mathcal O)$ 的确定性上界，Lemma 2 证明"计算方已知整数系数的加权和"可以在密文上完成——协议的两块基石齐了。<em>还差的最后一块是：权重怎么办。</em></p><p class="chain-next">下一课是全文最精巧的部分、也是步骤最密的一页：Algorithm 2 的 11 步协议。邻居 $j$ 在完全看不到明文的情况下，如何用自己的随机掩码和正整数份额 U、T，"参与"到别人的融合里？记好本站速成的三个词，我们出发。</p></div>
+
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 2.5（Paillier 与式 (2)–(3)）、Section 3.1 的式 (5)–(9) 与 Lemma 1、Lemma 2（含证明思路）。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0108-信息滤波与CI融合.html">← 上一课：信息滤波与 CI 融合</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="0110-双向安全通信协议.html">下一课：双向安全通信协议 →</a></nav>
 <p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
 </main>
+<script>
+(function(){
+  /* ---- 加密随机化演示 ---- */
+  var outs=document.getElementById('rd-outs');
+  var count=0;
+  function fakeCipher(){
+    var s='';
+    for(var i=0;i<4;i++){s+='0123456789abcdef'[Math.floor(Math.random()*16)];}
+    return s.toUpperCase();
+  }
+  function paint(){
+    var rows='';
+    for(var i=0;i<count;i++){
+      var y=40+i*34;
+      rows+='<rect x="240" y="'+(y-16)+'" width="404" height="26" rx="6" fill="var(--paper)" stroke="var(--border)" stroke-width="1.2"/>';
+      rows+='<text x="252" y="'+y+'" font-size="12.5" class="svg-mono svg-dim">Cipher #'+(i+1)+'</text>';
+      rows+='<text x="356" y="'+y+'" font-size="12.5" class="svg-mono" fill="var(--accent-deep)">'+list[i]+'</text>';
+    }
+    outs.innerHTML=rows;
+    document.getElementById('rd-cap').innerHTML = count<2
+      ? '点"再加密一次 7"，至少点两次才能看出这条性质。'
+      : ('同一明文 <b>7</b>，已经加密成 <b>'+count+'</b> 串不同的密文（'+list.slice(0,2).join(' / ')+' …）。<br><br>这条性质带来两个后果：<b>①</b> 窃听者无法把两次出现的密文"对上号"（不知道是不是同一条消息）；<b>②</b> "密文相乘 = 明文相加"不会因为重复出现而暴露确定性关系。<em>没有随机化，整个协议的安全模型都会塌掉。</em>');
+  }
+  var list=[];
+  document.getElementById('rd-go').addEventListener('click',function(){
+    if(count>=5)return;
+    list.push(fakeCipher()); count++; paint();
+  });
+  document.getElementById('rd-reset').addEventListener('click',function(){
+    list=[]; count=0; paint();
+  });
+  paint();
+
+  /* ---- 编码演示 ---- */
+  var svg=document.getElementById('enc-svg');
+  var gridG=document.getElementById('grid-lines');
+  var tickG=document.getElementById('ticks');
+  var trueMark=document.getElementById('true-mark');
+  var trueLabel=document.getElementById('true-label');
+  var qMark=document.getElementById('q-mark');
+  var qLabel=document.getElementById('q-label');
+  var errArc=document.getElementById('err-arc');
+  var errLabel=document.getElementById('err-label');
+  var xEl=document.getElementById('enc-x'), qEl=document.getElementById('enc-q');
+  var xOut=document.getElementById('enc-x-out'), qOut=document.getElementById('enc-q-out');
+  var out=document.getElementById('enc-out'), cap=document.getElementById('enc-cap');
+  var X0=60, X1=660, VMIN=-5, VMAX=5;
+  function px(v){return X0+(v-VMIN)/(VMAX-VMIN)*(X1-X0);}
+  function enc(v,Q){var t=v*Q;var r=Math.round(Math.abs(t));if(Math.abs(Math.abs(t)%1)===0.5){r=Math.ceil(Math.abs(t));}return (v<0?-1:1)*r;}
+  function draw(){
+    var v=parseFloat(xEl.value), Q=parseInt(qEl.value,10), n=1;
+    xOut.textContent=v.toFixed(2); qOut.textContent=String(Q);
+    // grid
+    var gl=''; var step=1/Q; var budget=120; var drawStep=step;
+    if((X1-X0)/step>budget){drawStep=step*Math.ceil((X1-X0)/step/budget);}
+    for(var g=Math.ceil(VMIN/drawStep)*drawStep; g<=VMAX+1e-9; g+=drawStep){
+      var x=px(g);
+      gl+='<line x1="'+x.toFixed(1)+'" y1="144" x2="'+x.toFixed(1)+'" y2="156" stroke="var(--green)" stroke-width="1.4" opacity="0.75"/>';
+    }
+    gridG.innerHTML=gl;
+    // ticks (labels at integers)
+    var tl='';
+    for(var t=VMIN;t<=VMAX;t+=1){
+      var x2=px(t);
+      tl+='<line x1="'+x2+'" y1="164" x2="'+x2+'" y2="172" stroke="var(--ink-20)" stroke-width="1.2"/>';
+      tl+='<text x="'+x2+'" y="188" text-anchor="middle" font-size="10.5" class="svg-dim">'+t+'</text>';
+    }
+    tickG.innerHTML=tl;
+    // marks
+    var xt=px(v);
+    trueMark.setAttribute('transform','translate('+(xt-360)+',0)');
+    trueLabel.setAttribute('transform','translate('+(xt-360)+',0)');
+    trueLabel.textContent='x = '+v.toFixed(2);
+    var g=enc(v,Q); var vq=g/Q; var xq=px(vq);
+    qMark.setAttribute('transform','translate('+(xq-360)+',0)');
+    qLabel.setAttribute('transform','translate('+(xq-360)+',0)');
+    qLabel.textContent='量化点 = '+vq.toFixed(4);
+    var err=Math.abs(v-vq);
+    var mx=(xt+xq)/2;
+    errArc.setAttribute('d','M '+xt+' 118 Q '+mx+' '+ (86-Math.min(60,(err*180))) +' '+xq+' 118');
+    errLabel.setAttribute('text-anchor','middle');
+    errLabel.setAttribute('x',(xt+xq)/2); errLabel.textContent='误差 '+err.toFixed(4);
+    out.textContent='编码值 Γ = '+g+'   （round('+Math.abs(v).toFixed(4)+' × '+Q+') 挂符号 '+ (v<0?'−':'+') +'）\n解码值 = Γ / Q = '+vq.toFixed(4)+'\n误差 = '+err.toFixed(4)+'   ≤ 1/(2Q) = '+(1/(2*Q)).toFixed(4)+'   '+(err<=1/(2*Q)+1e-12?'✓ 在界内':'✗ 超界（理论上不会发生）');
+    cap.innerHTML='放大 Q='+Q+' 倍再取整 → 编码；除回 Q → 解码。差值（金色弧）永远不超过半格 <b>1/(2Q)='+(1/(2*Q)).toFixed(4)+'</b>。Q 越大格子越密、误差越小，但编码出来的整数也越大。';
+  }
+  xEl.addEventListener('input',draw); qEl.addEventListener('input',draw);
+  draw();
+
+  /* ---- 界演示 ---- */
+  var bdQ=document.getElementById('bd-q'), bdOut=document.getElementById('bd-out'), bdR=document.getElementById('bd-readout');
+  var n=2;
+  function bd(){
+    var Q=Math.pow(10,parseFloat(bdQ.value));
+    bdOut.textContent='Q = '+Q.toFixed(0);
+    var b=n/(2*Q);
+    // 条形示意（对数刻度）
+    var pct=Math.max(2,Math.min(100, (Math.log10(b)+3)/3*100));
+    bdR.textContent='n = 2 → 界 = 2/(2Q) = '+(2/(2*Q)).toFixed(6)+'\n条形长度（对数感受）：'+pct.toFixed(0)+'%\n位数提示：Q='+Q.toFixed(0)+' 时编码位长约多 '+ (Math.log2(Q)).toFixed(2) + ' bit';
+  }
+  bdQ.addEventListener('input',bd); bd();
+
+  /* ---- 同态演示 ---- */
+  var homoNote=document.getElementById('homo-note'), homoOpen=document.getElementById('hb-open'), homoCap=document.getElementById('homo-cap');
+  var steps=[
+    '两个锁着的盒子：加密的 8 与加密的 5。你（执行方）没有钥匙。',
+    '把两个盒子"叠"在一起——这就是密文乘法，对应明文相加。',
+    '结果还是一个锁着的盒子。执行方全程没见过 8 或 5。',
+    '现在用私钥开锁：13 = 8 + 5。计算在密文上完成，加法在解密后自然出现。'
+  ];
+  var si=3;
+  function hset(i){
+    si=i; homoNote.textContent=steps[i];
+    homoOpen.setAttribute('opacity', i>=3?'1':'0');
+    homoCap.innerHTML = i>=3
+      ? '没有任何一步需要"先解密再相加"。执行运算的人自始至终看不到 8 和 5——<b>这正是"邻居能在密文上帮我算"的根基</b>。'
+      : '继续点"下一步"……';
+  }
+  document.getElementById('homo-go').addEventListener('click',function(){hset(si>=3?0:si+1);});
+  document.getElementById('homo-reset').addEventListener('click',function(){hset(0);});
+  hset(0);
+})();
+</script>
+<script src="assets/paillier/lightbox.js"></script>
 <script src="../shared/lesson-tools.js"></script>
 </body>
 </html>

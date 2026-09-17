@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0114 · 实验解读与机器人迁移 · PaperLesson</title><link rel="icon" href="data:,">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="assets/paillier/course.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 8 课 / 共 8 课</p><h1>从仿真曲线到你的机器人系统</h1><p class="subtitle">原文图表带读、论文局限清单、五步迁移框架</p><div class="meta"><span>0114</span><span>建议 30 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 Section 5、Fig. 2–4</span></div></header>
+<div class="content">
+
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：全部前七课。本课是收束课，做三件事：<strong>①</strong> 把第 0113 课的"两个误差量"放回真实的 Fig. 3、Fig. 4 曲线里读懂；<strong>②</strong> 把论文的局限列成清单——诚实，但不刻薄；<strong>③</strong> 给出一个五步迁移框架，回答"这套方法能不能用到我的 ROS2/Nav2 系统上"。</p></div>
+
+<h2>1. 实验设置：先看清"考卷"是什么</h2>
+<div class="table-wrap"><table class="tight"><thead><tr><th>项目</th><th>设置</th></tr></thead><tbody>
+<tr><td>网络规模</td><td>100 个节点（拓扑见 Fig. 2）</td></tr>
+<tr><td>时间区间</td><td>$k\in[0,200]$，共 200 步</td></tr>
+<tr><td>系统矩阵</td><td>$A_k=\begin{bmatrix}0.8 & 0.3\sin(k\pi/6)\\ 0 & 1+0.2\cos(k\pi/6)\end{bmatrix}$，$Q_k=0.1I$（2 维状态）</td></tr>
+<tr><td>测量配置</td><td>节点 1–50：$C=[1,0]$，$R=0.02$；节点 51–100：$C=[0,1]$，$R=0.05$</td></tr>
+<tr><td>融合权重</td><td>$w_{ij}=1/|\mathcal N_i|$（均匀权重）</td></tr>
+<tr><td>统计方法</td><td>500 次蒙特卡洛（系统矩阵固定，只重抽噪声实现）</td></tr>
+<tr><td>初始条件</td><td>$u_0^i=[0;0]$，$P_0^i=0.1I$，$x_0\sim\mathcal N(0,0.1I)$</td></tr>
+</tbody></table></div>
+
+<div class="fig">
+<div class="demo-stage" style="background:var(--paper)">
+<svg viewBox="0 0 720 340" role="img" aria-label="100节点网络拓扑示意（论文Fig.2的教学重绘）">
+  <!-- 生成环形+核心的网络示意 -->
+  <g id="net-g"></g>
+  <text x="360" y="326" text-anchor="middle" font-size="12.5" class="svg-dim">论文 Fig. 2 的教学重绘：100 节点无向网络（核心密集 + 外围分布）。实际拓扑以原文为准。</text>
+</svg>
+</div>
+<p class="figcap"><strong>图 1：</strong>网络规模是这篇论文的实验特点——100 个节点证明方法可扩展；同时这也提醒我们：<em>这是大规模数值仿真，不是 3–5 台机器人的协同实验</em>。这个区别在第 3 节会展开。</p>
+</div>
+
+<figure><img src="assets/paillier/fig2-network.jpg" alt="论文 Fig.2：100 个智能体的网络拓扑" loading="lazy" width="531" height="421"><figcaption>论文 Fig. 2（原文图）——The network topology of 100 agents。可以点开放大对比上面的教学重绘版；课程重绘只用于说明"核心 + 外围"的规模感，<strong>精确的邻接矩阵原文未公开</strong>（见第 3 节局限清单）。</figcaption></figure>
+
+<p>两个评价指标先认识（原文式 (17)–(18) 的定义）：</p>
+<div class="formula-box"><span class="fname">原文定义 · 两个误差量</span>
+$$M\hat e_k^i=\frac{1}{500}\sum_{t=1}^{500}\big(\hat x_{k,i}^{p}[t]-x_k[t]\big),\qquad AMSE_k=\frac{1}{500N}\sum_{i=1}^{N}\sum_{t=1}^{500}\big\|\hat x_{k,i}^{p}[t]-x_k[t]\big\|^2.$$
+<p><strong>是什么：</strong>$M\hat e_k^i$ 是"<strong>先对 500 次试验取平均</strong>，再看误差"——这正是第 0113 课说的<strong>一阶矩</strong>的量；$AMSE_k$ 是"<strong>先平方再平均</strong>"——<strong>二阶矩</strong>的量。</p><p><strong>直觉：</strong>对应 0113 的靶心图——$M\hat e$ 看的是"平均落点偏不偏"，$AMSE$ 看的是"散布大不大"。</p><p><strong>细节（论文的配套关系）：</strong>Theorem 3 的理论承诺是 $\|\mathbb E[\hat e]\|$ 有界 → 由 <strong>Fig. 3</strong>（画 $M\hat e$）来直观支持；而 <strong>Fig. 4</strong>（画 $AMSE$）是<strong>数值证据</strong>，不是定理的直接推论。读图时把"哪张图对应哪条定理"对上号，就不容易被"看起来很稳"的曲线带着走。</p></div>
+
+<h2>2. 带读原文三张图</h2>
+<h3>Fig. 2：网络拓扑</h3>
+<p>100 个节点的通信图。它回答的问题是"方法在<strong>大规模网络</strong>上跑不跑得动"——不是"通信开销小"的证明。通信次数在 Remark 1 里单独算（0111 课）。</p>
+
+<h3>Fig. 3：平均误差 $M\hat e_k^i$ 的两个维度</h3>
+<figure><img src="assets/paillier/fig3-mean-error.jpg" alt="论文Fig.3：100个节点两个维度的平均误差曲线" loading="lazy"><figcaption>论文 Fig. 3（原文图）——$M\hat e_k^i$ of agent $i$（$i\in\{1,\dots,100\}$）：(a) 第一维，(b) 第二维。曲线展示<strong>500 次试验的平均误差</strong>随时间有界，对应 Theorem 3 的"平均误差一致有界"。注意纵轴量级很小（这正是"先平均再取范数"的结果），不要把它与"每次试验的误差"混为一谈。</figcaption></figure>
+<div class="callout"><strong>读 Fig. 3 的要点</strong><p>这张图里曲线平稳，说明<strong>一阶矩</strong>不出问题。但切记：<strong>它不能单独用来论证"估计器稳定"</strong>——0113 课的靶心图已经演示过，均值平稳可以与散布很大并存。要看散布，得看 Fig. 4。</p></div>
+
+<h3>Fig. 4：AMSE 对比（本文 vs PPDKF vs DEFE vs 经典算法）</h3>
+<figure><img src="assets/paillier/fig4-amse.jpg" alt="论文Fig.4：四种算法的AMSE对比曲线" loading="lazy"><figcaption>论文 Fig. 4（原文图）——四种算法的 $AMSE_k$ 对比：本文方案（Algorithm 3）、PPDKF（Moradi 等 2022）、DEFE（Yan 等 2023）、经典算法（Algorithm 1）。要点：<strong>①</strong> 本文方案优于两个隐私保护基线（PPDKF、DEFE）——量化比差分隐私类机制引入的失真更小；<strong>②</strong> 相比<em>不加密</em>的经典算法，本文方案只有轻微的精度损失——这是"付出隐私代价后还剩多少性能"的直观答案。</figcaption></figure>
+<div class="table-wrap"><table class="tight"><thead><tr><th>对比对象</th><th>结果</th><th>为什么（论文的解释）</th></tr></thead><tbody>
+<tr><td>经典算法（无隐私）</td><td>本文方案略差</td><td>量化误差 + 随机权重带来的轻微保守</td></tr>
+<tr><td>PPDKF（隐私保护）</td><td>本文方案更好</td><td>改进 Paillier 的失真小于差分隐私噪声注入</td></tr>
+<tr><td>DEFE（隐私保护）</td><td>本文方案更好</td><td>同上</td></tr>
+</tbody></table></div>
+
+<div class="demo" id="read-demo">
+  <p class="demo-title">自测：这两条曲线你读对了吗？</p>
+  <p class="demo-hint">三个判断题，点开看解析。</p>
+  <div class="demo-stage">
+    <svg viewBox="0 0 720 300" role="img" aria-label="论文关键结论：隐私保护带来多少性能代价的示意柱状图">
+      <text x="360" y="30" text-anchor="middle" font-size="13.5" class="svg-t">论文结论的"信息图"版本（示意，非原文数值）</text>
+      <!-- 柱 1 -->
+      <g>
+        <rect x="80" y="180" width="110" height="70" rx="6" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.8"/>
+        <text x="135" y="222" text-anchor="middle" font-size="13" fill="var(--green)">最低</text>
+        <text x="135" y="266" text-anchor="middle" font-size="11.5" class="svg-t">经典算法</text>
+        <text x="135" y="284" text-anchor="middle" font-size="10.5" class="svg-dim">无隐私保护</text>
+      </g>
+      <!-- 柱 2 -->
+      <g>
+        <rect x="240" y="164" width="110" height="86" rx="6" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="295" y="212" text-anchor="middle" font-size="12.5" fill="var(--accent-deep)">略高一点</text>
+        <text x="295" y="266" text-anchor="middle" font-size="11.5" class="svg-t">本文方案</text>
+        <text x="295" y="284" text-anchor="middle" font-size="10.5" class="svg-dim">轻量级隐私代价</text>
+      </g>
+      <!-- 柱 3 -->
+      <g>
+        <rect x="400" y="96" width="110" height="154" rx="6" fill="var(--paper)" stroke="var(--border)" stroke-width="1.8"/>
+        <text x="455" y="176" text-anchor="middle" font-size="12.5" class="svg-dim">明显更高</text>
+        <text x="455" y="266" text-anchor="middle" font-size="11.5" class="svg-t">PPDKF</text>
+        <text x="455" y="284" text-anchor="middle" font-size="10.5" class="svg-dim">差分隐私类基线</text>
+      </g>
+      <!-- 柱 4 -->
+      <g>
+        <rect x="560" y="110" width="110" height="140" rx="6" fill="var(--paper)" stroke="var(--border)" stroke-width="1.8"/>
+        <text x="615" y="184" text-anchor="middle" font-size="12.5" class="svg-dim">明显更高</text>
+        <text x="615" y="266" text-anchor="middle" font-size="11.5" class="svg-t">DEFE</text>
+        <text x="615" y="284" text-anchor="middle" font-size="10.5" class="svg-dim">另一隐私基线</text>
+      </g>
+      <text x="360" y="56" text-anchor="middle" font-size="11.5" class="svg-dim">AMSE 越低越好（柱子越低越好）</text>
+    </svg>
+  </div>
+  <p class="demo-caption"><strong>论文的核心卖点：</strong>隐私保护的"价格"比同类方案便宜——用很小的精度损失，换到对强合谋级别的保护。</p>
+</div>
+
+<section class="exercise-box"><h3>读图练习题</h3><p>判断对错并说明理由：<strong>①</strong>「Fig. 3 曲线平稳，说明论文证明了估计器均方误差有界。」<strong>②</strong>「Fig. 4 显示了本文方案优于经典算法。」<strong>③</strong>「这两张图证明了方法在真实机器人系统上有效。」</p><details><summary>展开答案与解释</summary><div class="answer"><strong>① 错。</strong>Fig. 3 画的是 $M\hat e$（先平均再取范数），对应一阶矩结论"平均误差有界"；均方误差的证据在 Fig. 4（AMSE）里，而且那是数值证据、不是定理。<strong>② 错。</strong>Fig. 4 里本文方案相比经典算法<strong>略差</strong>（只差一点），真正"胜过"的是两个隐私保护基线 PPDKF 和 DEFE——表述要精确。<strong>③ 错。</strong>全部实验是 100 节点数值仿真；论文没有实机验证，也没有实时性数据。说"有效"要限定在"数值仿真层面"。</div></details></section>
+
+<h2>3. 论文局限清单（诚实且完整）</h2>
+<p>好论文的局限清单不是"找茬"，而是"给迁移者画清楚边界"。按严重程度排列：</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>局限</th><th>对迁移的含义</th></tr></thead><tbody>
+<tr><td>1</td><td><strong>强合谋假设是"被动"的</strong>：HBC 遵守协议，不伪造、不篡改。</td><td>真实系统里要搭配消息认证与鲁棒估计（0112 清单）。</td></tr>
+<tr><td>2</td><td><strong>证明中的近似与系数出入</strong>：式 (12) 的 $\lambda$ 与算法不一致；"量化足够大 ⇒ ≈"的处理未逐项保留；随机权重带来的条件性问题未展开。</td><td>引用该结论时用"作者论证"的表述，不用"已严格证明"。</td></tr>
+<tr><td>3</td><td><strong>一阶矩与均方误差的措辞不一致</strong>：Theorem 3 的公式是一阶矩，正文引导语用 mean square。</td><td>汇报时说"平均误差有界"，别说"均方稳定"。</td></tr>
+<tr><td>4</td><td><strong>通信账单只算了次数</strong>：密文体积、加密计算时间、密钥管理没计入。</td><td>部署前必须实测总时延——见第 5 节检查清单。</td></tr>
+<tr><td>5</td><td><strong>公开字段有限</strong>：符号模式、编码尺度、$H$、拓扑等元信息未保护。</td><td>先做一次"可见信息评估"，见 0112 清单。</td></tr>
+<tr><td>6</td><td><strong>实验规模与场景：纯数值仿真</strong>：100 节点、线性时变系统、$\mathcal Q_k^i$ 与 $T=500$ 次试验的细节未全公开（如精确邻接矩阵、密钥参数）。</td><td>复现前先假设"有信息缺口"，预留自己的参数设计工作。</td></tr>
+<tr><td>7</td><td><strong>编码尺度受 A2 上界约束</strong>："$Q\to\infty$"不可行，量化误差不可能被消干净。</td><td>设计时要找"够用就行"的 Q，别追求理论极限。</td></tr>
+<tr><td>8</td><td><strong>只处理线性时变系统</strong>：非线性（EKF/UKF 场景）不在覆盖范围。</td><td>机器人上要先用非线性滤波框架——本身就是一个开放问题。</td></tr>
+</tbody></table></div>
+
+<h2>4. 迁移到机器人系统：能做什么、不能做什么</h2>
+<p>下面把论文的能力映射到一台（或一组）ROS2 机器人上。这张表是<strong>教学整理</strong>，不是论文的实机结论——论文没做任何机器人实验。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 396" role="img" aria-label="论文方法映射到多机器人系统的三种可行模式与前提">
+  <!-- 标题行 -->
+  <text x="360" y="26" text-anchor="middle" font-size="13.5" class="svg-t">论文的假设 ↔ 机器人系统的现实（左边的每一条都要在右边找到对应物）</text>
+  <!-- 左列：论文假设 -->
+  <g>
+    <rect x="20" y="44" width="330" height="52" rx="8" fill="var(--paper)" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="185" y="68" text-anchor="middle" font-size="12" class="svg-t">线性时变系统 + 多节点观测</text>
+    <text x="185" y="86" text-anchor="middle" font-size="10.5" class="svg-dim">xₖ₊₁=Aₖxₖ+wₖ</text>
+    <rect x="20" y="106" width="330" height="52" rx="8" fill="var(--paper)" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="185" y="130" text-anchor="middle" font-size="12" class="svg-t">无向图 + 双向通信</text>
+    <text x="185" y="148" text-anchor="middle" font-size="10.5" class="svg-dim">每步一对邻居一来一回</text>
+    <rect x="20" y="168" width="330" height="52" rx="8" fill="var(--paper)" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="185" y="192" text-anchor="middle" font-size="12" class="svg-t">每个节点有本地测量与本地模型知识</text>
+    <text x="185" y="210" text-anchor="middle" font-size="10.5" class="svg-dim">Cᵏⁱ, Rᵏⁱ 只有自己知道</text>
+    <rect x="20" y="230" width="330" height="52" rx="8" fill="var(--paper)" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="185" y="254" text-anchor="middle" font-size="12" class="svg-t">对手：外部窃听者 + 内部 HBC</text>
+    <text x="185" y="272" text-anchor="middle" font-size="10.5" class="svg-dim">HBC 遵守协议</text>
+    <rect x="20" y="292" width="330" height="52" rx="8" fill="var(--paper)" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="185" y="316" text-anchor="middle" font-size="12" class="svg-t">通信与计算能力不受限</text>
+    <text x="185" y="334" text-anchor="middle" font-size="10.5" class="svg-dim">没有实时性约束</text>
+  </g>
+  <!-- 箭头 -->
+  <g>
+    <path d="M360 70 L400 70 M392 66 l8 4 l-8 4" fill="none" stroke="var(--ink-40)" stroke-width="1.5"/>
+    <path d="M360 132 L400 132 M392 128 l8 4 l-8 4" fill="none" stroke="var(--ink-40)" stroke-width="1.5"/>
+    <path d="M360 194 L400 194 M392 190 l8 4 l-8 4" fill="none" stroke="var(--ink-40)" stroke-width="1.5"/>
+    <path d="M360 256 L400 256 M392 252 l8 4 l-8 4" fill="none" stroke="var(--ink-40)" stroke-width="1.5"/>
+    <path d="M360 318 L400 318 M392 314 l8 4 l-8 4" fill="none" stroke="var(--ink-40)" stroke-width="1.5"/>
+  </g>
+  <!-- 右列：机器人现实 -->
+  <g>
+    <rect x="408" y="44" width="292" height="52" rx="8" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.4"/>
+    <text x="554" y="68" text-anchor="middle" font-size="12" class="svg-t">非线性动力学 + 非高斯噪声</text>
+    <text x="554" y="86" text-anchor="middle" font-size="10.5" fill="var(--accent-deep)">需要在 EKF/UKF 层面重构</text>
+    <rect x="408" y="106" width="292" height="52" rx="8" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.4"/>
+    <text x="554" y="130" text-anchor="middle" font-size="12" class="svg-t">ROS2 话题/服务（可多播）</text>
+    <text x="554" y="148" text-anchor="middle" font-size="10.5" fill="var(--accent-deep)">要建成"每个邻居一对一"的逻辑连接</text>
+    <rect x="408" y="168" width="292" height="52" rx="8" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.4"/>
+    <text x="554" y="192" text-anchor="middle" font-size="12" class="svg-t">天然对应：每个机器人有自己的传感器</text>
+    <text x="554" y="210" text-anchor="middle" font-size="10.5" fill="var(--green)">✓ 语义直接映射</text>
+    <rect x="408" y="230" width="292" height="52" rx="8" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="1.4"/>
+    <text x="554" y="254" text-anchor="middle" font-size="12" class="svg-t">机器人间可能是商业/机构边界</text>
+    <text x="554" y="272" text-anchor="middle" font-size="10.5" fill="var(--gold)">两难：想协作又不想交出传感器画像</text>
+    <rect x="408" y="292" width="292" height="52" rx="8" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.4"/>
+    <text x="554" y="316" text-anchor="middle" font-size="12" class="svg-t">10–100 Hz 控制回路，算力有限</text>
+    <text x="554" y="334" text-anchor="middle" font-size="10.5" fill="var(--accent-deep)">加密开销必须实测</text>
+  </g>
+</svg>
+<p class="figcap"><strong>图 2：</strong>五种"论文假设 ↔ 机器人现实"的对照。绿色是可以直接映射的、金色是有价值但有条件的、红色是需要额外工程或重构的。<em>注意：这是课程整理的教学映射，不是论文声称的应用结论。</em></p>
+</div>
+
+<h3>三种可行的介入模式（按侵入性从小到大）</h3>
+<div class="grid2">
+  <div class="mcard"><span class="en">模式 A · 最小侵入</span><h4>只在输出侧加保护</h4><p>保留现有滤波/融合架构，只在"与外部共享估计结果"的环节加隐私保护（比如对外发布的拓扑或统计量）。前提：能找到明确的"对外接口"。收益有限但工程最简单。</p></div>
+  <div class="mcard"><span class="en">模式 B · 融合层替换</span><h4>换掉融合段</h4><p>最贴近论文的用法：把多机器人协同定位/建图里的"协方差融合段"替换成隐私保护版本（Algorithm 3）。前提：融合是 CI 类（或能改写为 CI）。这是论文直接支持的用法。</p></div>
+  <div class="mcard"><span class="en">模式 C · 联合框架</span><h4>与健康监测/故障诊断结合</h4><p>把"隐私保护融合"当作一层基础设施，为多机器人故障诊断共享"诊断特征"提供安全通道（各家的故障特征也是敏感信息）。这是一个<em>开放性研究方向</em>——论文没有做，但思路上有接口。</p></div>
+  <div class="mcard"><span class="en">自己做个判断</span><h4>什么时候不值得用</h4><p>如果节点同属一个可信域（同一台机器人、同一实验室的封闭网络）、或者数据本身无所谓隐私——这套加密的复杂度就不值当。隐私保护是<strong>有成本的选择</strong>，不是默认必须。</p></div>
+</div>
+
+<h2>5. 五步迁移框架（给你的研究用）</h2>
+<ol class="steps">
+<li><strong>对齐问题结构（1–2 天）。</strong>先问三个问题：我的系统是不是"多个节点各自观测同一状态"？我的融合是不是"加权求和"结构？节点间是不是有隐私边界？<em>三个都是"否"，说明这篇论文解决的不是你的问题，尽早换路。</em></li>
+<li><strong>写清假设对照表（1 周）。</strong>把论文的 Assumptions 1–4 与你的系统逐条对照（第 4 节的图 2 就是模板）。特别检查：非线性怎么办？通信图连不连通？$A_k$ 是否一致非奇异（A4）？标出每一个"需要新论证"的差距。</li>
+<li><strong>离线数值验证（2–4 周）。</strong>先在 MATLAB/Python 里搭一个<strong>小规模</strong>（3–5 节点）的仿真：复现原文的融合逻辑（不一定要复现 Paillier，可先用"理想加密"抽象掉密码层），验证融合结果与经典 CI 的差异量级。这一步的目标是<em>理解</em>，不是复现。</li>
+<li><strong>真实密码层与性能实测（2–6 周）。</strong>换用真实的 Paillier 实现（比如 Python 的 phe 库），在目标硬件（Jetson/Raspberry Pi/笔记本）上测：单次编解码+加解密+同态运算的耗时、100 节点规模下的通信开销（密文多大、多发多少字节）。用这些数字回答"能不能进 10–100 Hz 的控制回路"。</li>
+<li><strong>写进行论文时——贡献表述（写作阶段）。</strong>把你的工作表述为"把隐私保护融合用于 X"而不是"提出了隐私保护融合"；贡献在于<strong>迁移与适配</strong>（非线性处理、ROS2 工程化、真实时延数据、与你的故障诊断场景结合），引用本文时用"作者提出并论证"的措辞（对照第 3 节局限清单）。</li>
+</ol>
+<div class="callout"><strong>给研究选题的两个提醒</strong><p><strong>①</strong> 论文的开放性缺口本身就是选题机会：非线性系统扩展（A8 之外的最大空白）、有限精度的严格证明（补上式 (12) 与 ≈ 的缺口）、真实机器人实验（论文完全没有）——这三个都是明确可做的方向。<strong>②</strong> 别把"用了 Paillier"当作新颖性。新颖性在于<em>隐私保护与你的问题结构的结合方式</em>。</p></div>
+
+<h2>6. 全课程收束：八课的能力自检</h2>
+<p>学到这里，回头测一测。下面每一条都对应前面某一课的核心产出——能顺畅说出来的，就是真掌握了。</p>
+<div class="demo" id="check-demo">
+  <p class="demo-title">能力自检清单（点条目打勾，状态存在本地）</p>
+  <p class="demo-hint">这不是考试，是索引——哪条说不上来，就回到对应课复习。</p>
+  <div id="chk-list"></div>
+  <p class="demo-caption" id="chk-cap">全部打勾说明你已具备"用这篇文章写研究计划"的基础。</p>
+</div>
+
+<h2>7. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：表述的精确性</h3><p>把下面这句话改精确：「论文证明了隐私保护方法比经典方法精度更高，并在机器人上得到验证。」</p><details><summary>展开答案与解释</summary><div class="answer">它有三个问题：<strong>①</strong> 精度——论文相比经典算法是<strong>略差</strong>（只有轻微损失），"更高"是错的；<strong>②</strong> "比经典更高"混淆了对比对象——它真正胜过的是 PPDKF / DEFE 两个隐私保护基线；<strong>③</strong> "机器人验证"不存在——实验是 100 节点数值仿真。参考答案："论文的隐私保护方法在数值仿真中与经典算法只有轻微精度差距、优于同类隐私保护基线；没有实机实验。"</div></details></section>
+<section class="exercise-box"><h3>练习二：把局限写成研究计划</h3><p>从第 3 节的局限清单里挑两条，各写一句"如果我来做下一步研究"的设想。</p><details><summary>展开答案与解释</summary><div class="answer">参考方向（任意两条即可）：<strong>①</strong> 非线性扩展：把 CI 融合的隐私保护机制搬到 EKF/UKF 框架下，研究线性化的误差如何与量化误差交互；<strong>②</strong> 有限精度证明：补齐式 (12) 的系数与"≈"的严格处理，给出有限 Q 下的误差界；<strong>③</strong> 主动攻击扩展：在 HBC 之外引入拜占庭对手，设计认证 + 鲁棒融合的组合方案；<strong>④</strong> 真实时延数据：在 ROS2 多机器人平台上给出加密融合的端到端时延实测。写的时候注意"可验证"——每个设想都应该对应一个能做的实验。</div></details></section>
+<section class="exercise-box"><h3>练习三：向导师介绍这篇论文（60 秒版）</h3><p>用一分钟说清楚：问题、方法、结果、你能用它做什么。</p><details><summary>展开答案与解释</summary><div class="answer">参考模板："这篇 Automatica 论文解决分布式状态估计里的隐私问题——多个节点要协作估计同一个状态，但既怕外部窃听、又怕内部的'好奇邻居'。<em>方法</em>是把 CI 融合的交换环节换成基于 Paillier 加法同态的加密交互：邻居在看不见明文的情况下帮忙算出一个随机加权的混合结果。<em>结果</em>是通信次数从多轮共识降到每步两轮，数值仿真里比同类隐私方案精度更高、与不加密的经典算法只有轻微差距。<em>我的用途</em>：多机器人协同场景里的隐私边界问题，但要注意它是线性系统 + 被动对手的框架，迁移到我的场景需要重新论证。"</div></details></section>
+
+<div class="callout"><strong>八课走完，带走三张地图</strong><p><strong>① 方法地图：</strong>编码（0109）→ 加密交互（0110）→ 融合恢复（0111）→ 装回估计器（Algorithm 3）——"把加权求和搬到密文上做"是全部设计的灵魂。<strong>② 证据地图：</strong>安全（Theorem 2，0112）与稳定（Lemma 3 / Theorem 3，0113）是两条独立的证据链，各有各的前提与边界，都不能被"用了加密"或"曲线平稳"含混带过。<strong>③ 迁移地图：</strong>非线性、有限精度、实机验证是最明显的三个缺口，也是你写研究计划时最自然的切入口。</p><p class="chain-next">这是全系列最后一课。如果还有哪一节课的内容想重听、哪一条公式想再拆一遍，或者你想把某个迁移设想展开成具体的实验方案——随时发给我，我们从那里继续。</p></div>
+
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 5（数值实验与 Fig. 2–4）、Section 6（结论）；局限清单综合了全文各处（式 (12)、Theorem 3 措辞、Remark 1–3 与实验设置）。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。文中的"机器人迁移"部分为课程整理的教学联系，不是论文的实验结论。</p>
+</div>
+<nav class="nav"><a href="0113-稳定性与证明审读.html">← 上一课：稳定性与证明审读</a><a class="back-home" href="../index.html">🏠 返回 PaperLesson 主页</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script>
+(function(){
+  /* ---- 网络拓扑重绘 ---- */
+  var g=document.getElementById('net-g');
+  var W=720,H=340,cx=360,cy=170;
+  var nodes=[];
+  // 核心 30 个
+  for(var i=0;i<30;i++){
+    var a=i/30*Math.PI*2, r=52+ (i%5)*7;
+    nodes.push([cx+Math.cos(a)*r, cy+Math.sin(a)*r, 'core']);
+  }
+  // 中间 35
+  for(var j=0;j<35;j++){
+    var a2=j/35*Math.PI*2+0.1, r2=112+(j%4)*6;
+    nodes.push([cx+Math.cos(a2)*r2, cy+Math.sin(a2)*r2, 'mid']);
+  }
+  // 外围 35
+  for(var k=0;k<35;k++){
+    var a3=k/35*Math.PI*2+0.05, r3=152+(k%3)*5;
+    nodes.push([cx+Math.cos(a3)*r3, cy+Math.sin(a3)*r3, 'out']);
+  }
+  // 边：核心互连 + 相邻层连接
+  var edges='';
+  function near(i,j,th){var dx=nodes[i][0]-nodes[j][0],dy=nodes[i][1]-nodes[j][1];return Math.sqrt(dx*dx+dy*dy)<th;}
+  for(var m=0;m<nodes.length;m++){
+    for(var n=m+1;n<nodes.length;n++){
+      var d=Math.sqrt(Math.pow(nodes[m][0]-nodes[n][0],2)+Math.pow(nodes[m][1]-nodes[n][1],2));
+      var sameLane = (nodes[m][2]===nodes[n][2]);
+      var th = sameLane ? 42 : 46;
+      if(d<th && Math.random()<0.62){
+        edges+='<line x1="'+nodes[m][0].toFixed(1)+'" y1="'+nodes[m][1].toFixed(1)+'" x2="'+nodes[n][0].toFixed(1)+'" y2="'+nodes[n][1].toFixed(1)+'" stroke="var(--ink-20)" stroke-width="0.8" opacity="0.55"/>';
+      }
+    }
+  }
+  var dots='';
+  nodes.forEach(function(nd,i){
+    var fill = 'var(--paper)';
+    var stroke = i<30 ? 'var(--accent)' : (i<65 ? 'var(--green)' : 'var(--ink-40)');
+    dots+='<circle cx="'+nd[0].toFixed(1)+'" cy="'+nd[1].toFixed(1)+'" r="4.6" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.4"/>';
+  });
+  g.innerHTML=edges+dots;
+
+  /* ---- 能力自检 ---- */
+  var items=[
+    ['0107','说清两类对手（外部窃听 / 内部 HBC）的差别与强合谋的定义'],
+    ['0107','说出论文保护的两个具体量：量测更新后的信息向量与信息矩阵'],
+    ['0108','解释信息形式"越自信数字越大"的直觉，并手算一次加权融合'],
+    ['0108','说清 CI 在防什么错：相关性未知时直接相加为何危险'],
+    ['0109','解释"编码 = 换单位"，并说明符号为什么放在密文外'],
+    ['0109','说出 Lemma 1 误差界的形态 n/(2Q) 及其含义'],
+    ['0110','复述 Algorithm 2 的三条消息里各有什么、缺什么'],
+    ['0110','解释随机掩码 ξ 与份额 U/T 各自的作用'],
+    ['0111','说出 i 为什么"不需要知道 λ"也能完成融合'],
+    ['0111','解释信息矩阵为什么加 n/(2Q)·I 而信息向量不加'],
+    ['0112','区分原语层 / 协议层 / 部署层三种安全保证'],
+    ['0112','列出至少三项协议公开的元信息（符号/尺度/H/拓扑/时序）'],
+    ['0113','区分一阶矩有界与均方误差有界的差别'],
+    ['0113','说出式 (12) 与 Algorithm 3 的出入，以及课程的标注方式'],
+    ['0114','准确表述论文的 AMSE 比较结论（对经典如何、对隐私基线如何）'],
+    ['0114','说出至少两个迁移缺口（非线性 / 有限精度 / 实机验证）']
+  ];
+  var list=document.getElementById('chk-list');
+  var KEY='paperlesson_note_0114_check';
+  var saved={};
+  try{ saved=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){}
+  var html='';
+  items.forEach(function(it,i){
+    html+='<label style="display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--border-light);cursor:pointer;font-size:.92rem"><input type="checkbox" data-i="'+i+'" '+(saved[i]?'checked':'')+' style="margin-top:5px;width:18px;height:18px;accent-color:var(--accent)"><span><span class="pill info">'+it[0]+'</span> '+it[1]+'</span></label>';
+  });
+  list.innerHTML=html;
+  var boxes=list.querySelectorAll('input[type=checkbox]');
+  function upd(){
+    var n=0; boxes.forEach(function(b){if(b.checked)n++;});
+    var cap=document.getElementById('chk-cap');
+    if(n===boxes.length) cap.innerHTML='<b>16/16 全部打勾</b> —— 你已具备"用这篇文章写研究计划"的基础。祝迁移顺利。';
+    else cap.innerHTML='进度 '+n+'/'+boxes.length+'。全部打勾说明你已具备"用这篇文章写研究计划"的基础。';
+  }
+  boxes.forEach(function(b){
+    b.addEventListener('change',function(){
+      saved[b.dataset.i]=b.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+      upd();
+    });
+  });
+  upd();
+})();
+</script>
+<script src="assets/paillier/lightbox.js"></script>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

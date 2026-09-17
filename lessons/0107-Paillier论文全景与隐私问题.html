@@ -3,64 +3,312 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>0107 · Paillier 论文全景与隐私问题 · PaperLesson</title>
+<title>0107 · Paillier 论文全景与隐私问题 · PaperLesson</title><link rel="icon" href="data:,">
 <link rel="stylesheet" href="../shared/theme.css">
-<style>
-body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}figure{margin:24px 0}figure img{display:block;max-width:100%;height:auto;margin:0 auto}figcaption{font-size:.9rem;color:var(--ink-60);margin-top:12px}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
-</style>
+<link rel="stylesheet" href="assets/paillier/course.css">
 <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 <main class="lesson">
 <a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
-<header><p class="subtitle">PAILLIER · 论文精读 · 第 1 课</p><h1>一起估计，但不交出自己的底牌</h1><p class="subtitle">Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach</p><div class="meta"><span>0107</span><span>建议 20 分钟</span><span>难度 ★★☆☆☆</span><span>Automatica 186 (2026) 112863</span></div></header>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 1 课 / 共 8 课</p><h1>一起估计，但不交出自己的底牌</h1><p class="subtitle">Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach</p><div class="meta"><span>0107</span><span>建议 20 分钟</span><span>难度 ★★☆☆☆</span><span>Automatica 186 (2026) 112863</span></div></header>
 <div class="content">
-<div class="callout"><strong>本课目标与前置知识</strong><p>不要求你已经学过密码学。只需要知道“测量有误差”和“多个数可以加权平均”。学完要能回答：大家共同估计的是什么？哪些本地信息需要保护？为什么给通信加密还不够？本文把哪一步换掉了？本课是全景导读，不承担完整协议推导。</p></div>
-<h2>1. 从三台机器人协作说起</h2>
-<p>想象三台机器人在观察同一个移动目标。有的视角好，有的距离近，有的刚被遮挡。每台机器人都能给出一个位置判断，但没有谁始终最可靠。让它们交换信息、融合判断，可以利用彼此的观测能力。</p>
-<p>问题是，交换的信息不仅告诉邻居“我认为目标在哪”，还可能透露自己的本地观测结果和估计可信程度。如果机器人分属不同机构，参与协作不一定意味着愿意公开这些细节。这只是帮助理解的场景，<strong>论文实际实验是线性时变系统的数值仿真，并不是机器人实机实验。</strong></p>
-<p>这篇论文的问题不是“不合作就保密”，而是：<strong>能否继续完成分布式状态估计，同时不直接交出每个节点的本地信息向量和信息矩阵？</strong>这里的“分布式”表示每个节点都在本地计算，并与相邻节点通信，不依赖一个集中收齐所有数据的服务器。</p>
-<h2>2. 可能不熟的术语：先把四件事分开</h2>
-<div class="table-wrap"><table><thead><tr><th>术语</th><th>本课中的意思</th></tr></thead><tbody>
-<tr><td>State estimation<br>状态估计</td><td>真实状态不能直接完整看到，用有噪声的测量和运动模型推断它。</td></tr>
-<tr><td>Information vector / matrix<br>信息向量 / 信息矩阵</td><td>估计值与不确定性的另一种表示。它们不是网络数据包，也不是“信息越多越好”的日常含义。</td></tr>
-<tr><td>Covariance intersection（CI）<br>协方差交叉融合</td><td>在节点估计之间的相关性不完全已知时，用加权信息量进行融合，避免把相关信息当成独立证据重复累计。</td></tr>
-<tr><td>Honest-but-curious（HBC）<br>诚实但好奇</td><td>节点按协议执行，不伪造消息，但会利用自己合法收到的信息尝试了解别人的私有数据。</td></tr>
-</tbody></table></div>
-<h3>公式三层阅读：大家在估计同一个状态</h3>
-<div class="formula-box">$$x_{k+1}=A_kx_k+w_k,\qquad y_k^i=C_k^ix_k+v_k^i.$$
-<p><strong>是什么：</strong>$x_k$ 是共同关注的真实状态；$y_k^i$ 是节点 $i$ 的观测；$k$ 是时刻。$A_k$ 描述状态怎么变，$C_k^i$ 描述节点看到了什么，$w_k$ 和 $v_k^i$ 分别是过程噪声与测量噪声。</p><p><strong>直觉：</strong>同一个目标，多个不同的观察窗口。节点并不是各自估计一个毫不相关的目标。</p><p><strong>数学细节：</strong>这是论文式 (1) 的线性时变模型。本文假设噪声独立、零均值高斯，协方差正定。它不是任意非线性机器人系统的通用保证。</p></div>
-<p>在论文模型中，系统矩阵 $A_k$ 和过程噪声协方差 $Q_k$ 为所有节点已知；节点 $i$ 知道自己的 $C_k^i$ 与测量噪声协方差 $R_k^i$。这能帮助你区分公共模型和本地数据。</p>
-<h2>3. 隐私问题发生在哪一步？</h2>
-<p>经典估计器 Algorithm 1 有四个阶段：初始化 → 预测 → 量测更新 → CI 融合。前三段主要在本地完成，最后一段必须与邻居交换信息。这就是论文选择改造的接口。</p>
-<div class="formula-box">$$\Omega=P^{-1},\qquad q=\Omega\hat{x},\qquad \hat{x}=\Omega^{-1}q.$$
-<p><strong>是什么：</strong>$P$ 表示误差协方差，$\hat{x}$ 是估计，$\Omega$ 是信息矩阵，$q$ 是信息向量。以上是基础信息形式，不要把新算法内部的矩阵自动等同于真实误差统计量。</p><p><strong>直觉：</strong>标量情况下，方差越小，$1/P$ 越大，表示判断越集中。$q$ 则把估计值与这一尺度结合起来。</p><p><strong>细节：</strong>比如估计为 2、方差为 0.5，则 $\Omega=2$、$q=4$；拿到二者可以还原估计值 2。因此，信息形式不是一种加密方式。</p></div>
-<p>本文明确保护的是<strong>量测更新之后、融合之前</strong>的本地 $\tilde{q}_{k,i}^{p}$ 与 $\tilde{\Omega}_{k,i}^{p}$。不要直接把它扩写成“所有传感器数据、轨迹、身份和所有侧信息都被保护”。</p>
-<div class="formula-box">$$\hat{q}_i=\sum_{j\in\mathcal N_i}w_{ij}\tilde q_j,\qquad \hat{\Omega}_i=\sum_{j\in\mathcal N_i}w_{ij}\tilde\Omega_j.$$
-<p><strong>是什么：</strong>省略时间和经典算法上标后的 CI 基线融合。$w_{ij}$ 是非负权重，每行权重和为 1；$\mathcal N_i$ 在本文中包含节点 $i$ 自己。</p><p><strong>直觉：</strong>将邻居的判断按约定权重综合起来，而不是简单拼接数据。新算法会改变这里输入的量，不能先入为主地认为加密前后一定得到完全相同的融合结果。</p></div>
-<h2>4. 为什么“把链路加密”还不够？</h2>
-<figure><img src="assets/paillier/fig1-adversary-model.jpg" alt="论文图1：蓝色正常节点、红色诚实但好奇节点，链路上的红色闪电表示外部窃听" loading="lazy" width="673" height="395"><figcaption>论文 Fig. 1：蓝色圆点为正常节点，红色圆点为 HBC 节点，蓝线表示通信链路，红色闪电表示链路上的窃听。要同时考虑网络外的监听者和网络内按协议参与的好奇邻居。</figcaption></figure>
-<p>普通链路加密好比把信封封好：路上的人看不到内容，但指定收件人拆开后仍能读到。如果收件人恰好是好奇的邻居，仅仅保护运输过程就不够了。本文想让邻居参与计算，却不直接交给它完整本地信息量。</p>
-<div class="table-wrap"><table><thead><tr><th>对象</th><th>能力与范围</th></tr></thead><tbody><tr><td>外部窃听者</td><td>监听通信链路，论文讨论其能截获全网通信的情形。</td></tr><tr><td>不合谋 HBC</td><td>各自根据参与协议所见信息进行推断，不与其他好奇节点交换推断资料。</td></tr><tr><td>弱合谋 HBC</td><td>针对一个正常节点，至少有一个其他邻居不参与合谋。</td></tr><tr><td>强合谋 HBC</td><td>针对一个正常节点，其所有其他邻居都是 HBC 且联合行动。“其他”排除节点自身。</td></tr></tbody></table></div>
-<div class="callout"><strong>被动好奇 ≠ 主动破坏</strong><p>HBC 的前提是遵守协议。主动伪造测量、篡改消息、冒充节点和破坏可用性不属于同一保证。读到“抵抗强合谋”时，要连同这个前提一起读。</p></div>
-<h2>5. 论文给出的路线：能在密文上做计算</h2>
-<p>Paillier 的关键能力是<strong>加法同态</strong>：在合适的同一公钥与模运算规则下，对密文做指定运算，解密结果对应明文的加法或已知整数倍。它不是“任何计算都能直接在密文上做”。</p>
-<ol><li><strong>先做编码：</strong>把实数向量、矩阵的元素按尺度量化成整数。因为原生 Paillier 操作的是有限整数消息空间，不是无限精度实数。</li><li><strong>再做加密交互：</strong>节点 $i$ 发出自己的密文、公钥和编码尺度；邻居 $j$ 在密文上结合本地信息与随机掩码，返回处理后的量。私钥留在对应节点本地。</li><li><strong>恢复可融合量：</strong>节点 $i$ 解密并组合回复，获得与双方数据有关的混合量，而不是直接收取邻居原始信息向量与矩阵。</li><li><strong>装回估计器：</strong>Algorithm 3 保留本地预测和量测更新，将融合阶段换成隐私保护版本，并对信息矩阵加入量化相关修正项。</li></ol>
-<p>三个核心结果可以这样记：Algorithm 2 是通信协议；Theorem 1 说明如何由通信结果完成融合；Algorithm 3 是完整估计器。安全分析与稳定性分析是后续分别需要检查的两条证据链。</p>
-<h2>6. 精读时先立住四条边界</h2>
-<ul><li><strong>有加密不等于零泄漏。</strong>本文改进编码把符号放在密文外。课程会区分作者的隐私主张、实际公开字段，以及完整协议还需要的论证，不把“难以恢复完整数据”写成“看不到任何信息”。</li><li><strong>少轮通信不等于低总时延。</strong>论文与若干多轮共识方案比较通信次数；加密计算、数据包体积和密钥管理仍有代价。相对未加密单轮基线，它增加了交互。</li><li><strong>均值有界不等于均方误差有界。</strong>Theorem 3 明写的是估计误差期望的范数有界；证明前的文字却使用了 mean square。课程以公式所述对象为准，并指出这一不一致。</li><li><strong>数值结果支持，不代替证明。</strong>论文用 100 个节点、200 步区间和 500 次 Monte Carlo 试验评估。有限实验不证明所有时刻成立，也不等于 TB3 上已经具备实时性。</li></ul>
-<h2>7. 合上正文，试着回答</h2>
-<section class="exercise-box"><h3>练习一：机密信息在哪个接口？</h3><p>有人说：“我们的通信加密了，收到数据的邻居也就不可能了解我的本地估计。”这个说法忽略了谁？</p><details><summary>展开答案与解释</summary><div class="answer">忽略了内部 HBC 收件人。链路加密主要保护传输过程；如果协议最终让邻居拿到可解密的原始信息量，邻居依然能看到它。本文改变的是邻居实际得到的计算结果，而不只是在原始数据外包一层传输加密。</div></details></section>
-<section class="exercise-box"><h3>练习二：信息形式是不是加密？</h3><p>标量情形中，某节点给出 $\Omega=4$、$q=12$。估计值是多少？这说明了什么？</p><details><summary>展开答案与解释</summary><div class="answer">估计值为 $\hat{x}=q/\Omega=3$。信息形式是一种数学表示，不是隐私保护机制。这个例子只说明能还原估计值，不意味着仅凭这一对数就一定能唯一还原全部原始测量。</div></details></section>
-<section class="exercise-box"><h3>练习三：判断结论的力度</h3><p>误差以相同概率为 +100 或 −100。平均误差为零，是否说明每次估计都很准？</p><details><summary>展开答案与解释</summary><div class="answer">不是。正负误差在求均值时抵消了，但均方误差为 10000。读理论时要辨认“先求期望再取范数”和“先平方再求期望”；读实验时要分别看平均误差曲线和 AMSE。</div></details></section>
-<div class="callout"><strong>本课带走的一句话</strong><p>本文把“交换原始本地信息量”改成“通过加密交互获得可用于融合的混合量”，希望同时兼顾协作估计与隐私；但理解方法必须同时检查公开信息、随机融合权重、量化误差和理论保证的范围。</p><p>接下来的学习主题是信息滤波与 CI：为什么未知相关性会让直接叠加证据变得危险？后续页面尚未发布，本页暂不放置无效跳转。哪里卡住了，可以把小节标题或练习答案发给我，我们从那里继续讲。</p></div>
-<h2>原文阅读定位</h2>
-<p>建议回看原文 Section 1、Section 2.1–2.4、Algorithm 1 与 Fig. 1；本课方法地图对应 Section 3，边界提醒对应式 (6)、Theorem 3 与 Section 5。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+
+<div class="callout"><strong>本课目标与前置知识</strong><p>不要求你学过密码学，只需要两个直觉：「测量有误差」「多个数可以加权平均」。学完这页，你要能回答四个问题：<strong>①</strong> 大家一起在估计什么？<strong>②</strong> 哪些本地信息需要保护？<strong>③</strong> 为什么「给通信加密」还不够？<strong>④</strong> 论文把估计器的哪一步换掉了？本课是全景导读，不承担协议推导——后面 7 节课逐块展开。</p></div>
+
+<h2>1. 从三台机器人说起</h2>
+<p>想象三台机器人在仓库里追踪同一个移动目标。一台视角好、看得清；一台距离近、信号强；还有一台刚好被货架遮挡，只能给个大概。每台机器人都能给出一份位置判断，但<strong>没有谁始终最可靠</strong>——让它们交换信息、把判断融合起来，位置估计会比任何单独一台都更准、更稳。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 292" role="img" aria-label="三台机器人观测同一目标，视角和测量精度各不相同">
+  <!-- 地面 -->
+  <line x1="24" y1="252" x2="696" y2="252" stroke="var(--border)" stroke-width="2"/>
+  <!-- 目标 -->
+  <circle cx="360" cy="76" r="30" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2"/>
+  <path d="M360 46 L360 20 L382 28 L360 36" fill="none" stroke="var(--gold)" stroke-width="2.4"/>
+  <text x="360" y="82" text-anchor="middle" font-size="14" class="svg-t" fill="var(--gold)">目标 x</text>
+  <!-- 视线（虚线） -->
+  <line x1="112" y1="216" x2="338" y2="92" stroke="var(--ink-20)" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <line x1="360" y1="222" x2="360" y2="108" stroke="var(--ink-20)" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <line x1="608" y1="216" x2="382" y2="92" stroke="var(--ink-20)" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <!-- 机器人 1 -->
+  <g>
+    <rect x="76" y="216" width="72" height="34" rx="9" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="112" cy="206" r="13" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="107" cy="204" r="2.4" class="svg-accent"/><circle cx="117" cy="204" r="2.4" class="svg-accent"/>
+    <line x1="112" y1="193" x2="112" y2="182" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="112" cy="179" r="3.4" class="svg-accent"/>
+  </g>
+  <text x="112" y="276" text-anchor="middle" font-size="13.5" class="svg-t">① 视角好</text>
+  <text x="112" y="292" text-anchor="middle" font-size="11.5" class="svg-dim">判断很自信</text>
+  <!-- 机器人 2 -->
+  <g>
+    <rect x="324" y="222" width="72" height="34" rx="9" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="360" cy="212" r="13" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="355" cy="210" r="2.4" class="svg-accent"/><circle cx="365" cy="210" r="2.4" class="svg-accent"/>
+    <line x1="360" y1="199" x2="360" y2="188" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="360" cy="185" r="3.4" class="svg-accent"/>
+  </g>
+  <text x="360" y="276" text-anchor="middle" font-size="13.5" class="svg-t">② 距离近</text>
+  <text x="360" y="292" text-anchor="middle" font-size="11.5" class="svg-dim">判断中等自信</text>
+  <!-- 机器人 3 -->
+  <g>
+    <rect x="572" y="216" width="72" height="34" rx="9" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="608" cy="206" r="13" fill="var(--paper)" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="603" cy="204" r="2.4" class="svg-accent"/><circle cx="613" cy="204" r="2.4" class="svg-accent"/>
+    <line x1="608" y1="193" x2="608" y2="182" stroke="var(--accent)" stroke-width="1.8"/>
+    <circle cx="608" cy="179" r="3.4" class="svg-accent"/>
+    <!-- 遮挡 -->
+    <path d="M588 168 L628 168" stroke="var(--gold)" stroke-width="3" stroke-dasharray="4 3"/>
+  </g>
+  <text x="608" y="276" text-anchor="middle" font-size="13.5" class="svg-t">③ 被遮挡</text>
+  <text x="608" y="292" text-anchor="middle" font-size="11.5" class="svg-dim">判断很不自信</text>
+  <!-- 链路 -->
+  <g stroke="var(--accent)" stroke-width="2" fill="none">
+    <path d="M150 236 Q 236 200 322 236" stroke-dasharray="7 5"/>
+    <path d="M398 236 Q 484 200 570 236" stroke-dasharray="7 5"/>
+  </g>
+  <text x="236" y="196" text-anchor="middle" font-size="11.5" class="svg-dim">通信链路</text>
+  <text x="484" y="196" text-anchor="middle" font-size="11.5" class="svg-dim">通信链路</text>
+</svg>
+<p class="figcap"><strong>图 1：</strong>本课虚构的教学场景（论文实验是数值仿真，不是机器人实机）。三台机器人对同一目标的观测质量不同——交换信息能提升整体估计，但「我有多自信」本身就是敏感信息。</p>
 </div>
-<nav class="nav"><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+
+<p>问题就出在"融合"这一步。要让邻居的判断真正发挥作用，机器人不仅要告诉对方"<strong>我认为目标在哪</strong>"，还得让对方知道"<strong>这个判断有多可信</strong>"——否则融合时没法决定该听谁的。而"我有多自信"这件事，悄悄暴露了很多东西：我的传感器精度如何、我这一轮的测量噪声多大、我的局部估计误差是什么水平。如果这几台机器人分属不同公司或机构，<em>参与协作 ≠ 愿意公开这些细节</em>。</p>
+<p>论文解决的问题可以一句话概括：<strong>能不能继续完成分布式状态估计，同时不直接交出每个节点「量测更新之后」的本地信息？</strong>这里的「分布式」指每个节点在本地计算、只和相邻节点通信，不依赖一个集中收齐所有数据的服务器。</p>
+<div class="callout"><strong>先把场景与论文分开</strong><p>上面的机器人只是帮你入门的教学场景。论文本身研究的是<strong>一般线性时变系统</strong>加一个无向通信图，实验部分用 100 个节点的纯数值仿真验证（第 5 节）。阅读时不要把「仓库里的机器人」当成论文的实验对象。</p></div>
+
+<h2>2. 四个必须先分清的概念</h2>
+<p>论文标题和摘要里有四个词会反复出现。先用大白话钉住它们，后面每节课再逐步加深。</p>
+<div class="grid2">
+  <div class="mcard"><span class="en">distributed state estimation</span><h4>分布式状态估计</h4><p>真实状态（比如目标的位置和速度）看不到全貌，每个节点用带噪声的测量去推断；节点之间交换信息、各自维护一份估计，而不是把数据汇到一个中心服务器。</p></div>
+  <div class="mcard"><span class="en">information form</span><h4>信息向量 / 信息矩阵 (q, Ω)</h4><p>描述一个估计的另一种写法：信息矩阵 Ω 是误差协方差的逆，信息向量 q = Ω·估计值。自信度越高，Ω 越大。它不是「更多的信息」，只是同一份信息的另一种表示。</p></div>
+  <div class="mcard"><span class="en">covariance intersection (CI)</span><h4>协方差交叉融合</h4><p>当两个节点的估计误差<strong>相关性未知</strong>时，不敢直接把两份证据相加（会重复计数）；CI 改用加权平均，牺牲一点精度，换来「不虚报自信」的稳健性。</p></div>
+  <div class="mcard"><span class="en">honest-but-curious (HBC)</span><h4>诚实但好奇</h4><p>一种内部对手：按协议老老实实执行，不伪造消息，但会拿自己合法收到的每一条信息去推断别人的私有数据。论文要防的正是这种「守规矩的好奇邻居」。</p></div>
+</div>
+
+<p>再看一眼论文的系统模型（原文式 (1)），这是全系列的「地基」：</p>
+<div class="formula-box"><span class="fname">原文式 (1) · 线性时变系统与多节点观测</span>
+$$x_{k+1}=A_kx_k+w_k,\qquad y_k^i=C_k^ix_k+v_k^i,\quad \forall i\in\mathcal V.$$
+<p><strong>是什么：</strong>$x_k$ 是全网关心的真实状态；$A_k$ 描述状态怎么随时间变化；$y_k^i$ 是节点 $i$ 的测量值，$C_k^i$ 表示这个节点"看到"状态的哪些组合。$w_k$ 和 $v_k^i$ 分别是过程噪声和测量噪声（零均值高斯，协方差 $Q_k$、$R_k^i$）。</p><p><strong>直觉：</strong>同一个目标，多个不同角度的观察窗口。所有节点共享同一套动力学模型，但每家的"眼睛"各不相同。</p><p><strong>细节（关键边界）：</strong>论文假设 $A_k$ 和 $Q_k$ 全网已知，而 $C_k^i$ 与 $R_k^i$ <strong>只有节点 $i$ 自己知道</strong>。"我能测得多准"这件事，从模型设定上就已经是私有信息——这为后文「保护本地量测更新量」埋下伏笔。</p></div>
+
+<h2>3. 隐私问题到底出在哪一步？</h2>
+<p>经典分布式估计器（原文 Algorithm 1，来自 Battistelli 等 2015）是循环执行的四个阶段。先不看公式，只看结构：</p>
+
+<div class="demo" id="pipe-demo">
+  <p class="demo-title">算法 1 的四个阶段：哪一段必须和邻居说话？</p>
+  <p class="demo-hint">点方框或下面的按钮，看每个阶段在做什么。</p>
+  <div class="demo-stage">
+    <svg id="pipe-svg" viewBox="0 0 720 268" role="img" aria-label="算法1四阶段流程图：初始化、预测、量测更新、CI融合">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="var(--ink-60)"/></marker>
+      </defs>
+      <!-- 本地区域 -->
+      <rect x="12" y="20" width="530" height="104" rx="12" fill="none" stroke="var(--border)" stroke-width="1.6" stroke-dasharray="6 6"/>
+      <text x="26" y="42" font-size="12" class="svg-dim">本机私有 · 只用本地模型与测量</text>
+      <!-- 阶段 1 -->
+      <g class="stg g0" data-i="0" style="cursor:pointer">
+        <rect x="26" y="54" width="112" height="56" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="82" y="79" text-anchor="middle" font-size="13" class="svg-t">① 初始化</text>
+        <text x="82" y="97" text-anchor="middle" font-size="10.5" class="svg-dim">起步估计</text>
+      </g>
+      <!-- 阶段 2 -->
+      <g class="stg g1" data-i="1" style="cursor:pointer">
+        <rect x="162" y="54" width="112" height="56" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="218" y="79" text-anchor="middle" font-size="13" class="svg-t">② 预测</text>
+        <text x="218" y="97" text-anchor="middle" font-size="10.5" class="svg-dim">外推一步</text>
+      </g>
+      <!-- 阶段 3 -->
+      <g class="stg g2" data-i="2" style="cursor:pointer">
+        <rect x="298" y="54" width="112" height="56" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="354" y="79" text-anchor="middle" font-size="13" class="svg-t">③ 量测更新</text>
+        <text x="354" y="97" text-anchor="middle" font-size="10.5" class="svg-dim">吸收本轮测量</text>
+      </g>
+      <!-- 阶段 4 -->
+      <g class="stg g3" data-i="3" style="cursor:pointer">
+        <rect x="434" y="54" width="112" height="56" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="490" y="79" text-anchor="middle" font-size="13" class="svg-t">④ CI 融合</text>
+        <text x="490" y="97" text-anchor="middle" font-size="10.5" class="svg-dim">和邻居交换</text>
+      </g>
+      <!-- 箭头 -->
+      <line x1="138" y1="82" x2="158" y2="82" class="arrowline" marker-end="url(#ah)"/>
+      <line x1="274" y1="82" x2="294" y2="82" class="arrowline" marker-end="url(#ah)"/>
+      <line x1="410" y1="82" x2="430" y2="82" class="arrowline" marker-end="url(#ah)"/>
+      <!-- 邻居 -->
+      <g class="stg g3" data-i="3" style="cursor:pointer">
+        <rect x="560" y="140" width="146" height="76" rx="10" fill="var(--paper-light)" stroke="var(--border)" stroke-width="1.6" stroke-dasharray="6 4"/>
+        <text x="633" y="168" text-anchor="middle" font-size="12.5" class="svg-t">邻居 j 的本地信息</text>
+        <text x="633" y="188" text-anchor="middle" font-size="11" class="svg-dim">量测更新后的 (q̃, Ω̃)</text>
+        <text x="633" y="206" text-anchor="middle" font-size="11" class="svg-dim">← 要保护的就是它</text>
+      </g>
+      <path d="M490 114 L490 178 L556 178" class="arrowline--accent" fill="none" marker-end="url(#ah)"/>
+      <path d="M556 196 Q 500 230 464 118" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="512" y="248" text-anchor="middle" font-size="11.5" class="svg-dim">每个时间步都发一轮 ⇄ 收一轮</text>
+      <!-- 循环 -->
+      <path d="M490 132 Q 560 10 354 22 Q 120 8 82 50" class="arrowline--dim" fill="none" marker-end="url(#ah)"/>
+      <text x="286" y="16" text-anchor="middle" font-size="11.5" class="svg-dim">每个时间步循环一次</text>
+    </svg>
+  </div>
+  <p class="demo-caption" id="pipe-cap"></p>
+  <div class="demo-controls">
+    <button class="pipe-step" data-s="0"><span class="n">阶段 1</span>初始化</button>
+    <button class="pipe-step" data-s="1"><span class="n">阶段 2</span>预测</button>
+    <button class="pipe-step" data-s="2"><span class="n">阶段 3</span>量测更新</button>
+    <button class="pipe-step" data-s="3"><span class="n">阶段 4</span>CI 融合</button>
+  </div>
+</div>
+
+<p>看出来了吗：<strong>前三段都在本机完成，只有第四段「CI 融合」必须和邻居交换信息</strong>。这就是论文选定的改造接口——不动其他地方，只把融合这一段换成隐私保护版本。</p>
+<p>融合需要的两个量，用信息形式写出来（信息形式在第 0108 课会用一整节展开，这里先认个脸）：</p>
+<div class="formula-box"><span class="fname">信息形式与 CI 融合（原文式 (4) 的直白版）</span>
+$$\Omega=P^{-1},\qquad q=\Omega\hat x,\qquad \hat x=\Omega^{-1}q;$$
+$$\hat q_i=\sum_{j\in\mathcal N_i}w_{ij}\,\tilde q_j,\qquad \hat\Omega_i=\sum_{j\in\mathcal N_i}w_{ij}\,\tilde\Omega_j.$$
+<p><strong>是什么：</strong>上排是「协方差 ⇄ 信息形式」的换算；下排是 CI 融合：把邻居（含自己）量测更新后的信息量按权重 $w_{ij}$ 加权平均。$\mathcal N_i$ 按论文定义<strong>包含节点 $i$ 自己</strong>。</p><p><strong>直觉：</strong>融合就是"把邻居的家底按份额抄进来"。要抄，就得先拿到——而邻居的家底 $(\tilde q_j,\tilde\Omega_j)$ 恰恰是不想直接给人的东西。</p><p><strong>细节：</strong>标量例子：估计值 2、方差 0.5，则 $\Omega=2$、$q=4$；反过来拿到 $(4,2)$ 也能还原估计值 2。所以信息形式只是"另一种记账法"，<em>本身不是加密</em>。</p></div>
+
+<div class="callout"><strong>论文明确保护的对象</strong><p><strong>量测更新之后、融合之前</strong>的本地信息向量与信息矩阵：$\tilde q_{k,i}^{p}$ 和 $\tilde\Omega_{k,i}^{p}$（上标 p 表示"论文的方案"）。不要把它擅自扩写成"所有传感器数据、轨迹和身份都被保护"——保护范围就是这两个量，这在第 0112 课会一条条核对。</p></div>
+
+<h2>4. 为什么「给通信加密」还不够？</h2>
+<p>一个常见的错觉是：链路加密了，传输过程就安全了。打个比方——<strong>把信封封好再寄</strong>：路上的人确实看不到内容，但<strong>指定收件人拆开后照样能读到</strong>。如果收件人恰好是个好奇的邻居，只保护"运输过程"根本不够。</p>
+<p>论文的对手模型里有两种敌人（论文 Fig. 1 的示意图）：</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" role="img" aria-label="威胁模型示意：网络内部有正常节点和诚实但好奇节点，网络外部有窃听者监听通信链路">
+  <!-- 网络边界 -->
+  <rect x="16" y="40" width="470" height="234" rx="16" fill="none" stroke="var(--border)" stroke-width="1.8" stroke-dasharray="7 6"/>
+  <text x="34" y="66" font-size="12.5" class="svg-dim">多智能体网络（通信图 G，内部）</text>
+  <!-- 链路 -->
+  <g stroke="var(--ink-20)" stroke-width="2.2" fill="none">
+    <line x1="126" y1="126" x2="238" y2="196"/>
+    <line x1="126" y1="126" x2="322" y2="122"/>
+    <line x1="238" y1="196" x2="322" y2="122"/>
+    <line x1="238" y1="196" x2="406" y2="206"/>
+    <line x1="322" y1="122" x2="406" y2="206"/>
+    <line x1="322" y1="122" x2="406" y2="118"/>
+  </g>
+  <!-- 窃听闪电 -->
+  <g stroke="var(--accent)" stroke-width="2.6" fill="none">
+    <path d="M282 156 l10 12 l-12 8 l10 12"/>
+  </g>
+  <!-- 窃听标记 -->
+  <!-- 节点 -->
+  <g>
+    <circle cx="126" cy="126" r="20" fill="var(--paper)" stroke="var(--green)" stroke-width="2.4"/>
+    <text x="126" y="131" text-anchor="middle" font-size="12" class="svg-t">ι₁</text>
+  </g>
+  <g>
+    <circle cx="238" cy="196" r="20" fill="var(--paper)" stroke="var(--gold)" stroke-width="2.4"/>
+    <text x="238" y="201" text-anchor="middle" font-size="12" class="svg-t">j</text>
+  </g>
+  <g>
+    <circle cx="322" cy="122" r="20" fill="var(--paper)" stroke="var(--gold)" stroke-width="2.4"/>
+    <text x="322" y="127" text-anchor="middle" font-size="12" class="svg-t">k</text>
+  </g>
+  <g>
+    <circle cx="406" cy="206" r="20" fill="var(--paper)" stroke="var(--green)" stroke-width="2.4"/>
+    <text x="406" y="211" text-anchor="middle" font-size="12" class="svg-t">ι₂</text>
+  </g>
+  <g>
+    <circle cx="406" cy="118" r="20" fill="var(--paper)" stroke="var(--green)" stroke-width="2.4"/>
+    <text x="406" y="123" text-anchor="middle" font-size="12" class="svg-t">ι₃</text>
+  </g>
+  <!-- 图例 -->
+  <circle cx="52" cy="300" r="7" fill="var(--paper)" stroke="var(--green)" stroke-width="2"/>
+  <text x="66" y="305" font-size="11.5" class="svg-dim">正常节点</text>
+  <circle cx="166" cy="300" r="7" fill="var(--paper)" stroke="var(--gold)" stroke-width="2"/>
+  <text x="180" y="305" font-size="11.5" class="svg-dim">HBC 好奇节点</text>
+  <path d="M300 295 l6 8 l-7 5 l6 8" stroke="var(--accent)" stroke-width="2.2" fill="none"/>
+  <text x="322" y="305" font-size="11.5" class="svg-dim">链路窃听</text>
+  <!-- 外部窃听者 -->
+  <g>
+    <rect x="552" y="98" width="146" height="118" rx="12" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="625" y="132" text-anchor="middle" font-size="13.5" class="svg-t">外部窃听者</text>
+    <text x="625" y="154" text-anchor="middle" font-size="11" class="svg-dim">在网络之外</text>
+    <text x="625" y="174" text-anchor="middle" font-size="11" class="svg-dim">截获链路上的</text>
+    <text x="625" y="192" text-anchor="middle" font-size="11" class="svg-dim">全部通信</text>
+  </g>
+  <path d="M552 158 L496 158" stroke="var(--accent)" stroke-width="2" fill="none" stroke-dasharray="6 5"/>
+  <path d="M500 152 l-8 6 l8 6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+</svg>
+<p class="figcap"><strong>图 2：</strong>两类对手的来源（对应论文 Fig. 1）。绿色是遵守协议的正常节点，金色是"诚实但好奇"（HBC）节点——它们照协议办事，却会从收到的信息里尽可能推断别人的私密数据；红色闪电表示外部窃听者在链路上偷听。论文的目标是同时对这两类对手提供保护。</p>
+</div>
+
+<p class="tbl-note">下面是论文的原始 Fig. 1，可以点开对照着看（手机上可点图放大）：</p>
+<figure><img src="assets/paillier/fig1-adversary-model.jpg" alt="论文 Fig.1：正常节点、HBC 节点与外部窃听者的网络示意" loading="lazy" width="673" height="395"><figcaption>论文 Fig. 1（原文图）——蓝色圆点为正常节点，红色圆点为 HBC 节点，蓝线表示通信链路，红色闪电表示链路上的窃听。原图与上面教学重绘的图 2 讲的是同一件事；论文图更简洁，课程图补充了"网络边界"与"外部/内部"的层次。</figcaption></figure>
+
+<p>HBC 对手还可以"合谋"，论文按严重程度分了三级（Definition 1–3）：</p>
+<div class="table-wrap"><table class="tight"><thead><tr><th>对手等级</th><th>含义</th><th>难度</th></tr></thead><tbody>
+<tr><td>不合谋 HBC</td><td>每个好奇节点各自独立推断，彼此不交换情报。</td><td>最低</td></tr>
+<tr><td>弱合谋 HBC</td><td>针对某个正常节点，它至少有一个邻居没参与合谋（或不是好奇节点）。</td><td>中</td></tr>
+<tr><td><strong>强合谋 HBC</strong></td><td>针对某个正常节点，它<strong>所有其他邻居</strong>都是好奇节点，且联合行动、共享各自看到的信息。</td><td>最高</td></tr>
+</tbody></table></div>
+<p>论文声称是第一个能抵抗<strong>强合谋</strong>的分布式状态估计方法。这个"第一"含金量不小——但要连同前提一起读：HBC 的前提是<strong>遵守协议</strong>。主动伪造测量、篡改消息、冒充节点、破坏可用性，属于另一类问题，不在本文的保证范围内。</p>
+<div class="callout"><strong>被动好奇 ≠ 主动破坏</strong><p>读到「抵抗强合谋」时，请自动补全一句：「抵抗守规矩的好奇邻居联合窥探」，而不是「抵抗一切恶意攻击」。这个区别在第 0112 课会展开成一个完整的"安全边界三层图」。</p></div>
+
+<h2>5. 论文的路线：在密文上做加法</h2>
+<p>论文选用的工具是 <strong>Paillier 密码系统</strong>（Paillier, 1999）。它有一个恰好在融合场景里发光的能力——<strong>加法同态</strong>：在不解密的前提下，对密文做特定运算，解密后得到明文的<strong>和</strong>或<strong>整数倍</strong>。用一句话记住它：<em>锁着的两个盒子叠在一起，拆开的时候正好是"合计数"。</em></p>
+<p>融合的代数结构恰好是"加权求和"，Paillier 的加法同态正好对得上——这是论文选它、而不是选乘法同态方案（比如 ElGamal）的核心理由。整个方法可以拆成四步：</p>
+<ol class="steps">
+<li><strong>先做编码：</strong>把实数的信息向量、矩阵按尺度量化成整数。原生 Paillier 只认非负整数，实数要先"换单位"（在第 0109 课展开）。</li>
+<li><strong>再做加密交互：</strong>节点先把自己的数据加密发给邻居；邻居在<strong>密文上</strong>结合自己的数据与随机掩码，把处理结果寄回（在第 0110 课展开）。</li>
+<li><strong>恢复可融合量：</strong>节点解密回邮，得到一份与双方数据有关的"混合结果"——而不是邻居的原始明文（在第 0111 课展开）。</li>
+<li><strong>装回估计器：</strong>把融合段替换成隐私保护版本，并给信息矩阵补一个量化修正项，其余步骤照旧（第 0111 课的后半段）。</li>
+</ol>
+<p class="tbl-note">三个核心结果先记住名字：<strong>Algorithm 2</strong> 是安全通信协议；<strong>Theorem 1</strong> 说明怎样由通信结果完成融合；<strong>Algorithm 3</strong> 是完整的隐私保护估计器。安全性分析与稳定性分析是后续两条独立的"证据链"。</p>
+
+<h2>6. 精读之前，先立四条边界</h2>
+<p>这一节是全系列的"防坑清单"。论文是好论文，但汇报时最容易把它的结论说大一。四条边界先立在门口：</p>
+<div class="table-wrap"><table><thead><tr><th>常见误读</th><th>实际情况</th></tr></thead><tbody>
+<tr><td><span class="pill bad">误读 1</span> 用了加密，就零泄漏</td><td>本文改进编码会把<strong>符号信息放在密文之外</strong>随消息公开携带。数值密文受保护，公开字段需要单独讨论（第 0112 课逐项列出）。</td></tr>
+<tr><td><span class="pill bad">误读 2</span> 通信轮数少 = 总开销低</td><td>论文比较的是<strong>通信次数</strong>（每时间步 $2|\mathcal N_i|$ 次 vs 多轮共识的 $\mathcal L|\mathcal N_i|$ 次）。密文体积、加密计算和密钥管理的代价没有计入——总账要分开看（第 0114 课）。</td></tr>
+<tr><td><span class="pill bad">误读 3</span> 稳定性 = 均方误差有界</td><td>Theorem 3 的公式写的是<strong>平均误差的范数</strong>有界（一阶矩），证明前的引导语却用了 mean square 的措辞。课程按公式所述对象理解，不替作者合并这两个不同的结论（第 0113 课）。</td></tr>
+<tr><td><span class="pill bad">误读 4</span> 仿真结果 = 严格证明</td><td>实验是 100 节点、200 步、500 次蒙特卡洛的数值仿真；它是支持的证据，不是定理。也不代表已在真实机器人上具备实时性（第 0114 课）。</td></tr>
+</tbody></table></div>
+
+<h2>7. 八课阅读地图</h2>
+<p>本系列按「基础 → 方法 → 分析 → 迁移」四段推进，建议按顺序学。每节课之间都有页底导航串联。</p>
+<div class="grid2">
+  <div class="mcard"><h4>基础篇 · 0107–0109</h4><p>0107 全景与威胁模型（本课）→ 0108 信息滤波与 CI 融合、为什么"重复证据"危险 → 0109 改进版 Paillier：实数编码、量化误差界、同态运算。</p></div>
+  <div class="mcard"><h4>方法篇 · 0110–0111</h4><p>0110 双向安全通信协议（全文最精巧的 11 步）→ 0111 融合恢复：从五个回传量解出融合结果，装回完整估计器。</p></div>
+  <div class="mcard"><h4>分析篇 · 0112–0113</h4><p>0112 安全边界：原语、协议、部署三层分开看 → 0113 稳定性与证明审读：Lemma 3、Theorem 3 和证明里的近似。</p></div>
+  <div class="mcard"><h4>迁移篇 · 0114</h4><p>0114 实验解读与机器人迁移：原文图表带读、论文局限清单、五步迁移模板——回答"这方法能不能用到我的系统上"。</p></div>
+</div>
+
+<h2>8. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：机密信息在哪个接口？</h3><p>有人说：「我们的通信已经加密了，收到数据的邻居就不可能了解我的本地估计。」这个说法漏掉了谁？</p><details><summary>展开答案与解释</summary><div class="answer">漏掉了<strong>内部的 HBC 收件人</strong>。链路加密保护的是"传输过程"（信封），而收件人拆开信封后照样能读到内容——如果协议最终让邻居拿到可解读的本地信息量，邻居依然能推断。本文改变的是<strong>邻居实际能得到什么计算结果</strong>，而不只是给原始数据套一层传输加密。</div></details></section>
+<section class="exercise-box"><h3>练习二：信息形式是加密吗？</h3><p>标量情形：某节点告知 $\Omega=4$、$q=12$。它的估计值是多少？这能否说明可以直接公开 $(\Omega,q)$ 而不泄露隐私？</p><details><summary>展开答案与解释</summary><div class="answer">估计值 $\hat x=q/\Omega=3$。但这只是"能还原估计值"的换算演示：$(q,\Omega)$ 直接反映估计<strong>和自信度</strong>，$\Omega$ 越大说明传感器越准，这本身就是敏感信息。信息形式是一种数学表示，不是保护机制——论文恰恰是要给这两个量加密。</div></details></section>
+<section class="exercise-box"><h3>练习三：判断结论的力度</h3><p>误差以相同概率为 +100 或 −100。它的"平均误差"为零，能否说明这个估计器"每次都很准"？</p><details><summary>展开答案与解释</summary><div class="answer">不能。正负误差在取平均时抵消了，但均方误差高达 10000。读理论结论时要分辨「先求期望再取范数」（一阶矩）与「先平方再求期望」（二阶矩）——这正是第 0113 课要拆的坑，也是第 0114 课读仿真曲线时要用到的基本功。</div></details></section>
+
+<div class="callout"><strong>本课带走的一句话</strong><p>本文把「交换原始本地信息量」改成「通过加密交互获得可用于融合的混合量」，希望同时兼顾协作估计与隐私；但理解它必须同时检查<strong>公开信息、随机融合权重、量化误差和理论保证的范围</strong>。论文的四条边界（零泄漏幻觉、通信轮数≠开销、一阶≠二阶、仿真≠证明）会贯穿全系列。</p><p class="chain-next">下一课进入基础篇第一站：信息滤波与 CI 融合——为什么"把邻居的信息直接相加"是危险的？未知的相关性会怎样让滤波器虚报自信？哪里有不明白的，把小节标题或练习答案发给我，我们从那里继续。</p></div>
+
+<h2>原文阅读定位</h2>
+<p>建议回看原文 Section 1（引言与贡献）、Section 2.1–2.4（拓扑、系统模型、经典算法、对手模型）、Section 2.5（Paillier 速览）与 Fig. 1。本课的方法地图对应 Section 3，边界提醒对应式 (6)、Theorem 3 与 Section 5。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="0108-信息滤波与CI融合.html">下一课：信息滤波与 CI 融合 →</a></nav>
 <p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
 </main>
+<script>
+(function(){
+  var caps=[
+    "<strong>① 初始化：</strong>每个节点给自己一份起步估计和初始协方差。全部在本机完成，不和任何节点通信。这一步的信息通常是先验设定，不是本课关心的敏感数据。",
+    "<strong>② 预测：</strong>用系统模型把上一时刻的估计外推到当前时刻。仍然只用本地已知的模型参数（A、Q 全网相同），不涉及邻居数据。",
+    "<strong>③ 量测更新：</strong>把本轮自己的测量吸收进来。这一步结束后得到的信息量（q̃、Ω̃）混合了测量值、传感器精度与本地估计——<strong>论文要保护的就是它</strong>。注意：它仍然只在本机，不发送。",
+    "<strong>④ CI 融合：</strong>唯一需要与邻居交换的阶段：既发出自己的量、也接收邻居的量。论文的改造就是把这里换成加密交互——邻居帮忙算，但看不到你的明文，你也拿不到邻居的明文。"
+  ];
+  var stages=document.querySelectorAll('#pipe-svg .stg');
+  var btns=document.querySelectorAll('#pipe-demo .pipe-step');
+  var cap=document.getElementById('pipe-cap');
+  function sel(i){
+    stages.forEach(function(g){g.classList.toggle('on', +g.dataset.i===i);});
+    btns.forEach(function(b){b.classList.toggle('on', +b.dataset.s===i);});
+    cap.innerHTML=caps[i];
+  }
+  stages.forEach(function(g){g.addEventListener('click',function(){sel(+g.dataset.i);});});
+  btns.forEach(function(b){b.addEventListener('click',function(){sel(+b.dataset.s);});});
+  sel(3);
+})();
+</script>
+<script src="assets/paillier/lightbox.js"></script>
 <script src="../shared/lesson-tools.js"></script>
 </body>
 </html>

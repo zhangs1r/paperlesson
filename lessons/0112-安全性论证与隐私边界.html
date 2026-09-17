@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0112 · 安全性论证与隐私边界 · PaperLesson</title><link rel="icon" href="data:,">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="assets/paillier/course.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 6 课 / 共 8 课</p><h1>安全性不是一句"没有私钥"</h1><p class="subtitle">读懂 Theorem 2 的论证，并区分加密原语、协议与部署保证</p><div class="meta"><span>0112</span><span>建议 25 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 Definition 4、Theorem 2、§4.1</span></div></header>
+<div class="content">
+
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：0110–0111 课的角色归属（谁持私钥、谁选 U/T、谁能解开什么）。今天不做攻击实验，而是学会<strong>负责任地介绍安全结果</strong>：先说保护对象，再说对手能力，最后说证据支持到哪一层。学完要能回答：<strong>①</strong> 论文的 Theorem 2 究竟证明了两件事中的哪两件？<strong>②</strong> Paillier 的安全性和"这套系统"的安全性差在哪？<strong>③</strong> 哪些信息其实是公开的？<strong>④</strong> 在组会上怎样严谨地介绍这个安全结论？</p></div>
+
+<h2>1. 锁很牢，整间屋子就一定安全吗？</h2>
+<p>一把经过严格研究的锁，不能自动证明<strong>房子没有窗户</strong>。Paillier 就是那把"锁"——经过密码学界二十多年检验的成熟原语；而符号编码、随机掩码、消息组合、解密结果、公开参数……这些构成"房子"的部分，需要<strong>另外检查</strong>。这不是否定作者的安全融合思路，而是把不同层次的主张分开放：</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 372" role="img" aria-label="安全三层：原语层、协议层、部署层，各有不同的保证和前提">
+  <!-- 层 1 -->
+  <g>
+    <rect x="30" y="20" width="660" height="100" rx="12" fill="var(--green-dim)" stroke="var(--green)" stroke-width="2"/>
+    <text x="52" y="50" font-size="14.5" font-weight="700" fill="var(--green)">第一层 · 加密原语（Paillier）</text>
+    <text x="52" y="74" font-size="12.5" class="svg-t">保证：没有私钥，就无法从密文还原数值（基于 DCR 假设，计算安全）</text>
+    <text x="52" y="98" font-size="12.5" class="svg-dim">前提：参数正确生成、实现无缺陷、"计算上不可行"≠"数学上不可能"</text>
+  </g>
+  <!-- 层 2 -->
+  <g>
+    <rect x="30" y="136" width="660" height="100" rx="12" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2"/>
+    <text x="52" y="166" font-size="14.5" font-weight="700" fill="var(--gold)">第二层 · 协议（Algorithm 2 + 3 的组合）</text>
+    <text x="52" y="190" font-size="12.5" class="svg-t">保证：论文论证的——外部窃听者拿不到敏感量；强合谋 HBC 拿不到正常节点的敏感量</text>
+    <text x="52" y="214" font-size="12.5" class="svg-dim">前提：HBC 遵守协议；公开字段（符号、H、拓扑）符合应用隐私要求（本课逐条列）</text>
+  </g>
+  <!-- 层 3 -->
+  <g>
+    <rect x="30" y="252" width="660" height="100" rx="12" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="52" y="282" font-size="14.5" font-weight="700" fill="var(--accent-deep)">第三层 · 部署（真实系统）</text>
+    <text x="52" y="306" font-size="12.5" class="svg-t">论文未覆盖：密钥存储与轮换、消息完整性、节点故障、资源耗尽、侧信道、身份认证</text>
+    <text x="52" y="330" font-size="12.5" class="svg-dim">这些需要独立的工程措施——不是本文的缺陷，而是研究原语与产品之间的正常距离</text>
+  </g>
+</svg>
+<p class="figcap"><strong>图 1：</strong>安全保证的三个层级。论文的 Theorem 2 主要处理<strong>第二层</strong>；第一层是引用 Paillier 的标准结果；第三层完全在论文范围之外，但汇报时最容易被听众假设"也应该有"。这三层要分开说。</p>
+</div>
+
+<p>论文用 Definition 4 定义"高度隐私保护"这个目标，Theorem 2 分两部分论证：对<strong>外部窃听</strong>与对<strong>强合谋 HBC</strong>。先把保护对象写清楚：</p>
+<div class="formula-box"><span class="fname">原文 §4.1 · 保护对象</span>
+$$\text{protected variables: }\quad \tilde q_{k,i}^{p},\quad \tilde\Omega_{k,i}^{p}.$$
+<p><strong>是什么：</strong>保护对象是<strong>本地量测更新后的信息向量、信息矩阵</strong>（对任意节点 $i$ 和任意时刻 $k$）。</p><p><strong>直觉：</strong>节点愿意贡献"计算结果"，但不愿直接共享"完整本地信息"。</p><p><strong>细节（范围必须准确）：</strong>保护这两个量，<em>不</em>自动等于隐藏身份、通信时间、拓扑结构、符号模式或任意外部先验。这些"周边信息"在后面第三、四节逐条检查。</p></div>
+
+<h2>2. 第一条证据链：外部窃听者</h2>
+<p>论文允许窃听者截获<strong>所有</strong>通信链路。它能观察到什么？公钥 $\mathcal P_k^i$、编码尺度 $\mathcal Q_k^i$、随机和 $H$、以及消息里的密文。它<em>看不到</em>什么？对应节点的私钥 $\mathcal S_k^i$——私钥不在任何一条消息里。</p>
+<p>作者据此引用 Paillier 所依赖的<strong>判定性合数剩余假设（DCR）</strong>，说明窃听者不能直接解开数值密文。这一步论证是标准的，也是可靠的——但有三点需要精确表述：</p>
+<div class="table-wrap"><table class="tight"><thead><tr><th>说法</th><th>是否准确</th></tr></thead><tbody>
+<tr><td>「窃听者拿到密文也没有私钥，无法解密」</td><td><span class="pill ok">准确</span> 这是 DCR 假设下的计算安全结论</td></tr>
+<tr><td>「用 Paillier 就绝对安全」</td><td><span class="pill bad">过度</span> 计算安全有前提：参数正确、实现正确、攻击者算力受限</td></tr>
+<tr><td>「窃听者看不到任何关于敏感数据的信息」</td><td><span class="pill bad">过度</span> 见下一节——符号模式等公开字段就没被加密</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>"计算安全"的准确含义</strong><p>不是数学意义的永远不可能，而是：<em>在假设成立、参数合适、攻击者计算资源受限的条件下，破解在计算上不可行</em>。正确随机化与实现质量都很重要——"用了这个算法名字"本身不构成保证。这是密码学著作的标准措辞，本课程沿用。</p></div>
+
+<h3>符号层：为什么不放在密文里？</h3>
+<p>论文的改进版编码（0109 课式 (6)）把符号放在<strong>密文之外</strong>，随消息明文携带：</p>
+<div class="formula-box"><span class="fname">原文式 (6) · 符号在密文外</span>
+$$\Upsilon(s,r)=\operatorname{sgn}(\Gamma(s,r))\,\mathbf E(|\Gamma(s,r)|).$$
+<p><strong>公式读法：</strong>被 Paillier 加密的是编码数的<strong>绝对值</strong>；符号另行明文携带。接收方还用这个符号构造同号掩码，所以它不是"被隐藏在密文内部的量"。</p><p><strong>结论（重要）：</strong>"不能解密数值"<em>不能</em>扩写为"看不到任何关于敏感数据的信息"。符号模式是公开的——这是协议层的可见信息说明，不是数据恢复方法。课程保留作者的定理主张，同时把公开字段的实际含义讲清楚。</p></div>
+
+<h2>3. 第二条证据链：内部强合谋 HBC</h2>
+<p>换一个视角。设正常节点为 $\iota$（希腊字母 iota，论文用它与一般节点 $i$ 区分），它的其他邻居<strong>全部</strong>是好奇节点 $j$，而且联合行动、共享情报。他们能拿到什么？</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 340" role="img" aria-label="强合谋场景：正常节点被好奇邻居包围，好奇邻居能解开什么、不能解开什么">
+  <!-- 中心正常节点 -->
+  <circle cx="360" cy="170" r="46" fill="var(--green-dim)" stroke="var(--green)" stroke-width="2.6"/>
+  <text x="360" y="163" text-anchor="middle" font-size="15" font-weight="700" fill="var(--green)">正常节点 ι</text>
+  <text x="360" y="186" text-anchor="middle" font-size="11" class="svg-dim">自己的私钥 S</text>
+  <!-- 包围的好奇节点 -->
+  <g>
+    <circle cx="150" cy="80" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="150" y="87" text-anchor="middle" font-size="13" class="svg-t">j₁</text>
+    <circle cx="360" cy="46" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="360" y="53" text-anchor="middle" font-size="13" class="svg-t">j₂</text>
+    <circle cx="570" cy="80" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="570" y="87" text-anchor="middle" font-size="13" class="svg-t">j₃</text>
+    <circle cx="150" cy="262" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="150" y="269" text-anchor="middle" font-size="13" class="svg-t">j₄</text>
+    <circle cx="360" cy="296" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="360" y="303" text-anchor="middle" font-size="13" class="svg-t">j₅</text>
+    <circle cx="570" cy="262" r="34" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+    <text x="570" y="269" text-anchor="middle" font-size="13" class="svg-t">j₆</text>
+  </g>
+  <!-- 合谋连线 -->
+  <g stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="5 4" fill="none" opacity="0.75">
+    <path d="M184 92 Q 250 40 326 46"/>
+    <path d="M394 46 Q 480 44 536 74"/>
+    <path d="M536 90 Q 580 160 570 228"/>
+    <path d="M540 258 Q 480 300 394 296"/>
+    <path d="M326 296 Q 240 300 184 268"/>
+    <path d="M176 254 Q 130 180 146 114"/>
+  </g>
+  <text x="360" y="176" text-anchor="middle" font-size="0" class="svg-t">.</text>
+  <!-- 双向链路 -->
+  <g stroke="var(--ink-20)" stroke-width="1.6" fill="none">
+    <line x1="330" y1="140" x2="180" y2="98"/>
+    <line x1="352" y1="124" x2="358" y2="82"/>
+    <line x1="392" y1="140" x2="540" y2="98"/>
+    <line x1="330" y1="200" x2="180" y2="244"/>
+    <line x1="360" y1="216" x2="360" y2="260"/>
+    <line x1="392" y1="200" x2="540" y2="244"/>
+  </g>
+  <!-- 底部说明 -->
+  <g>
+    <rect x="30" y="8" width="330" height="58" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.3"/>
+    <text x="44" y="30" font-size="11.5" class="svg-t">他们能拿到：ι 的密文、ι 的公钥、编码参数、</text>
+    <text x="44" y="50" font-size="11.5" class="svg-t">以及"自己发起、ι 响应"那些会话的结果</text>
+  </g>
+  <g>
+    <rect x="388" y="8" width="302" height="58" rx="9" fill="var(--paper)" stroke="var(--border)" stroke-width="1.3"/>
+    <text x="402" y="30" font-size="11.5" fill="var(--accent)">他们拿不到：ι 的私钥 S、U、T——</text>
+    <text x="402" y="50" font-size="11.5" fill="var(--accent)">所以推不出 ι 的 q̃、Ω̃</text>
+  </g>
+</svg>
+<p class="figcap"><strong>图 2：</strong>强合谋场景（对应原文 Theorem 2 的第二部分）。关键点在于<strong>谁在响应角色里选了随机参数</strong>：好奇邻居能解开的是"自己发起、由 ι 响应"的回包，而那些会话里正常节点 ι 是响应方，随机参数 U/T 是 ι 选的。于是他们解出来的是混合值，拿不到 ι 的原始信息量。</p>
+</div>
+
+<p>论文的论证可以概括成一句话：<strong>强合谋的好奇邻居拿不到正常节点的私钥、也拿不到正常节点在响应角色里自己选的随机参数 $U、T$，因此无法获得 $\tilde\Omega_{k,\iota}^{p}$ 与 $\tilde q_{k,\iota}^{p}$。</strong></p>
+<div class="callout"><strong>符号层必须一起看</strong><p>注意这里有个容易记混的方向问题：不能把"响应方掌握 U/T"记成"所有方向都是好奇节点掌握 U/T"。<strong>Theorem 2 的内部防护理由，依赖正常节点在响应角色中保留自己的随机参数</strong>——这就是为什么 0110 课要花力气分清两个方向。把这个前提记牢，后面练习二就会很顺。</p></div>
+
+<h2>4. "未知量不够解"为什么还不是证明终点？</h2>
+<p>0111 课见过那个漂亮的论证：$i$ 想解出邻居的值，但"一个方程、两个未知数"。作为<strong>直觉</strong>它非常有说服力，但作为<strong>形式化证明</strong>，还需要补很多：</p>
+<div class="grid2">
+  <div class="mcard"><span class="en">公开字段</span><h4>不只是"一个方程"</h4><p>完整协议含多个公开量与多个解密中间量，还有矩阵和向量元素之间的代数联系。只展示"一个方程里有两个未知数"，不能保证把<strong>所有约束联立</strong>后仍然不可推断。</p></div>
+  <div class="mcard"><span class="en">时间维度</span><h4>跨时刻的统计信息</h4><p>协议每步重抽随机量，但对手可以积累多轮的观察做统计推断。"单轮不可解"与"跨轮联合分布不可区分"是两码事。</p></div>
+  <div class="mcard"><span class="en">形式化定义</span><h4>"高度保护"要具体化</h4><p>形式化协议安全分析通常需要明确：对手看到哪些完整记录、允许泄露什么、比较哪些输入情形、用哪个安全定义（比如模拟范式）。论文的 Definition 4 是目标描述，不是形式化定义。</p></div>
+  <div class="mcard"><span class="en">矩阵结构</span><h4>半正定等结构约束</h4><p>信息矩阵是半正定的，这类"已知结构"本身也是一种信息。形式化分析要把它算进对手的能力里。</p></div>
+</div>
+<p>课程的态度是明确的：<strong>论文的 Theorem 2 正文主要是基于私钥与随机参数归属的论证，不应在汇报时升级成课程没有验证过的更强结论。</strong>这不是说它错，而是说"证据支持到哪，话说到哪"。</p>
+<div class="callout"><strong>适合组会的准确说法</strong><p>照这个模板说就不会过度承诺：<em>"作者提出一套面向外部窃听与强合谋 HBC 的隐私保护协议，利用数值密文与私有随机混合参数开展论证。符号公开、完整记录的形式化安全以及实现层安全，是另外几个需要分开讨论的问题。"</em></p></div>
+
+<h2>5. 公开信息清单（部署前必须核对）</h2>
+<p>把课程里出现过的"没被加密"的信息集中列出来。这不是要挑论文的毛病，而是部署前必须核对"这些可见信息在我的应用里能不能接受"。</p>
+<div class="demo" id="vis-demo">
+  <p class="demo-title">逐条过一遍：哪些信息是公开/可见的</p>
+  <p class="demo-hint">点每条展开说明。</p>
+  <div class="table-wrap"><table class="tight"><thead><tr><th>可见信息</th><th>何时暴露</th><th>部署时要问什么</th></tr></thead><tbody>
+  <tr><td><strong>数值的符号模式</strong></td><td>每轮消息中，随密文明文携带</td><td>我的数据符号模式是否敏感？（比如"某项指标是正还是负"）</td></tr>
+  <tr><td><strong>编码尺度 $\mathcal Q_k^i$</strong></td><td>i 主动随消息发出</td><td>尺度选择会不会泄露"数据量级"的先验？</td></tr>
+  <tr><td><strong>随机和 $H$</strong></td><td>j 的公开回传</td><td>多轮观察 $H$ 的分布，会不会暴露 j 的随机策略？</td></tr>
+  <tr><td><strong>通信拓扑与邻居集合</strong></td><td>网络结构本身</td><td>"谁和谁在通信"是否敏感？（本文不隐藏拓扑）</td></tr>
+  <tr><td><strong>消息时序与体积</strong></td><td>物理信道可观测</td><td>通信模式（何时静默、消息多大）会不会侧面泄露状态变化？</td></tr>
+  <tr><td><strong>公钥 $\mathcal P_k^i$</strong></td><td>设计上公开</td><td>轮换频率、密钥管理如何落实（部署层问题）？</td></tr>
+  </tbody></table></div>
+  <p class="demo-caption">论文的定理覆盖的是"数值密文不可解"这件事；上面这些是<strong>协议层附带公开的元信息</strong>。<b>课程把它们列出来，是为了让部署评估诚实、完整——是否可接受，取决于你的应用场景。</b></p>
+</div>
+
+<h2>6. 对部署的实际启发</h2>
+<p>隐私与完整性不是同一件事。本方案假设 HBC <strong>遵守规则</strong>，不意味着能处理伪造输入或失效节点。在机器人系统里，这些要靠独立的工程措施：</p>
+<div class="table-wrap"><table><thead><tr><th>需求</th><th>本论文是否覆盖</th><th>部署时用什么补</th></tr></thead><tbody>
+<tr><td>敏感数值不泄露给邻居/窃听者</td><td><span class="pill ok">覆盖</span></td><td>本方法（注意公开字段清单）</td></tr>
+<tr><td>消息不被篡改</td><td><span class="pill bad">不覆盖</span></td><td>消息认证码、数字签名</td></tr>
+<tr><td>节点身份真实</td><td><span class="pill bad">不覆盖</span></td><td>身份认证、证书体系</td></tr>
+<tr><td>恶意输入（投毒）防护</td><td><span class="pill bad">不覆盖</span></td><td>鲁棒估计、异常检测、信誉机制</td></tr>
+<tr><td>密钥存储与轮换</td><td><span class="pill warn">部分</span></td><td>论文只规定"每轮换密钥"，具体怎么存、怎么销毁要在工程层定</td></tr>
+<tr><td>资源耗尽（DoS）</td><td><span class="pill bad">不覆盖</span></td><td>限流、超时、降级策略</td></tr>
+</tbody></table></div>
+<ul>
+<li>定义需要保护的具体变量，不要笼统写"数据安全"。</li>
+<li>列出协议本来就公开的符号、时序与拓扑信息，检查它们是否符合应用的隐私要求。</li>
+<li>把"数学模型里的被动好奇对手"与"真实系统里的节点故障、恶意节点"分开建模。</li>
+<li>先做离线验证与安全评审，不要把研究原型直接接进安全控制回路。</li>
+</ul>
+<p class="tbl-note">上面的清单是<strong>防御需求清单</strong>，不是论文已经实现的功能——写进项目书时注意区分。</p>
+
+<h2>7. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：分清三层</h3><p>「Paillier 有计算安全依据，所以这个机器人应用的全部行为都不会泄露」——这句话的问题在哪？</p><details><summary>展开答案与解释</summary><div class="answer">把<strong>原语层</strong>（第一层）的保证直接跳到了<strong>部署层</strong>（第三层）。必须另看：编码的公开字段（符号、Q、H）、协议输出、元数据（拓扑/时序）与实现条件。原语的安全保证不能自动覆盖所有应用行为——三层要分开说。</div></details></section>
+<section class="exercise-box"><h3>练习二：反向交互的随机数</h3><p>好奇节点 $j$ 发起、正常节点 $\iota$ 响应。谁持解密私钥？谁选本趟的 $U/T$？$j$ 能解开什么、解不开什么？</p><details><summary>展开答案与解释</summary><div class="answer">$j$ 持<strong>自己的</strong>私钥（它发起那趟用它的密钥对）；正常响应方 $\iota$ <strong>选并保留</strong>本趟的 $U/T$。$j$ 能解开自己收到的回包（因为用的是 $j$ 的公钥加密），但解出来的是"混合值"，而且拿不到 $\iota$ 的 $U/T$，所以分离不出 $\iota$ 的原始量。<strong>两种角色不要与"正常/好奇"标签固定绑定</strong>——这正是 Theorem 2 内部防护的支点。</div></details></section>
+<section class="exercise-box"><h3>练习三：缩短结论但不扩大结论</h3><p>用一句话说明本文对内部对手的防护限制。</p><details><summary>展开答案与解释</summary><div class="answer">要点：好奇邻居<strong>可以合谋、可以持续观察</strong>，但前提是<strong>遵守协议</strong>——主动造假、篡改、拜占庭行为不是同一个保证范围。参考答案："它们可以好奇并合谋，但必须按协议办事；主动攻击不在本文的保证内。"</div></details></section>
+
+<div class="callout"><strong>本课带走的一句话</strong><p>安全性课带来三个问题：<strong>保护什么</strong>（$\tilde q,\tilde\Omega$ 两个量）、<strong>谁能看到什么</strong>（密文受保护，但符号、Q、H、拓扑是公开的）、<strong>证明支持到哪一层</strong>（原语层引用标准结果、协议层基于归属论证、部署层完全另说）。三问都答得上，才算真正读懂这个安全结论。</p><p class="chain-next">下一课换一条证据链：信息矩阵为什么不会"缩到零"也不会"涨到无穷"？平均误差有界与均方误差有界差别在哪？Theorem 3 的证明里有哪些近似与原文出入需要标注？理论课最重要的能力是辨认"证明了哪个对象"，我们下一课专门练这个。</p></div>
+
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 2.4（对手模型）、Definition 1–4、Section 4.1（Theorem 2 及其证明）、式 (6)。建议对照 Fig. 1 重读一遍 Definition 3（强合谋）的定义。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0111-融合恢复与完整估计器.html">← 上一课：融合恢复与完整估计器</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="0113-稳定性与证明审读.html">下一课：稳定性与证明审读 →</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script src="assets/paillier/lightbox.js"></script>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

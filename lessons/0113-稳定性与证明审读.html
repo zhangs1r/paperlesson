@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0113 · 稳定性与证明审读 · PaperLesson</title><link rel="icon" href="data:,">
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="stylesheet" href="assets/paillier/course.css">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 7 课 / 共 8 课</p><h1>平均误差不跑偏，就代表估计稳定吗？</h1><p class="subtitle">先认清保证对象，再读 Lemma 3、Theorem 3 与证明中的近似</p><div class="meta"><span>0113</span><span>建议 30 分钟</span><span>难度 ★★★★☆</span><span>对应原文 §4.2、Lemma 3、Theorem 3、附录</span></div></header>
+<div class="content">
+
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：0111 课的随机凸组合与矩阵修正项。需要期望、矩阵求逆的基础；<strong>半正定序</strong>与 <strong>Lyapunov 量</strong>在本页速成。学完要能回答：<strong>①</strong> 一阶矩有界与均方误差有界差别在哪？<strong>②</strong> Lemma 3 把信息矩阵"夹"在什么之间？<strong>③</strong> Theorem 3 的证明主线是什么、哪里用了近似？<strong>④</strong> 论文证明里有哪些需要标注的出入？</p></div>
+
+<h2>1. 先用靶心图消除一个误会</h2>
+<p>想象两位射手：两人的子弹平均落点都在靶心，但一位弹孔集中，另一位散得很开。<strong>只看平均落点，你无法判断谁更准。</strong>估计误差的正负抵消也有同样的问题。</p>
+
+<div class="demo" id="target-demo">
+  <p class="demo-title">拖动看看：同样的"平均值"，完全不同的精度</p>
+  <p class="demo-hint">两个射手的平均误差都是 0——但其中一个是"平均出来的假象"。</p>
+  <div class="demo-stage">
+    <svg id="tg-svg" viewBox="0 0 720 300" role="img" aria-label="两个靶子对比：左边误差±1，右边误差±10，均值都是0但均方误差差100倍">
+      <!-- 左靶 -->
+      <g>
+        <circle cx="176" cy="150" r="76" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="176" cy="150" r="50" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="176" cy="150" r="24" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="176" cy="150" r="4.5" fill="var(--ink-40)"/>
+        <text x="176" y="40" text-anchor="middle" font-size="13.5" class="svg-t">射手 A · 弹孔集中</text>
+        <g id="tg-a"></g>
+        <text x="176" y="262" text-anchor="middle" font-size="13" class="svg-t">平均误差 = 0</text>
+        <text x="176" y="286" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--green)">均方误差 MSE = 1</text>
+      </g>
+      <!-- 右靶 -->
+      <g>
+        <circle cx="544" cy="150" r="76" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="544" cy="150" r="50" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="544" cy="150" r="24" fill="none" stroke="var(--border)" stroke-width="1.6"/>
+        <circle cx="544" cy="150" r="4.5" fill="var(--ink-40)"/>
+        <text x="544" y="40" text-anchor="middle" font-size="13.5" class="svg-t">射手 B · 弹孔分散</text>
+        <g id="tg-b"></g>
+        <text x="544" y="262" text-anchor="middle" font-size="13" class="svg-t">平均误差 = 0</text>
+        <text x="544" y="286" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--accent)">均方误差 MSE = 100</text>
+      </g>
+    </svg>
+  </div>
+  <p class="demo-caption" id="tg-cap">两边<strong>平均误差都是 0</strong>（正负抵消），但均方误差相差 100 倍。论文 Theorem 3 的定理本体保证的是<b>平均误差（一阶矩）</b>有界——这正是容易被误读的地方。</p>
+  <div class="demo-controls">
+    <button class="demo-btn" id="tg-run" type="button">重新散布</button>
+  </div>
+</div>
+
+<div class="formula-box"><span class="fname">三个容易混淆的量</span>
+$$\big\|\mathbb E[e]\big\|\quad\ne\quad \mathbb E\big[\|e\|\big]\quad\ne\quad \mathbb E\big[\|e\|^2\big].$$
+<p><strong>是什么：</strong>依次是"平均误差的范数"、"误差范数的期望"、"均方误差"。</p><p><strong>直觉：</strong>先平均（正负可能抵消）→ 数值小；先取长度或平方（不抵消）→ 数值大。</p><p><strong>细节：</strong>恒等式 $\mathbb E[\|e\|^2]=\operatorname{tr}(\operatorname{Cov}(e))+\|\mathbb E[e]\|^2$ 说明——均值只控制其中一项，控制不了方差那一项。想从一阶矩结论推出二阶矩结论，中间有实质距离。</p></div>
+
+<div class="callout"><strong>论文原文的措辞需要标注</strong><p>Theorem 3 的公式明确写的是 $\|\mathbb E[\hat e_k^i]\|$ <strong>一致有界</strong>（一阶矩、平均误差）。但它前一段的引导语却用了 "mean square estimation errors"（均方估计误差）的措辞。课程<strong>按定理公式所述对象理解</strong>——平均误差有界——不把措辞冲突悄悄合并成"均方稳定"的更强保证。这是阅读理论论文时的常见陷阱：<em>定理陈述优先于正文措辞</em>。</p></div>
+
+<h2>2. 两个数学工具速成</h2>
+<h3>半正定序：不是逐个元素比大小</h3>
+<p>矩阵不等式 $F\le G$（$F,G$ 同阶对称）读作：<strong>任意方向 $z$ 上都有 $z^\top Fz\le z^\top Gz$</strong>。它比较的是"二次型"，不是逐元素比大小。</p>
+<div class="formula-box"><span class="fname">半正定序的等价表述</span>
+$$-\delta I\le E\le\delta I\quad\Longleftrightarrow\quad |z^\top Ez|\le\delta\|z\|^2\quad\text{for all }z.$$
+<p><strong>直觉：</strong>上界 $G=F+\delta I$ 的意思是"<strong>所有方向</strong>都留出同样的余量 $\delta$"，不是"只允许对角线有误差"。0.109 课的 $\frac{n}{2\mathcal Q}I$ 就是这么来的：任何方向的量化扰动幅度都被 $\frac{n}{2\mathcal Q}$ 兜住。</p><p><strong>细节（重要换算）：</strong>对对称误差矩阵，若每个元素的绝对误差 ≤ $\frac{1}{2\mathcal Q}$，其谱范数可被 $\frac{n}{2\mathcal Q}$ 控制（$n$ 是维数）。这是"元素级误差 → 矩阵级界"的标准放大。</p></div>
+
+<h3>Lyapunov 量：把误差装进一把"有刻度的尺"</h3>
+<p>普通的欧氏长度 $\|e\|$ 把所有方向一视同仁；而带信息矩阵的二次型 $e^\top\Omega e$ 按<strong>方向的重要性加权</strong>——不确定的方向权重大，确定的方向权重小。它就像一把"有刻度的尺"：只要信息矩阵始终有正的上下界（不会缩到零、也不会涨到无穷），尺子就始终能工作，误差长度就被它"卡"住。</p>
+<div class="formula-box"><span class="fname">Lyapunov 量（论文式 (11) 的核心对象）</span>
+$$V_k^i\triangleq \mathbb E[\bar e_k^i]^\top\bar\Omega_{k,i}^{p}\,\mathbb E[\bar e_k^i],\qquad \bar e_k^i\triangleq\bar x_{k,i}^{p}-x_k.$$
+<p><strong>读法（必须仔细）：</strong>先求平均误差 $\mathbb E[\bar e_k^i]$，<strong>再用信息矩阵加权</strong>。注意不是 $\mathbb E[e^\top\Omega e]$——那个会涉及二阶矩。论文构造的是前者，与 Theorem 3 的一阶矩口径一致。</p></div>
+
+<h2>3. 四个假设各自负责什么？</h2>
+<div class="table-wrap"><table class="tight"><thead><tr><th>假设</th><th>内容</th><th>在证明里负责什么</th></tr></thead><tbody>
+<tr><td><strong>A1</strong></td><td>无向图连通，$W$ 行随机且有自权重</td><td>信息能沿路径传播；融合是"加权平均"而不是越乘越小。注意：连通不等于"一步到全网"。</td></tr>
+<tr><td><strong>A2</strong></td><td>动力学/观测有界，$P_0,Q,R$ 有正定上下界，<strong>编码尺度与 $H$ 有上界</strong></td><td>给信息矩阵的上界提供常数来源。<em>它不代替密码学模数范围检查</em>——那是实现层的事。</td></tr>
+<tr><td><strong>A3</strong></td><td>系统联合可观</td><td>估计问题本身有解的前提。注意是"联合"可观：各节点合起来够，不等于单节点自己够。</td></tr>
+<tr><td><strong>A4</strong></td><td>$\inf_k\lambda_{\min}\{A_kA_k^\top\}\ge\beta>0$</td><td>保证 $A_k$ 的逆"不会越来越病态"——比"每步可逆"更强。</td></tr>
+</tbody></table></div>
+<p class="tbl-note">这四条是<strong>充分条件框架</strong>，不是"任何能工作的估计器都必须逐条满足"的必要条件。把它们迁移到机器人模型时，每条都要重新核对。</p>
+
+<h2>4. Lemma 3：先把信息矩阵"夹"住</h2>
+<div class="formula-box"><span class="fname">原文 Lemma 3 · 信息矩阵的上下界</span>
+$$\underline\omega I\ \leq\ \hat\Omega_{k,i}^{p}\ \leq\ \overline\omega I,\qquad 0<\underline\omega\le\overline\omega.$$
+<p><strong>是什么：</strong>所有时刻、所有节点的融合后信息矩阵，被一对<strong>公共常数</strong>夹住（证明在论文附录）。</p><p><strong>直觉：</strong>既不会"瘦到求逆失控"（有正下界），也不会"胖到拥有无限信息"（有上界）。</p><p><strong>细节（边界）：</strong>这是<strong>算法内部信息矩阵</strong>的界——不能直接认作"真实误差协方差已被证明一致有界"。</p></div>
+
+<div class="demo" id="bound2-demo">
+  <p class="demo-title">"夹住"是什么意思：拖着看椭圆</p>
+  <p class="demo-hint">信息矩阵决定误差椭圆的形状。拖动看它被上下界限制住的区间。</p>
+  <div class="demo-stage">
+    <svg viewBox="0 0 720 296" role="img" aria-label="信息矩阵的上下界将误差椭圆夹在中间">
+      <!-- 坐标系 -->
+      <line x1="120" y1="148" x2="620" y2="148" stroke="var(--border)" stroke-width="1.4"/>
+      <line x1="370" y1="34" x2="370" y2="262" stroke="var(--border)" stroke-width="1.4"/>
+      <text x="626" y="152" font-size="11.5" class="svg-dim">z₁</text>
+      <text x="364" y="30" font-size="11.5" class="svg-dim">z₂</text>
+      <!-- 上界椭圆 -->
+      <ellipse id="ub-ell" cx="370" cy="148" rx="200" ry="96" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 5"/>
+      <text id="ub-lbl" x="370" y="42" text-anchor="middle" font-size="11.5" fill="var(--accent)">上界 ω̄ 的方向图</text>
+      <!-- 下界椭圆 -->
+      <ellipse id="lb-ell" cx="370" cy="148" rx="70" ry="34" fill="none" stroke="var(--green)" stroke-width="2" stroke-dasharray="7 5"/>
+      <text id="lb-lbl" x="370" y="268" text-anchor="middle" font-size="11.5" fill="var(--green)">下界 ω 的方向图</text>
+      <!-- 实际 -->
+      <ellipse id="ac-ell" cx="370" cy="148" rx="130" ry="62" fill="var(--gold-dim)" stroke="var(--gold)" stroke-width="2.2"/>
+      <text id="ac-lbl" x="370" y="152" text-anchor="middle" font-size="12" fill="var(--gold)">实际 Ω̂</text>
+    </svg>
+  </div>
+  <div class="demo-range">
+    <label for="b2-q">实际 Ω 的大小</label>
+    <input type="range" id="b2-q" min="1" max="100" step="1" value="45" style="flex:1;min-width:180px">
+    <output id="b2-out">45%</output>
+  </div>
+  <p class="demo-caption" id="b2-cap">拖动时注意：实际的信息矩阵（金色）可以变化，但被卡在绿色下界和橙色上界之间——<b>永远出不去</b>。这正是 Lemma 3 说的事：$\underline\omega I\le\hat\Omega\le\overline\omega I$。它给 Theorem 3 提供了"尺子不会坏掉"的保证。</p>
+</div>
+
+<p>附录里的证明走两条路：</p>
+<ol class="steps">
+<li><strong>上界路径：</strong>预测步用过程噪声给出信息上限；量测更新增加的 $C^\top R^{-1}C$ 由 A2 控制；凸组合与有限的量化修正不会让上界失控。三块相加得到 $\overline\omega$。</li>
+<li><strong>下界路径：</strong>用 Lemma 1 和正向修正，把新矩阵的下界接到"理想的随机凸组合"上；再借助连通性、联合可观性与<strong>已有的分布式滤波结果</strong>（引用了 Battistelli 等人的工作）完成。原文对后一部分只写了"类似程序，从略"。</li>
+</ol>
+<div class="callout"><strong>读证明时的诚实态度</strong><p>下界的末段是<strong>引用已有结果</strong>，不是本论文逐行证明的——读者应当知道这一点，而不是以为"只靠一行求和就完成了证明"。这不算缺陷（引用标准结果在数学论文里很常见），但汇报时别把它说成"论文从零证明了全部"。</p></div>
+
+<h2>5. Theorem 3：主线与必须标注的细节</h2>
+<p>定理总体：在 Assumptions 1–4 下，只要 $\mathcal Q_k^i$ <strong>取得足够大</strong>、初始误差有界，就有 $\|\mathbb E[\hat e_k^i]\|\le\epsilon$ 对所有 $k$ 成立——<strong>平均误差一致有界</strong>。</p>
+<div class="demo" id="proof-demo">
+  <p class="demo-title">证明的四个台阶（点着看）</p>
+  <div class="pipeline">
+    <button class="pipe-step" data-p="0"><span class="n">台阶 1</span>预测收缩</button>
+    <button class="pipe-step" data-p="1"><span class="n">台阶 2</span>融合放缩</button>
+    <button class="pipe-step" data-p="2"><span class="n">台阶 3</span>量测不动</button>
+    <button class="pipe-step" data-p="3"><span class="n">台阶 4</span>全网递推</button>
+  </div>
+  <div class="demo-stage">
+    <svg id="pf-svg" viewBox="0 0 720 210" role="img" aria-label="证明主线：预测收缩、融合放缩、量测更新、全网递推">
+      <g id="pf-body">
+        <rect x="30" y="40" width="150" height="120" rx="10" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="105" y="82" text-anchor="middle" font-size="13" class="svg-t">预测</text>
+        <text x="105" y="106" text-anchor="middle" font-size="12" class="svg-mono svg-dim">γ̃ ∈ (0,1)</text>
+        <text x="105" y="132" text-anchor="middle" font-size="10.5" class="svg-dim">收缩因子</text>
+        <path d="M186 100 L226 100" class="arrowline" fill="none"/>
+        <rect x="232" y="40" width="150" height="120" rx="10" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="307" y="82" text-anchor="middle" font-size="13" class="svg-t">融合</text>
+        <text x="307" y="106" text-anchor="middle" font-size="12" class="svg-mono svg-dim">Θₖ 行随机</text>
+        <text x="307" y="132" text-anchor="middle" font-size="10.5" class="svg-dim">凸组合不等式</text>
+        <path d="M388 100 L428 100" class="arrowline" fill="none"/>
+        <rect x="434" y="40" width="150" height="120" rx="10" fill="var(--paper)" stroke="var(--border)" stroke-width="1.6"/>
+        <text x="509" y="82" text-anchor="middle" font-size="13" class="svg-t">量测更新</text>
+        <text x="509" y="106" text-anchor="middle" font-size="12" class="svg-mono svg-dim">不增能量</text>
+        <text x="509" y="132" text-anchor="middle" font-size="10.5" class="svg-dim">Lyapunov 不升</text>
+        <text id="pf-note" x="360" y="192" text-anchor="middle" font-size="12.5" class="svg-t">点上面的台阶看每一步的作用</text>
+      </g>
+    </svg>
+  </div>
+  <p class="demo-caption" id="pf-cap"></p>
+</div>
+
+<div class="formula-box"><span class="fname">原文式 (12) · 有效权重（含课程标注）</span>
+$$\theta_k^{ii}=w_{ii}+\sum_{j\ne i}w_{ij}\lambda_k^{ij},\qquad \theta_k^{ij}=w_{ij}(1-\lambda_k^{ij})\quad(j\ne i).$$
+<p><strong>课程按 Algorithm 3 展开的系数：</strong>邻居贡献是 $1-\lambda$，这样每行仍和为 1（与"加权平均"一致）。</p><p><strong>原文出入标注：</strong>PDF 第 7 页式 (12) 原样写的是非对角项 $w_{ij}\lambda_k^{ij}$，与 Algorithm 3 中邻居项系数 $w_{ij}(1-\lambda_k^{ij})$ 不一致（第 0111 课已标注过一次）。课程给出的是与算法代数一致的展开——<strong>不宣称作者已发布勘误</strong>，只标出所见。</p></div>
+
+<div class="formula-box"><span class="fname">原文式 (15) 末的收缩递推</span>
+$$V_{k+1}\preceq\tilde\gamma\,\Theta_kV_k,\qquad 0<\tilde\gamma<1.$$
+<p><strong>读法：</strong>这是论文试图建立的收缩形式。注意 $V_k$ 是"各节点标量能量"组成的<strong>向量</strong>，所以此处的 $\preceq$ 是<strong>逐元素</strong>比较（和矩阵的半正定序不同）。若权重非负且行和为 1，一行加权值不超过上一时刻的最大值——这给出统一界。</p></div>
+
+<div class="callout"><strong>近似与随机性：精读不能跨过去</strong><p>原文在式 (13) 前使用了"编码尺度足够大，所以量化往返 ≈ 原量"这一步。但有三个问题需要坦白标注：<strong>①</strong> 有限精度误差项与矩阵修正怎样传入严格不等式，并未在这段逐项保留；<strong>②</strong> 随机混合使信息矩阵本身成为随机量，期望与矩阵运算之间的交换需要说明"是否条件于协议随机量"；<strong>③</strong> 前面提过的式 (12) 系数出入。<em>课程展示作者的证明思路，但不把"修好一处系数和一个 ≈ 号"当作"已补齐有限精度的完整证明"。</em></p></div>
+
+<div class="demo" id="w-demo">
+  <p class="demo-title">手算：有效权重展开（练习二的交互版）</p>
+  <p class="demo-hint">拖权重与 λ，看展开后的自身/邻居系数；注意行和必须恒为 1。</p>
+  <div class="demo-range">
+    <label for="w-wii">自身权重 w_ii</label>
+    <input type="range" id="w-wii" min="0" max="10" step="1" value="5" style="flex:1;min-width:150px">
+    <output id="w-wii-out">0.5</output>
+  </div>
+  <div class="demo-range">
+    <label for="w-lam">λ（=U/H）</label>
+    <input type="range" id="w-lam" min="0" max="10" step="1" value="3" style="flex:1;min-width:150px">
+    <output id="w-lam-out">0.3</output>
+  </div>
+  <div class="demo-readout" id="w-out"></div>
+  <p class="demo-caption">如果误把邻居项也乘 λ（即采用原文式 (12) 的写法），行和会变成 0.5+0.15=0.65 或类似值——<b>不再是"加权平均"，证明里的凸组合工具也就使不上</b>。这就是为什么课程坚持按 Algorithm 3 的版本讲。</p>
+</div>
+
+<h2>6. 汇报时怎么说</h2>
+<p>把这一课学到的"精确表述"组装成一段可以用于组会的话：</p>
+<div class="callout"><strong>推荐表述模板</strong><p>"作者在四个假设下给出<strong>信息矩阵的上下界</strong>，并以<strong>平均误差的加权二次型</strong>讨论有界性。定理本体是<strong>一阶矩结论</strong>；证明中的有效权重表达与有限量化近似还需要仔细核对。仿真中的 AMSE 曲线是<strong>另一层数值证据</strong>，不是定理的直接推论。"</p><p>这段话的好处：保留论文的真实贡献（有界性分析、矩阵界），又不替作者扩张结论（不说"证明了均方稳定"）。</p></div>
+
+<h2>7. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：均值陷阱</h3><p>误差等概率为 $+k$ 或 $-k$，均值是否有界？均方误差呢？由此说明什么？</p><details><summary>展开答案与解释</summary><div class="answer">均值恒为零 → <strong>有界</strong>；均方误差为 $k^2$ → 随 $k$（或时间）增大。<strong>结论：一阶矩有界推不出二阶矩有界。</strong>这正是 Theorem 3 与本课靶心图想让你记住的核心区别。</div></details></section>
+<section class="exercise-box"><h3>练习二：有效权重手算</h3><p>自身权重 $w_{ii}=0.5$、邻居权重 $w_{ij}=0.5$、$\lambda=0.3$。按 Algorithm 3 的版本展开，自身与邻居系数各是多少？验证行和。</p><details><summary>展开答案与解释</summary><div class="answer">自身系数 $=w_{ii}+w_{ij}\lambda=0.5+0.5\times0.3=0.65$；邻居系数 $=w_{ij}(1-\lambda)=0.5\times0.7=0.35$；行和 $=0.65+0.35=1$ ✓。<strong>如果误把邻居项也乘 λ</strong>（按原文式 (12) 的字面写法），行和会只有 $0.5+0.15=0.65$——这不是同一个融合式，凸组合的工具也就用不上了。</div></details></section>
+<section class="exercise-box"><h3>练习三：哪一个结论还缺证据？</h3><p>「量化误差很小、信息矩阵可逆」——这两条是否已经足以证明<strong>真实均方误差</strong>一致有界？</p><details><summary>展开答案与解释</summary><div class="answer">不够。还需要处理：随机误差递推的<strong>二阶矩</strong>（噪声项、有限量化误差传入期望运算的方式）、随机权重带来的条件性问题等。"可逆"与"内部矩阵界"不能替代对真实误差统计量的分析——Lemma 3 是算法内部量的界，不是真实误差协方差的界。</div></details></section>
+
+<div class="callout"><strong>本课带走的一句话</strong><p>理论课最重要的能力是<strong>辨认"证明了哪个对象"</strong>：Theorem 3 证明的是平均误差（一阶矩）有界，不是均方误差；Lemma 3 给出的是算法内部信息矩阵的界，不是真实误差协方差的界；证明主线清晰（预测收缩 → 融合放缩 → 量测不增能量 → 全网递推），但式 (12) 系数出入与"量化足够大 ⇒ ≈"的处理需要标注。<em>读证明，读的是"到哪儿为止"。</em></p><p class="chain-next">下一课进入最后一站：把两种误差量放回真实的 Fig. 3、Fig. 4 曲线，再讨论论文的局限和"能不能迁移到你的机器人系统"——以及一个五步迁移框架。</p></div>
+
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 4.2（Lemma 3、Theorem 3 与式 (11)–(16)）、附录（Lemma 3 的证明）、Assumptions 1–4 与 Remark 2。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0112-安全性论证与隐私边界.html">← 上一课：安全性论证与隐私边界</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="0114-实验解读与机器人迁移.html">下一课：实验解读与机器人迁移 →</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script>
+(function(){
+  /* ---- 靶心图 ---- */
+  var gA=document.getElementById('tg-a'), gB=document.getElementById('tg-b');
+  function dot(x,y,c){return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5.4" fill="'+c+'"/>';}
+  function run(){
+    var s='';
+    // 集中：±1 附近
+    for(var i=0;i<8;i++){s+=dot(176+(Math.random()*2-1)*9,150+(Math.random()*2-1)*9,'var(--green)');}
+    gA.innerHTML=s;
+    s='';
+    for(var j=0;j<8;j++){s+=dot(544+(Math.random()*2-1)*74,150+(Math.random()*2-1)*74,'var(--accent)');}
+    gB.innerHTML=s;
+    document.getElementById('tg-cap').innerHTML='两边<strong>平均误差都是 0</strong>（正负抵消），但均方误差相差 100 倍。论文 Theorem 3 的定理本体保证的是<b>平均误差（一阶矩）</b>有界——这正是容易被误读的地方。';
+  }
+  document.getElementById('tg-run').addEventListener('click',run);
+  run();
+
+  /* ---- 椭圆夹心 ---- */
+  var b2=document.getElementById('b2-q');
+  function b2f(){
+    var p=+b2.value; // 1..100
+    var rx=70+ (p/100)*130;   // 70..200
+    var ry=34+ (p/100)*62;    // 34..96
+    document.getElementById('b2-out').textContent=p+'%';
+    document.getElementById('ac-ell').setAttribute('rx',rx.toFixed(1));
+    document.getElementById('ac-ell').setAttribute('ry',ry.toFixed(1));
+    var msg;
+    if(p<=6){msg='已经贴着<b>下界</b>了——再小就要违反 ωI ≤ Ω̂，量化修正项正是把它顶回来的那一手。';}
+    else if(p>=94){msg='已经贴着<b>上界</b>了——再大就要违反 Ω̂ ≤ ω̄I，过程噪声与测量噪声的有界性（A2）保证了天花板存在。';}
+    else{msg='实际的信息矩阵（金色）在上下界之间自由变化，但<b>永远出不去</b>。这就是 Lemma 3 的"夹住"。';}
+    document.getElementById('b2-cap').innerHTML=msg;
+  }
+  b2.addEventListener('input',b2f); b2f();
+
+  /* ---- 证明台阶 ---- */
+  var pfcaps=[
+    '<b>台阶 1 · 预测收缩：</b>预测步的动力学给出一个收缩因子 γ̃ ∈ (0,1)——Lyapunov 量在预测后按比例变小。这一步用到 A2（有界性）与 A4（A 的逆不发散）。',
+    '<b>台阶 2 · 融合放缩：</b>把融合后的量按"凸组合"放缩。有效权重矩阵 Θₖ 行和为 1（这里就用到课程修正过的 θ 系数），所以一行加权值不超过上一时刻的最大值——向量递推得以保持有界。',
+    '<b>台阶 3 · 量测更新：</b>量测更新只往信息矩阵里"加正项"，不增加对应的 Lyapunov 能量——用一次矩阵不等式就能过。',
+    '<b>台阶 4 · 全网递推：</b>把每个节点的标量能量拼成向量 Vₖ，得到 V_{k+1} ⪯ γ̃ΘₖVₖ。反复代入后用 Lemma 3 的下界把"能量界的平方根"翻译成"平均误差长度的界"，最后一步用到关系 E{ē} = AₖE{ê} 与 A4。'
+  ];
+  var pipeBtns=document.querySelectorAll('#proof-demo .pipe-step');
+  pipeBtns.forEach(function(b){
+    b.addEventListener('click',function(){
+      var p=+b.dataset.p;
+      pipeBtns.forEach(function(x){x.classList.toggle('on', +x.dataset.p===p);});
+      document.getElementById('pf-cap').innerHTML=pfcaps[p];
+      document.getElementById('pf-note').textContent='当前看：台阶 '+(p+1);
+    });
+  });
+  pipeBtns[0].click();
+
+  /* ---- 权重手算 ---- */
+  function wcalc(){
+    var wii=+document.getElementById('w-wii').value/10;
+    var lam=+document.getElementById('w-lam').value/10;
+    var wij=1-wii;
+    document.getElementById('w-wii-out').textContent=wii.toFixed(1);
+    document.getElementById('w-lam-out').textContent=lam.toFixed(1);
+    var self=wii+wij*lam, nb=wij*(1-lam);
+    var wrong=wij*lam;
+    document.getElementById('w-out').textContent=
+      'w_ii='+wii.toFixed(1)+'，w_ij=1−w_ii='+wij.toFixed(1)+'，λ='+lam.toFixed(1)+'\n\n'
+      +'【正确（Algorithm 3 版）】\n'
+      +'自身系数 = w_ii + w_ij·λ = '+wii.toFixed(1)+' + '+(wij*lam).toFixed(3)+' = '+self.toFixed(3)+'\n'
+      +'邻居系数 = w_ij·(1−λ) = '+nb.toFixed(3)+'\n'
+      +'行和 = '+(self+nb).toFixed(3)+'  '+(Math.abs(self+nb-1)<1e-9?'✓ 恰好为 1':'✗')+'\n\n'
+      +'【若按式(12)字面（邻居项误乘 λ）】\n'
+      +'自身 = '+self.toFixed(3)+'，邻居 = '+wrong.toFixed(3)+'，行和 = '+(self+wrong).toFixed(3)+' ≠ 1  ✗ 不是加权平均';
+  }
+  ['w-wii','w-lam'].forEach(function(id){document.getElementById(id).addEventListener('input',wcalc);});
+  wcalc();
+})();
+</script>
+<script src="assets/paillier/lightbox.js"></script>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

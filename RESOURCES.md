@@ -64,3 +64,10 @@
 - **Reddit**: r/robotics, r/MachineLearning
 - **GitHub Discussions**: E2Map 仓库的 Issues/Discussions
 - **学术会议**: ICRA, IROS, CoRL 的论文集
+
+## Paillier 分布式状态估计
+- Knowledge：Fu et al., Automatica 186 (2026) 112863，https://doi.org/10.1016/j.automatica.2026.112863 。元信息已由Crossref核实。
+- 本地原文归档：资料/paillier-state-estimation/paper.pdf。公式核对以PDF为准，document.corrected.md仍有OCR和原文出入。
+- 参考：reference/paillier-速查.html。
+- Wisdom：可把证明口径与迁移假设带到课题组讨论；尚无用户学习效果反馈。
+- Gaps：精确邻接矩阵、完整密码参数与基线配置、实机时延、有限量化严格证明需另行核验。
