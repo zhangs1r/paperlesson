@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0109 · 改进版 Paillier：编码与同态 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
+</style>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 3 课</p><h1>给实数造一把“能做加法”的锁</h1><p class="subtitle">改进版 Paillier：编码 → 加密 → 解密 → 解码，与引理 1 的误差界</p><div class="meta"><span>0109</span><span>建议 25 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 §2.5、§3.1 式 (5)–(9)、Lemma 1–2</span></div></header>
+<div class="content">
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：第 0107 课的系统模型、第 0108 课的 $(\Omega,q)$ 信息形式。不要求任何密码学背景——本课把“同态”讲成“在密文上做加法”，把“编码”讲成“换单位”。学完要能回答：为什么需要改进版？符号为什么放在密文外？量化误差有多大、由谁控制？同态的两条性质如何对应“加密的数怎么相加”？</p></div>
+<h2>1. 可能不熟的三个词：3 分钟速成</h2>
+<div class="table-wrap"><table><thead><tr><th>术语</th><th>本课中的意思</th></tr></thead><tbody>
+<tr><td>公钥 / 私钥<br>$\mathcal P/\mathcal S$</td><td>一对配套参数。任何人可用 $\mathcal P$ 把明文“锁”成密文；只有持 $\mathcal S$ 的人能解锁。$\mathcal P$ 可以公开，$\mathcal S$ 永不外传。</td></tr>
+<tr><td>加法同态<br>additive homomorphism</td><td>不解密的情况下，对密文做指定运算，解密后得到明文的和（或整数倍）。类比：密封的信封可以叠在一起，拆开时正好是“合计数”。</td></tr>
+<tr><td>判定性合数剩余假设<br>DCR</td><td>Paillier 安全性的数学基石：某个判定问题在计算上不可行。意思是没有私钥就“解不开”，这是密码学假设级别的保证，不是“比较难猜”。</td></tr>
+</tbody></table></div>
+<p>原生 Paillier（Paillier 1999）的两条规则，原文式 (2)–(3)：</p>
+<div class="formula-box">$$\mathcal C=\mathbf E(\mathcal M),\qquad \mathcal M=\mathbf D(\mathcal C),$$
+$$\mathbf E(\mathcal M_1+\mathcal M_2)=\mathbf E(\mathcal M_1)\,\mathbf E(\mathcal M_2),\qquad \mathbf E(\mathcal R\,\mathcal M_1)=\big[\mathbf E(\mathcal M_1)\big]^{\mathcal R}.$$
+<p><strong>是什么：</strong>加密 $\mathbf E$、解密 $\mathbf D$ 互逆；两式合称加法同态——密文相乘对应明文相加，密文自乘 $\mathcal R$ 次对应明文乘整数 $\mathcal R$。$\mathcal R$ 是已知正整数。</p><p><strong>直觉：</strong>同态加密里“密文相乘”就是“明文相加”的化身。数乘那条意味着“加权”也能做——权重必须是公开的正整数。</p><p><strong>细节：</strong>同态等式在模 $n^2$ 意义下成立（$n$ 是密钥参数），明文空间是非负整数。这带来两条硬约束：只吃<strong>非负整数</strong>，且数值不能超过密钥参数的范围。改进版就是为绕开第一条而设计的；第二条（数值范围）由假设 2 的参数上界兜底，0113 课会回到这里。</p></div>
+<div class="callout"><strong>为什么不是 ElGamal？</strong><p>同系列前作（Fu et al. 2024）用的是改进 ElGamal，但 ElGamal 天生是<strong>乘法</strong>同态：密文相乘对应明文相乘。而 0108 课已经看到，融合是“加权<strong>求和</strong>”。Paillier 的加法同态正好对上融合的代数结构——这是选型的核心理由。</p></div>
+<h2>2. 编码：把实数换成整数，符号随身携带</h2>
+<p>信息量 $\tilde q,\tilde\Omega$ 是实数（可正可负、带小数）。原生 Paillier 只收非负整数，所以要“编码”。原文式 (5)，逐元素定义：</p>
+<div class="formula-box">$$\Gamma(s,r)=\operatorname{sgn}\!\big(\Psi(s,r)\big)\cdot\operatorname{round}\!\big(|\Psi(s,r)|\cdot\mathcal O\big).$$
+<p><strong>是什么：</strong>对实矩阵 $\Psi$ 的每个元素：绝对值乘以编码尺度 $\mathcal O\in\mathbb N^+$ 后四舍五入取整，再挂回原来的正负号，得到整数矩阵 $\Gamma$。</p><p><strong>直觉：</strong>把单位从“米”换成“毫米”：数值放大 $\mathcal O$ 倍再取整。符号信息单独拎出来挂在整数前面，因为 Paillier 只认非负整数，正负号不能进锁。</p><p><strong>细节：</strong>原文用 argmin 写“取最近的整数”；两个整数一样远（恰为半整数）时取绝对值更大的那个（即远离零）。注意区分：编码参数在式 (5) 处记作 $\mathcal O$，在算法与假设 2 中记作 $\mathcal Q_k^i$——同一个角色，本系列从这课起统一写 $\mathcal Q$（算法记号），并且它与过程噪声协方差 $Q_k$ 无关，只是形近。</p></div>
+<div class="table-wrap"><table><thead><tr><th>环节</th><th>操作</th><th>符号去哪了</th></tr></thead><tbody>
+<tr><td>编码（式 5）</td><td>绝对值放大 $\mathcal O$ 倍取整</td><td>sgn 提出，不进 Paillier</td></tr>
+<tr><td>加密（式 6）</td><td>$\Upsilon(s,r)=\operatorname{sgn}(\Gamma(s,r))\,\mathbf E(|\Gamma(s,r)|)$</td><td>继续在密文外明文携带</td></tr>
+<tr><td>解密（式 7）</td><td>先 $\mathbf D$ 解绝对值部分，再乘回符号</td><td>与解密结果相乘还原</td></tr>
+<tr><td>解码（式 8）</td><td>$\tilde\Psi(s,r)=\Gamma(s,r)/\mathcal O$</td><td>已在解密时还原</td></tr>
+</tbody></table></div>
+<p>四个操作合起来记作 $\mathbf P_{\mathbf M}(\cdot\,,\mathcal O)$（modified Paillier 的完整操作）；只编码加密记 $\mathbf E_{\mathbf{NM}}$。原文式 (9) 给了这些简写，全文反复使用。</p>
+<h3>手算一遍编码</h3>
+<p>取 $\mathcal O=100$，元素值 $-3.1416$：绝对值 $3.1416$ 放大成 $314.16$，四舍五入得 $314$，符号为负 → 编码 $\Gamma=-314$。解码时 $-314/100=-3.14$——丢了 $0.0016$。这就是量化误差，下面给它一个硬上界。</p>
+<h2>3. Lemma 1：量化误差的上界</h2>
+<div class="formula-box">$$\mathcal F-\frac{n}{2\mathcal O}I\ \leq\ \mathbf P_{\mathbf M}(\mathcal F,\mathcal O)\ \leq\ \mathcal F+\frac{n}{2\mathcal O}I,\qquad\ \mathcal F>0.$$
+<p><strong>是什么：</strong>编解码往返后的矩阵与原矩阵相差不超过 $\frac{n}{2\mathcal O}I$（这里的 $n$ 是状态维数，注意与密钥参数重名——原文如此，读时看上下文）。</p><p><strong>直觉：</strong>每个元素的四舍五入误差不超过 $\frac{1}{2\mathcal O}$；对正定矩阵做最坏情况分析，误差按对角累加，就得到 $\frac{n}{2\mathcal O}$ 量级的双侧界。$\mathcal O$ 越大，锁得越精细，误差越小。</p><p><strong>细节：</strong>这是<strong>确定性的逐元素界</strong>，不是概率陈述——是“任何取值都成立”的最坏情况保证。它与假设 2 中 $\mathcal Q_k^i\le\bar g$（编码尺度有上界）一起，决定量化误差不能任意小：$\mathcal O$ 有上限，误差就有下限。这是 0113 课稳定性证明的关键输入之一。</p></div>
+<div class="callout"><strong>精度—开销的旋钮</strong><p>$\mathcal O$ 是一个旋钮：调大 → 量化误差按 $1/\mathcal O$ 缩小，但编码后的整数变大，加密、传输、同态计算的开销都上升。原文的稳定性结论（Thm 3）明确要求 $\mathcal Q_k^i$ “取得足够大”——精度保证是有代价条件的，0113 课会展开。</p></div>
+<h2>4. 同态的两条用法：为协议铺路</h2>
+<p>把 0108 的 CI 融合翻译到密文世界，需要两件事：加法怎么在密文上完成、未知系数怎么处理。Lemma 2 给出组合规则（成立条件：$\operatorname{Sgn}(\mathcal F_1)=\operatorname{Sgn}(\mathcal F_2)$，逐元素同号）：</p>
+<div class="formula-box">$$\mathbf E_{\mathbf M}\!\big(\mathcal R_1\,\mathbf E_{\mathbf N}(\mathcal F_1,\mathcal O)+\mathcal R_2\,\mathbf E_{\mathbf N}(\mathcal F_2,\mathcal O)\big)=\operatorname{Sgn}(\Gamma_1)\odot\operatorname{Exp}(\Gamma_1,\mathcal R_1)\odot\operatorname{Exp}(\Gamma_2,\mathcal R_2).$$
+<p><strong>是什么：</strong>两个编码后的量的已知正整数倍相加，可以在密文上完成：右边的 $\odot$ 是逐元素相乘（Hadamard 积），$\operatorname{Exp}(\Gamma,\mathcal R)$ 表示逐元素取 $\mathcal R$ 次幂。幂次对应明文的倍数，密文相乘对应明文相加——正是式 (3) 两条规则的逐元素版。</p><p><strong>直觉：</strong>“加权求和”这个操作，在锁着的盒子里也能完成，只要权重是公开的正整数。这是下一课邻居能在密文上代劳的根本原因。</p><p><strong>细节：</strong>成立条件是两者符号模式一致。这不是巧合限制：0110 课的协议会让掩码量刻意取成与目标量相同的符号模式，就是为了能用这条规则。</p></div>
+<p>还有一条 0110 课直接用的事实：对整数量 $\mathcal X$（编码不产生误差），加法同态精确成立，因此</p>
+<div class="formula-box">$$\mathbf P_{\mathbf M}(\mathcal F_1+\mathcal F_2,\mathcal O)\ \approx\ \mathbf P_{\mathbf M}(\mathcal F_1,\mathcal O)+\mathbf P_{\mathbf M}(\mathcal F_2,\mathcal O),$$
+<p>差值恰好是两次量化误差之和，被 Lemma 1 控制。0108 课的“融合是加权求和”加上本课的“求和可在密文上做”，方法主体就剩一个问题：<strong>权重本身不能暴露隐私时怎么办？</strong>——0110 课用随机掩码回答它。</p>
+<h2>5. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：编码三连算</h3><p>取 $\mathcal O=10$。编码 $2.7$、$-0.54$、$0.05$，再解码回去。各自的编码结果与误差是多少？</p><details><summary>展开答案与解释</summary><div class="answer">$2.7\to\operatorname{round}(27)=27$，解码 $2.7$，误差 $0$。$-0.54\to\operatorname{round}(5.4)=5$，带符号 $-5$，解码 $-0.5$，误差 $0.04$。$0.05\to\operatorname{round}(0.5)$——半整数，按规则取绝对值更大的方向，得 $1$，解码 $0.1$，误差 $0.05$（恰好是 $\frac{1}{2\mathcal O}$ 的界）。最后一个例子说明“四舍五入平局规则”有时会碰到界的边界。</div></details></section>
+<section class="exercise-box"><h3>练习二：误差界的热身</h3><p>状态维数 $n=2$，编码尺度 $\mathcal O=100$。Lemma 1 保证往返误差不超过多少（以 $I$ 的系数表示）？若 $\mathcal O=1000$ 呢？由此说明“调大 $\mathcal O$”的收益形态。</p><details><summary>展开答案与解释</summary><div class="answer">$n/(2\mathcal O)=2/200=0.01$；$\mathcal O=1000$ 时为 $0.001$。收益是 $1/\mathcal O$ 型的：尺度翻十倍，误差才缩十倍——不是免费的，编码后的整数位数也按比例涨，加密计算随之变重。这就是“旋钮”的两端。</div></details></section>
+<section class="exercise-box"><h3>练习三：符号为什么在锁外</h3><p>如果硬要把负数“塞进”Paillier（比如模掉一个大整数来表示负数），解码时会遇到什么麻烦？论文把符号放在密文外，换来了什么？</p><details><summary>展开答案与解释</summary><div class="answer">模运算下负数要靠“绕回”表示，解码时无法区分“真的是大正数”还是“负数绕回来了”，除非额外引入偏移并小心处理溢出——复杂且易错。符号放锁外则完全避开这个问题：数值部分永远非负，解密后拼回符号即可。代价是符号模式本身以明文暴露（0112 课会把它列入“公开但需讨论的信息”，不回避）。</div></details></section>
+<div class="callout"><strong>本课带走的一句话</strong><p>改进版 Paillier = 原生 Paillier + “实数 ↔ 整数”的编码层（符号在锁外）；Lemma 1 把量化误差钉在 $n/(2\mathcal O)$，Lemma 2 证明“公开整数权重的加权和”可以在密文上完成——协议的两块基石齐了。</p><p>下一课是全文最精巧的部分：邻居 $j$ 在完全看不到明文的情况下，如何用随机掩码把自己的信息“混”进 $i$ 的密文里。后续页面尚未发布，本页暂不放置无效跳转；卡住了就把小节标题或练习答案发给我。</p></div>
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 2.5（Paillier 密码系统与式 (2)–(3)）、Section 3.1 的式 (5)–(9) 与 Lemma 1、Lemma 2。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0108-信息滤波与CI融合.html">← 上一课：信息滤波与 CI 融合</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>
