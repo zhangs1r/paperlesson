@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0108 · 信息滤波与 CI 融合 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
+</style>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 2 课</p><h1>信息形式与 CI：为什么要“加权平均”而不是“叠加证据”</h1><p class="subtitle">读懂 Algorithm 1 的四个阶段，以及 CI 到底在防什么错</p><div class="meta"><span>0108</span><span>建议 25 分钟</span><span>难度 ★★★☆☆</span><span>对应原文 §2.1–2.3、§3.1 开头</span></div></header>
+<div class="content">
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：上节课的式 (1) 系统模型与“信息形式只是另一种表示”（第 0107 课）。需要矩阵乘法、转置和“正定矩阵”的概念；遇到协方差忘记定义时，记住标量情形“方差越小越自信”即可。学完要能回答：为什么用信息形式？量测更新在信息形式下长什么样？CI 与“直接叠加证据”差在哪？哪两个量是要保护的？</p></div>
+<h2>1. 回顾：两行公式是全部起点</h2>
+<div class="formula-box">$$x_{k+1}=A_kx_k+w_k,\qquad y_k^i=C_k^ix_k+v_k^i.$$
+<p><strong>回顾：</strong>第 0107 课的全网共同状态模型。本文假设 $A_k,Q_k$ 所有节点都知道，$C_k^i,R_k^i$ 只有节点 $i$ 自己知道——所以“我能测得多准”这件事，本身就是节点的私有信息。</p></div>
+<p>论文 §2.1 还定义了通信拓扑：无向图 $\mathcal G=(\mathcal V,W)$。$w_{ij}>0$ 当且仅当 $i,j$ 之间有双向链路；<strong>$\mathcal N_i$ 按论文定义包含节点 $i$ 自己</strong>（$w_{ii}>0$），这点后面数通信次数时会用到。Assumption 1 还要求图连通、权重矩阵行随机（每行权重和为 1）——这是“加权平均不把信息越乘越少”的保障，稳定性课（0113）会再用到它。</p>
+<h2>2. 为什么偏要 information form？</h2>
+<div class="formula-box">$$\Omega\triangleq P^{-1},\qquad q\triangleq \Omega\hat{x},\qquad \hat{x}=\Omega^{-1}q.$$
+<p><strong>是什么：</strong>信息矩阵 $\Omega$ 是误差协方差的逆；信息向量 $q$ 是信息矩阵乘估计值。</p><p><strong>直觉：</strong>把“越自信”变成“数字越大”。标量例：方差 0.25 → $\Omega=4$。</p><p><strong>细节：</strong>两对数 $(\Omega,q)$ 与 $(\hat x,P)$ 一一对应，携带的信息完全相同；切换表示不丢失任何东西。</p></div>
+<p>它真正的好处在于<strong>融合是加法</strong>。若两份证据相互独立（误差不相关），贝叶斯融合就是直接相加：</p>
+<div class="formula-box">$$\Omega_{\text{融合}}=\Omega_1+\Omega_2,\qquad q_{\text{融合}}=q_1+q_2.$$
+<p><strong>直觉：</strong>两个人各自说“目标在 3 附近，自信度 4”和“目标在 6 附近，自信度 2”，融合就是 $\Omega=6$、$q=4\cdot2+2\cdot6=20$，即 $\hat x=20/6\approx3.33$——自信的一方话语权更大。这与标准 Kalman 滤波在独立性假设下的更新一致，并不是另一种算法。</p><p><strong>细节：</strong>“独立性”三个字是全部前提。下一段我们专门看它失效时发生什么。</p></div>
+<h2>3. 相关性陷阱：CI 在防什么错</h2>
+<p>问题在于：节点 $i$ 上一轮刚用过邻居 $j$ 的信息，这一轮 $j$ 的信息里还留着上一轮的影子。两份证据<strong>不是独立的</strong>，直接相加等于把同一条消息听两遍还当成两条。</p>
+<p>标量算一遍：真实方差是 1.0 的证据，被当独立证据用两次，融合方差按 $\frac1{1+1}=0.5$ 报告。实际置信度只有一次证据的水平——<strong>汇报的不确定性比真实的小，这叫过度自信（overconfidence），滤波器从此“越算越确信”，而且自己发现不了。</strong></p>
+<p>CI 的处理方式是不再假设独立：把两份信息各“稀释”一份再相加，$\hat\Omega=w\,\Omega_1+(1-w)\,\Omega_2$，权重 $w\in[0,1]$。可以证明：不管两份证据的相关性有多糟，这种凸组合<strong>不会低估真实不确定性</strong>（consistency 保守性）。代价是当证据真的独立时，结果比最优融合偏保守、方差偏大。</p>
+<div class="callout"><strong>一句话分工</strong><p>“独立就相加”是最优但脆的路线；CI 是“不赌相关性”的稳健路线。论文选 CI 还有工程理由：它不需要计算跨协方差矩阵，也不需要多跳通信（原文 §3.1）。这为“每个时间步只融合一轮”的单轮设计铺了路。</p></div>
+<h2>4. Algorithm 1 逐段读：要保护的量在这里出现</h2>
+<p>原文 Algorithm 1（Battistelli et al. 2015）四阶段。注意原文用上标 c 区分经典方案，下标 $k,i$ 表示时刻与节点：</p>
+<div class="formula-box">$$\text{量测更新：}$$
+$$\tilde{\Omega}_{k,i}^{c}=\bar{\Omega}_{k,i}^{c}+(C_k^i)^\top(R_k^i)^{-1}C_k^i,\qquad \tilde{q}_{k,i}^{c}=\bar{q}_{k,i}^{c}+(C_k^i)^\top(R_k^i)^{-1}y_k^i.$$
+<p><strong>是什么：</strong>预测步用动力学把旧估计外推；量测更新把本轮观测的证据 $C^\top R^{-1}C$ 与 $C^\top R^{-1}y$ 加进信息量。这两个量由本节点的传感器和测量噪声决定（$C_k^i,R_k^i$ 只有节点 $i$ 自己知道）。</p><p><strong>直觉：</strong>量测更新后的 $(\tilde q_{k,i}^p,\tilde\Omega_{k,i}^p)$（新算法记号）等于“我此刻的全部家底”：我信什么、我多自信、我的传感器什么水平。</p><p><strong>细节：</strong>信息形式下预测步的完整递推（原文步骤 3）形式较繁，本质是卡尔曼预测的信息版改写；工程上可以直接用标准卡尔曼预测再取逆。本课不展开。</p></div>
+<div class="formula-box">$$\text{CI 融合：}\ \hat{\Omega}_{k,i}^{c}=\sum_{j\in\mathcal N_i}w_{ij}\tilde{\Omega}_{k,j}^{c},\qquad \hat{q}_{k,i}^{c}=\sum_{j\in\mathcal N_i}w_{ij}\tilde{q}_{k,j}^{c},\qquad \hat{x}_{k,i}^{c}=(\hat{\Omega}_{k,i}^{c})^{-1}\hat{q}_{k,i}^{c}.$$
+<p><strong>是什么：</strong>把邻居（含自己）量测更新后的信息量按权重 $w_{ij}$ 加权求和，再还原出估计。这就是原文式 (4) 用 $\tilde\varphi,\tilde\chi$ 重新描述的同一个操作——$\tilde\varphi_{k}^{j}$ 就是 $\tilde q_{k,j}^{c}$，$\tilde\chi_{k}^{j}$ 就是 $\tilde\Omega_{k,j}^{c}$，读 §3.1 时不要当成新变量。</p><p><strong>直觉：</strong>“把邻居的家底按份额抄进来”。要抄，就得先拿到——敏感数据恰恰是必须发出的东西。</p><p><strong>细节：</strong>原文采用单轮融合（Battistelli et al. 2018），不在一个时间步内反复迭代，以节省传输和计算。这个“轮数”是后面对比通信开销的基准。</p></div>
+<h2>5. 隐私矛盾与下一步</h2>
+<p>把三块拼起来：融合公式需要邻居的 $\tilde q_j,\tilde\Omega_j$；这两个量编码了邻居的估计、自信度和传感器质量（$C,R$ 只有节点自己知道）；所以“直接发原文”就是把传感器画像交出去。这就是论文要替换的接口：下一步（0109）先解决“实数怎么加密”，再往后（0110）解决“邻居在密文上怎么帮我做加权和”。</p>
+<p>顺带立一个记号约定，全系列沿用：新算法用上标 $p$（proposed），三阶段用 $\bar\Omega,\bar q$（预测）、$\tilde\Omega,\tilde q$（量测更新）、$\hat\Omega,\hat q$（融合后）区分。Algorithm 3 只改融合段，其余与 Algorithm 1 逐行相同——这个“只动一段”的设计让后面安全性和稳定性的论证范围都很清楚。</p>
+<section class="exercise-box"><h3>练习一：手算一次信息融合</h3><p>节点 1：$\tilde q_1=8,\tilde\Omega_1=4$；节点 2：$\tilde q_2=10,\tilde\Omega_2=2$；权重 $w_{11}=w_{12}=0.5$。求融合后的 $\hat q,\hat\Omega$ 与估计值 $\hat x$。</p><details><summary>展开答案与解释</summary><div class="answer">$\hat\Omega=0.5\times4+0.5\times2=3$，$\hat q=0.5\times8+0.5\times10=9$，$\hat x=9/3=3$。核对：两节点单独估计分别是 $8/4=2$ 和 $10/2=5$，融合值 3 介于其间且偏向更自信的节点 1——加权的方向对了。</div></details></section>
+<section class="exercise-box"><h3>练习二：把相关性陷阱算出来</h3><p>标量证据 $(q=4,\Omega=4)$ 被同一来源重复提供两次。若误当独立证据相加，融合方差是多少？若用 CI 各稀释一半（$\hat\Omega=0.5\Omega_1+0.5\Omega_2$），融合方差又是多少？</p><details><summary>展开答案与解释</summary><div class="answer">误当独立：$\Omega=4+4=8$，方差 $1/8=0.125$。CI：$\hat\Omega=0.5\times4+0.5\times4=4$，方差 $1/4=0.25$——等于单份证据的方差。CI 的代价是“最坏也只退化到单份证据”，换来的是绝不虚报自信。</div></details></section>
+<section class="exercise-box"><h3>练习三：找敏感量</h3><p>在 Algorithm 1 的八个步骤里，哪些步骤的计算只用到本地数据？论文要保护的敏感量是哪两个？它们泄露了什么？</p><details><summary>展开答案与解释</summary><div class="answer">初始化、预测（步骤 1–4）与量测更新（步骤 5–6）只用本地模型与测量；只有 CI 融合（步骤 7–8）需要邻居数据。敏感量是量测更新后的 $\tilde q_{k,i}$ 与 $\tilde\Omega_{k,i}$：前者混着测量值与本地估计，后者直接反映测量质量（经 $C^\top R^{-1}C$）。这正是新算法里记作 $\tilde q_{k,i}^{p},\tilde\Omega_{k,i}^{p}$、要被加密保护的两个量。</div></details></section>
+<div class="callout"><strong>本课带走的一句话</strong><p>信息形式让“融合”变成“加权求和”，但要求保护的也正是被求和的两个本地量；CI 用保守性换取对未知相关性的免疫，并让“每步只融合一轮”成为可能。</p><p>下一课进入方法主体：实数如何编码成 Paillier 能处理的整数、加法同态如何在密文上成立。后续页面尚未发布，本页暂不放置无效跳转；卡住了就把小节标题或练习答案发给我。</p></div>
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 2.1（拓扑）、2.2（系统模型）、2.3（Algorithm 1 与单轮融合）、3.1 开头（式 (4) 的记号）。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0107-Paillier论文全景与隐私问题.html">← 上一课：论文全景与隐私问题</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>
