@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0111 · 融合恢复与完整估计器 · PaperLesson</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
+.lesson mjx-container{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;padding-bottom:3px;vertical-align:middle}.lesson mjx-container[display="true"]{display:block}
+</style>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 5 课</p><h1>解开信封：随机权重 λ 与 Algorithm 3</h1><p class="subtitle">Theorem 1 的恢复逻辑、四个假设首次亮相、Remark 1–3 的取舍</p><div class="meta"><span>0111</span><span>建议 25 分钟</span><span>难度 ★★★★☆</span><span>对应原文 §3.1 Theorem 1、§3.2 Algorithm 3、Remark 1–3</span></div></header>
+<div class="content">
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：第 0110 课的五个回传量 $\mathcal H,\bar\xi,\bar\Xi,\tilde\xi,\tilde\Xi$ 与“合计 = $T\times$差值部分 + $U\times$自己”的结构；0109 课的 $\mathbf P_{\mathbf M}$ 记号。本课把密文交互正式接回 CI 融合。学完要能回答：$\lambda$ 从哪来、$i$ 需要知道它吗？恢复量与“直接加权平均”差在哪？信息矩阵为什么要加 $\frac{n}{2\mathcal Q}I$？如何区分混合结果与完整隐私证明？</p></div>
+<h2>1. Theorem 1：从五个量到融合公式</h2>
+<p>原文证明先定义两个 $i$ 能解出的量（对收到的 $\bar\xi,\tilde\xi$ 分别做式 (7)–(8) 的解密与解码）：</p>
+<div class="formula-box">$$\hat\xi_k^{ij}\triangleq \mathcal T_k^{ij}\,\mathbf P_{\mathbf M}(\xi_k^{ij},\mathcal Q_k^i)+\mathcal U_k^{ij}\,\mathbf P_{\mathbf M}(\tilde\varphi_k^i,\mathcal Q_k^i),\qquad \check\xi_k^{ij}\triangleq \mathcal T_k^{ij}\,\mathbf P_{\mathbf M}(\tilde\varphi_k^j-\xi_k^{ij},\mathcal Q_k^i).$$
+<p><strong>是什么：</strong>$i$ 用自己的私钥解密 $\bar\xi$ 得第一式、解密 $\tilde\xi$ 得第二式。$\mathbf P_{\mathbf M}$ 是 0109 课“编码→加密→解密→解码”的完整往返，输出是<strong>实数</strong>（≈ 原值，差量化误差）。</p><p><strong>直觉：</strong>“含 $U$ 项的混合”解出 $\hat\xi$；“只含 $T$ 项的差值”解出 $\check\xi$。结构记牢：一个是 $T\times$影子$+U\times$自己，一个是 $T\times$（邻居−影子）。</p></div>
+<div class="callout"><strong>跨过量化误差的“精确拼接”</strong><p>证明关键一步：$\xi$ 是整数、编码无误差，所以 $\mathbf P_{\mathbf M}(\tilde\varphi_k^j,\mathcal Q)=\mathbf P_{\mathbf M}(\tilde\varphi_k^j-\xi,\mathcal Q)+\mathbf P_{\mathbf M}(\xi,\mathcal Q)$。这是原文使用的拼接关系；0109 已提醒半格取整跨零时的边界条件，课程不能将其当作所有输入无条件成立的恒等式。避开这些边界时，两部分相加后影子抵消：</p></div>
+<div class="formula-box">$$\check\varphi_k^{ij}\triangleq\frac{\hat\xi_k^{ij}+\check\xi_k^{ij}}{\mathcal H_k^{ij}}=\lambda_k^{ij}\,\mathbf P_{\mathbf M}(\tilde\varphi_k^i,\mathcal Q_k^i)+(1-\lambda_k^{ij})\,\mathbf P_{\mathbf M}(\tilde\varphi_k^j,\mathcal Q_k^i),\qquad \lambda_k^{ij}\triangleq\frac{\mathcal U_k^{ij}}{\mathcal H_k^{ij}}.$$
+<p><strong>是什么：</strong>0108 的加权平均形式被恢复了——但权重是随机的 $\lambda$ 与 $1-\lambda$，两个输入换成量化后的版本。</p><p><strong>直觉（重要）：</strong>$i$ <strong>不需要知道</strong> $\lambda$。它的操作只是“解出两块、相加、除以 $H$”；$\lambda$ 的表达式是数学上的恒等变形，不是 $i$ 的计算步骤。$U$、$T$ 自始至终只有 $j$ 知道。</p></div>
+<div class="callout"><strong>未知权重解释设计思路，但不替代完整安全论证</strong><p>$i$ 知道 $\check\varphi$、$H$ 和自己的 $\mathbf P_{\mathbf M}(\tilde\varphi_k^i,\mathcal Q)$。若想解出 $\mathbf P_{\mathbf M}(\tilde\varphi_k^j,\mathcal Q)$，需要 $\lambda$；但 $\check\varphi=\lambda\,P_i+(1-\lambda)\,P_j$ 是“一个方程、两个未知数（$\lambda$ 与 $P_j$）”，仅凭这一条方程不能唯一确定两者；这只是作者论证的直觉，不是完整安全证明。其设计目标是：<strong>$j$ 看不见 $i$ 的明文（没私钥），$i$ 也分离不出 $j$ 的贡献（不知道 $\lambda$）</strong>。具体安全边界放到下一课讨论。</p></div>
+<h3>信息矩阵版本：多一个修正项</h3>
+<div class="formula-box">$$\check\chi_k^{ij}=\lambda_k^{ij}\,\mathbf P_{\mathbf M}(\tilde\chi_k^i,\mathcal Q_k^i)+(1-\lambda_k^{ij})\,\mathbf P_{\mathbf M}(\tilde\chi_k^j,\mathcal Q_k^i)+\frac{n}{2\mathcal Q_k^i}I.$$
+<p><strong>是什么：</strong>多出的 $\frac{n}{2\mathcal Q}I$ 是<strong>矩阵下界补偿</strong>。</p><p><strong>直觉：</strong>由 Lemma 1 的下侧界，$\mathbf P_{\mathbf M}(\Omega)\ge\Omega-\frac{n}{2\mathcal Q}I$：量化可能把信息矩阵“压小”。补回这一项后，$\check\chi\ \geq\ \lambda\tilde\chi^i+(1-\lambda)\tilde\chi^j$ 恒成立——融合矩阵的“信息量下界”不被量化侵蚀，0113 课 Lemma 3 的下界证明正建立在这上面。</p><p><strong>细节：</strong>它是半正定序意义上的补偿，不是“让估计无偏”的纠偏；信息向量 $\check\varphi$ 不加这一项。</p></div>
+<div class="formula-box">$$\hat\varphi_k^{i}=w_{ii}\tilde\varphi_k^i+\sum_{j\in\mathcal N_i,\,j\ne i}w_{ij}\check\varphi_k^{ij},\qquad \hat\chi_k^{i}=w_{ii}\tilde\chi_k^i+\sum_{j\in\mathcal N_i,\,j\ne i}w_{ij}\check\chi_k^{ij}.$$
+<p><strong>是什么：</strong>原文式 (10)。结构与经典 CI 完全一致，只是邻居的原始量被换成恢复出的 $\check\varphi,\check\chi$。公开权重 $w_{ij}$ 不变；随机性只藏在 带 check 标记的恢复量内部。</p><p><strong>细节（读证明时注意）：</strong>原文式 (12) 把邻居项系数写作 $\theta_k^{ij}=w_{ij}\lambda_k^{ij}$，与算法中邻居项系数 $w_{ij}(1-\lambda_k^{ij})$ 不一致——这是原文推导与算法表述间的出入，0113 课按“邻居项系数 $1-\lambda$、行和为 1 的加权平均”这个与 Algorithm 3 一致的版本讲，并再标注一次。</p></div>
+<section id="fusion-demo" class="callout"><p>分步图：13 与 21 相加得 34，再除以 H=10 得 3.4。启用 JavaScript 可逐步演示。</p></section>
+<h2>2. Remark 1：通信账单</h2>
+<div class="table-wrap"><table><thead><tr><th>方案</th><th>每区间交互次数</th><th>说明</th></tr></thead><tbody>
+<tr><td>本文（单轮安全 CI）</td><td>$2|\mathcal N_i|$</td><td>一来一回各一次（$|\mathcal N_i|$ 含自己，见 0108）</td></tr>
+<tr><td>多轮共识类安全方案</td><td>$\mathcal L|\mathcal N_i|$</td><td>$\mathcal L$ 为共识迭代步数，远大于 2</td></tr>
+<tr><td>不加密经典 CI（参照）</td><td>一轮自己的量</td><td>最省，但无内部防护</td></tr>
+</tbody></table></div>
+<p>口径提醒：数的是<strong>通信次数</strong>，不是字节数——密文和五个回传量都比明文大得多，加密计算时间也没计入。降幅按原文口径取决于 L/2，不能无条件声称数量级改善（0107 课边界第 2 条）。</p>
+<h2>3. Algorithm 3：完整估计器</h2>
+<p>原文 Algorithm 3 用上标 $p$。四阶段中前三段与 Algorithm 1 逐行相同；只有融合段被替换：</p>
+<div class="formula-box">$$\text{步骤 7：}\quad \check\Omega_k^{ij}=(1-\lambda_k^{ij})\,\mathbf P_{\mathbf M}(\tilde\Omega_{k,j}^{p},\mathcal Q_k^i)+\lambda_k^{ij}\,\mathbf P_{\mathbf M}(\tilde\Omega_{k,i}^{p},\mathcal Q_k^i)+\frac{n}{2\mathcal Q_k^i}I.$$
+<p><strong>是什么：</strong>Theorem 1 的 $\check\chi$ 具体化到信息矩阵（记号替换 $\tilde\varphi\to\tilde q,\ \tilde\chi\to\tilde\Omega$），步骤 8 同理给出 $\check q$（无修正项）。</p><p><strong>直觉：</strong>$\lambda$ 乘自己的量、$1-\lambda$ 乘邻居的量——与 0110 步骤 7 里 $U$ 配 $i$、$T$ 配影子的结构一致（$U/H=\lambda$ 配 $i$）。步骤 9–11 用公开权重把 带 check 标记的恢复量与自己的量加权求和，最后 $\hat x=(\hat\Omega)^{-1}\hat q$。</p><p><strong>细节：</strong>全文只动融合段，其余照旧——所以安全性与稳定性分析都能聚焦“换了的那一段”。</p></div>
+<h3>四个假设首次亮相（0113 课正式使用）</h3>
+<div class="table-wrap"><table><thead><tr><th>假设</th><th>内容</th><th>作用</th></tr></thead><tbody>
+<tr><td>A1</td><td>图连通、$W$ 行随机</td><td>信息可达；加权平均不发散</td></tr>
+<tr><td>A2</td><td>系统参数一致有界，含 $\mathcal Q_k^i\le\bar g$、$\mathcal H_k^i\le\bar h$</td><td>本文特有：编码参数与随机和也有上界</td></tr>
+<tr><td>A3</td><td>系统联合可观</td><td>估计问题本身有解的前提</td></tr>
+<tr><td>A4</td><td>$\inf_k\lambda_{\min}\{A_kA_k^\top\}\ge\beta>0$</td><td>$A_k$ 一致非奇异，递推放缩用</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>注意 A2 与“$Q$ 越大越好”的张力</strong><p>0109 说调大 $\mathcal Q$ 量化误差变小；但 A2 要求 $\mathcal Q_k^i\le\bar g$——理论框架里编码尺度是<strong>有上界</strong>的。所以“$Q\to\infty$”只是理解渐近行为的思维实验，不是可任意执行的选项；而且就算量化误差消失，$\lambda=U/H$ 的随机凸组合依然存在——估计器不会因此“变回”经典 CI。这条边界 0114 课还会回来。</p></div>
+<h3>为什么不选精度更高的 CM（Remark 3）</h3>
+<p>量测共识（CM）类融合一般精度更高，但需要在一个时间步内做多轮信息交换才能保证稳定；加密场景下每多一轮就多整套加密同态运算。于是<strong>用 CI 的单轮融合换掉加密开销</strong>——精度换效率的明确取舍。实际损失多大，0114 课看实验。</p>
+<h2>4. 合上正文，试着回答</h2>
+<section class="exercise-box"><h3>练习一：手算一次恢复（标量）</h3><p>$n=1$，$\mathcal Q=10$，$\tilde\varphi_k^i=2$，$\tilde\varphi_k^j=4$（均为整数，量化无损），$U=3$，$T=7$，$H=10$。求 $i$ 解出的两块 $\hat\xi,\check\xi$（设 $\xi=1$）、合计、$\check\varphi$ 与 $\lambda$，并验证加权式。</p><details><summary>展开答案与解释</summary><div class="answer">$\hat\xi=T\,\mathbf P_{\mathbf M}(\xi)+U\,\mathbf P_{\mathbf M}(\tilde\varphi^i)=7\times1+3\times2=13$；$\check\xi=T\,\mathbf P_{\mathbf M}(\tilde\varphi^j-\xi)=7\times3=21$。合计 $=13+21=34=T\cdot4+U\cdot2$（影子抵消核对 ✓）。$\check\varphi=34/10=3.4$；$\lambda=U/H=0.3$。验证：$0.3\times2+0.7\times4=0.6+2.8=3.4$ ✓。$i$ 全程没见到 4 这个数——它能计算 3.4，但 0.3 是讲解者根据已设 U/T 算出的分析值，不是协议给它的公开字段。</div></details></section>
+<section class="exercise-box"><h3>练习二：哪些量是接收方计算的？</h3><p>在练习一中，i 收到 H=10，解密解码得到 13 与 21。它能直接计算混合结果吗？它是否由协议直接获知 λ=0.3？</p><details><summary>展开答案与解释</summary><div class="answer">可以计算 (13+21)/10=3.4。λ=0.3 来自讲解者预设的 U=3，不是接收方已知量。不要把用于分析的展开式误当作实现必须求出所有内部参数；也不要仅凭这一点宣称完整协议的不可推断性。</div></details></section>
+<section class="exercise-box"><h3>练习三：修正项去哪了</h3><p>为什么 $\check\chi$ 加 $\frac{n}{2\mathcal Q}I$ 而 $\check\varphi$ 不加？从信息矩阵的半正定下界与求逆要求入手；Lemma 1 本身是正定矩阵结论。</p><details><summary>展开答案与解释</summary><div class="answer">信息矩阵的融合结果要继续充当“信息量”：后续 $\hat x=(\hat\Omega)^{-1}\hat q$ 要对它求逆，稳定性证明需要它不小于理想凸组合（下界）。量化把矩阵往两个方向扰，但下侧的损失会让融合矩阵“虚瘦”，加 $\frac{n}{2\mathcal Q}I$ 把下界补回来。信息向量没有“正定/求逆”的结构要求，两侧对称的小扰动按误差处理即可，不补偿。</div></details></section>
+<div class="callout"><strong>本课带走的一句话</strong><p>Theorem 1 = 0110 的密文交互 + 0109 的同态规则：解出“$T\times$影子$+U\times$自己”与“$T\times$差值”，相加除以 $H$，得到随机权重 $\lambda$ 的加权平均——$i$ 不需要知道 $\lambda$ 即可计算混合结果；是否充分保护隐私仍需检查完整协议；Algorithm 3 把这套融合装回估计器，只动融合段。</p><p>下一课进入安全性分析：Theorem 2 到底证明了什么、没证明什么。后续页面尚未发布，本页暂不放置无效跳转；卡住了就把小节标题或练习答案发给我。</p></div>
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 3.1 的 Theorem 1 及其证明、Remark 1；Section 3.2 的 Algorithm 3、Assumptions 1–4 与 Remark 2–3。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0110-双向安全通信协议.html">← 上一课：双向安全通信协议</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script src="assets/paillier/fusion-demo.js"></script>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>

@@ -27,6 +27,7 @@ window.PAPERLESSON_DATA = {
     }
   ],
   collections: [
+    { id:"paillier-state-estimation", groupId:"papers", kind:"论文精读", title:"Paillier · 隐私保护分布式状态估计", subtitle:"A modified Paillier cryptosystem-based approach · Automatica 2026", description:"分步精读：信息滤波、编码同态、安全融合、理论边界与实验迁移。当前已接入融合恢复基线。", quickOpen:"start lessons/0111-融合恢复与完整估计器.html", meta:["课程接入中","SVG 分步讲解","状态估计 / 隐私保护"] },
     {
       id: "e2map",
       groupId: "papers",
@@ -129,6 +130,7 @@ window.PAPERLESSON_DATA = {
     },
   ],
   lessons: [
+    { id:"0111", path:"lessons/0111-融合恢复与完整估计器.html", paper:"paillier-state-estimation", title:"融合恢复与完整估计器", subtitle:"Theorem 1 · 随机权重 · SVG 分步演示", emoji:"", duration:"25 分钟", tags:["Paillier","融合","方法"], description:"先走通融合恢复基线，区分接收方实际计算与理论展开式。" },
     { id:"0001", path:"lessons/0001-论文全景概览.html", paper:"e2map", title:"论文全景概览", subtitle:"背景、动机与贡献", emoji:"📖", duration:"15 分钟", tags:["背景","动机"], description:"先把 E2Map 这篇论文的大问题和核心贡献摸清楚。" },
     { id:"0002", path:"lessons/0002-E2Map核心技术.html", paper:"e2map", title:"E2Map 核心技术", subtitle:"地图构建与情绪建模", emoji:"🔧", duration:"20 分钟", tags:["方法","数学"], description:"深入理解体验-情绪地图如何被构造和更新。" },
     { id:"0003", path:"lessons/0003-导航与实验分析.html", paper:"e2map", title:"导航与实验分析", subtitle:"系统流程与三场景评估", emoji:"🤖", duration:"20 分钟", tags:["系统","实验"], description:"看 E2Map 怎样融入完整导航链路，以及实验到底验证了什么。" },
