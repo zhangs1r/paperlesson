@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0110 · 双向安全通信协议 · PaperLesson</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+body{background:var(--paper-light);color:var(--ink-80);margin:0}.lesson{box-sizing:border-box;max-width:880px;margin:0 auto;padding:32px 24px;line-height:1.9;overflow-wrap:break-word}.back{display:inline-block;margin-bottom:24px;color:var(--accent);text-decoration:none}h1,h2,h3{font-family:var(--font-serif);color:var(--ink)}h1{font-size:clamp(1.65rem,5vw,2.4rem);line-height:1.4}h2{font-size:1.35rem;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);color:var(--accent-deep)}.subtitle{color:var(--ink-60)}.meta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.meta span{background:var(--paper);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:.85rem}.callout,.formula-box,.exercise-box{background:var(--paper);padding:20px;margin:20px 0;border:1px solid var(--border);border-radius:8px}.callout{border-left:4px solid var(--accent)}.formula-box{overflow-x:auto;text-align:center;border-style:dashed}.formula-box p{text-align:left;font-size:.95rem}summary{cursor:pointer;color:var(--accent-deep);font-weight:600;padding:8px 0;min-height:28px}.answer{border-top:1px solid var(--border);margin-top:12px;padding-top:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{text-align:left;border-bottom:1px solid var(--border);padding:12px;vertical-align:top}th{background:var(--paper)}a{color:var(--accent-deep)}.nav{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;border-top:1px solid var(--border);margin-top:36px;padding-top:20px}.back-home,.footnote{color:var(--ink-60);font-size:.85rem}.footnote{margin-top:28px}li{margin-bottom:8px}@media(max-width:600px){.lesson{padding:20px 16px}.callout,.formula-box,.exercise-box{padding:14px}th,td{padding:8px}}
+</style>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},svg:{fontCache:'global'}};</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+<main class="lesson">
+<a class="back" href="../index.html">← 返回 PaperLesson 主页</a>
+<header><p class="subtitle">PAILLIER · 论文精读 · 第 4 课</p><h1>邻居看不见明文，怎么帮你做加权？</h1><p class="subtitle">Algorithm 2 全流程：密钥轮换、随机掩码 ξ、正整数 U/T/H</p><div class="meta"><span>0110</span><span>建议 30 分钟</span><span>难度 ★★★★☆</span><span>对应原文 §3.1 Algorithm 2</span></div></header>
+<div class="content">
+<div class="callout"><strong>本课目标与前置知识</strong><p>前置：第 0109 课的 $\mathbf E_{\mathbf{NM}}$、$\mathbf P_{\mathbf M}$ 记号与 Lemma 2（同号才能在密文上加权组合）。本课是全文步骤最密的一页，放慢节奏：先记住“每个人手里有什么”，再看每一步“新增了什么”。学完要能回答：$i$ 发出去什么、不发什么？$j$ 生成的随机量各自起什么作用？为什么 $j$ 要先减去一个随机量再加密自己？$i$ 最后拿到的东西为什么既算得出融合、又推不出 $j$ 的原值？</p></div>
+<h2>1. 先立角色牌：谁持有什么</h2>
+<div class="table-wrap"><table><thead><tr><th>角色</th><th>手里有什么</th><th>缺什么</th></tr></thead><tbody>
+<tr><td>发起方 $i$</td><td>自己的 $\tilde\varphi_k^i,\tilde\chi_k^i$；本轮密钥对 $(\mathcal P_k^i,\mathcal S_k^i)$；编码参数 $\mathcal Q_k^i$</td><td>邻居的明文</td></tr>
+<tr><td>响应方 $j$</td><td>$i$ 发来的密文、$\mathcal P_k^i$、$\mathcal Q_k^i$；自己的明文与随机数</td><td>$i$ 的私钥 $\mathcal S_k^i$</td></tr>
+<tr><td>窃听者</td><td>链路上所有公开量与密文</td><td>所有私钥</td></tr>
+</tbody></table></div>
+<p>两个易混点先钉住：</p>
+<ul><li><strong>私钥归属随发起者走。</strong>$i$ 对自己发的东西用 $(\mathcal P_k^i,\mathcal S_k^i)$ 加解密；$j$ 帮忙算完把结果送回，能解开那些结果的只有持有 $\mathcal S_k^i$ 的 $i$。反过来 $j$ 发起的另一趟交互，用的是 $j$ 自己的密钥。原文正文有一处笔误（"private key possessed solely by the eavesdroppers"），已由校对确认是原文之误——正确理解就是本表。</li><li><strong>双方都干两份活。</strong>原文明确：Algorithm 2 从 $i$（发送）和 $j$（响应）两个视角描述；实际中每个节点同时做这两件事。所以每对邻居每步有“一来一回”两趟传输。</li></ul>
+<h2>2. 第一趟：$i$ 发出什么（步骤 1–3）</h2>
+<div class="formula-box">$$\text{步骤 2–3：}\ \ i\ \longrightarrow\ j:\quad \mathbf E_{\mathbf{NM}}(\tilde\varphi_k^i,\mathcal Q_k^i),\quad \mathbf E_{\mathbf{NM}}(\tilde\chi_k^i,\mathcal Q_k^i),\quad \mathcal Q_k^i,\quad \mathcal P_k^i.$$
+<p><strong>是什么：</strong>$i$ 把自己量测更新后的信息向量与信息矩阵编码加密，连同编码参数与公钥一起发给每个邻居 $j$。</p><p><strong>直觉：</strong>发出去的是“上了锁的本人数据 + 锁的型号说明”。能开锁的私钥 $\mathcal S_k^i$ 留在 $i$ 手里，永不出现在线路上。</p><p><strong>细节：</strong>密钥是<strong>每节点每时刻</strong>新选的（记号 $\mathcal P_k^i$ 的下标 $k$ 就在提醒这一点）。即使某一轮的密钥出问题，也不殃及过去与未来。$\mathcal Q_k^i$ 必须一起发——解码要除回去，邻居做同态运算也要用它。</p></div>
+<h2>3. 第二趟：$j$ 的三层操作（步骤 4–11）</h2>
+<p>$j$ 的目标：让 $i$ 最终能算出“两家信息的随机加权混合”，但全程不看到 $i$ 的明文，也不把自己的明文交给 $i$。分三层读。</p>
+<h3>第一层：造一个“影子”掩码（步骤 4–5）</h3>
+<div class="formula-box">$$\operatorname{Sgn}(\xi_k^{ij})=\operatorname{Sgn}\!\big(\mathbf E_{\mathbf{NM}}(\tilde\varphi_k^i,\mathcal Q_k^i)\big),\qquad \operatorname{Sgn}(\Xi_k^{ij})=\operatorname{Sgn}\!\big(\mathbf E_{\mathbf{NM}}(\tilde\chi_k^i,\mathcal Q_k^i)\big).$$
+<p><strong>是什么：</strong>$j$ 生成随机整向量 $\xi$ 与随机整矩阵 $\Xi$，它们的<strong>符号模式与 $i$ 的编码量完全一致</strong>；随后 $j$ 加密 $\xi,\Xi$ 本身，以及“自己的量减去掩码”的差值 $\tilde\varphi_k^j-\xi_k^{ij}$、$\tilde\chi_k^j-\Xi_k^{ij}$（用 $i$ 的公钥）。</p><p><strong>直觉：</strong>把 $j$ 的信息拆成“影子 + 差值”：$\tilde\varphi_k^j=(\tilde\varphi_k^j-\xi_k^{ij})+\xi_k^{ij}$。为什么要拆？因为 0109 的 Lemma 2 要求同号才能在密文上组合——影子照着 $i$ 的符号模式造，正是为了合规。而“减”是加法的逆：之后在解密端把两部分重新拼起来，$j$ 的贡献就回来了。</p><p><strong>细节：</strong>$j$ 加密自己的数据用的是 $i$ 的公钥 $\mathcal P_k^i$，所以只有 $i$ 能解开——这也是 $j$ 敢把“差值”发出去的原因之一：差值是密文，且后面还有一层随机化。$\tilde\varphi_k^j-\xi_k^{ij}$ 一定是整数吗？是的——$\xi$ 取整数、$j$ 的量会先按 $i$ 的编码尺度 $\mathcal Q_k^i$ 编码成整数再相减（读步骤 5 的 $\mathbf E_{\mathbf{NM}}(\cdot\,,\mathcal Q_k^i)$ 就在提示这一点）。这一步原文没有逐字展开，是本课补的最小桥。</p></div>
+<h3>第二层：两个随机正整数 U 与 T（步骤 6）</h3>
+<div class="formula-box">$$\mathcal U_k^{ij},\ \mathcal T_k^{ij}\in\mathbb N^+,\qquad \mathcal H_k^{ij}=\mathcal U_k^{ij}+\mathcal T_k^{ij}.$$
+<p><strong>是什么：</strong>$j$ 再造两个随机正整数。$H=U+T$ 是它们的和，<strong>只有和会公开</strong>（下一趟传给 $i$），两个加数本身谁也不给。</p><p><strong>直觉：</strong>$U$ 和 $T$ 是“分配比例”的两半。$i$ 最后只知道 $H$ 和解出来的“合计”，不知道 $U:T$ 是多少——融合权重因此带上随机性。符号提示：$H$ 对应和（sum），$U/T$ 是两个份额，与信息集合 $\mathcal H_k^{ij}$ 重名但不同物，读原文时看语境。</p></div>
+<h3>第三层：用同态把掩码“乘”进密文（步骤 7–10）</h3>
+<p>四个掩码量的构造方式相同，以步骤 7 为例（$\odot$ 逐元素乘，$\operatorname{Exp}$ 逐元素幂）：</p>
+<div class="formula-box">$$\bar\xi_k^{ij}=\operatorname{Sgn}(\xi_k^{ij})\odot\operatorname{Exp}\!\big(\mathbf E_{\mathbf{NM}}(\xi_k^{ij},\mathcal Q_k^i),\ \mathcal T_k^{ij}\big)\odot\operatorname{Exp}\!\big(\mathbf E_{\mathbf{NM}}(\tilde\varphi_k^i,\mathcal Q_k^i),\ \mathcal U_k^{ij}\big).$$
+<p><strong>是什么：</strong>把“$i$ 的密文的 $U$ 次幂”与“$j$ 的影子掩码密文的 $T$ 次幂”逐元素相乘。按 0109 的同态规则（Lemma 2，同号条件已由步骤 4 满足），解密后它对应明文的 $T\cdot\xi_k^{ij}+U\cdot\tilde\varphi_k^i$。</p><p><strong>直觉：</strong>$j$ 在完全不拆锁的情况下，把自己挑的“份数”$T$ 和替 $i$ 定的“份数”$U$ 揉进同一个盒子。$i$ 里面虽然也有 $\tilde\varphi_k^i$ 的贡献，但 $i$ 本来就知道自己的量——这趟的增量信息是 $j$ 的影子。</p><p><strong>细节：</strong>步骤 9–10 对差值密文单独做 $T$ 次幂（不带 $U$ 项），对应解密后的 $T\cdot\mathbf P_{\mathbf M}(\tilde\varphi_k^j-\xi_k^{ij},\mathcal Q_k^i)$。符号项同样全程在锁外。</p></div>
+<h3>打包回传（步骤 11）</h3>
+<p>$j$ 把五个量发给 $i$：$\mathcal H_k^{ij}$、$\bar\xi,\bar\Xi$（“含 $U$ 项”的混合密文）、$\tilde\xi,\tilde\Xi$（“只含 $T$ 项”的差值密文）。注意 $j$ <strong>没有</strong>发：自己的明文、$U$、$T$、$i$ 的私钥（它也没有）。</p>
+<h2>4. 眼前这一步能验证什么</h2>
+<p>写个 10 行的数值脚本就能体会“为什么 $i$ 解开的是合计”：用小素数模拟加密（或用任何 Paillier 开源实现），走完步骤 1–11，打印 $i$ 解密得到的量，核对它等于 $T\,\mathbf P_{\mathbf M}(\xi,\mathcal Q)+U\,\mathbf P_{\mathbf M}(\tilde\varphi^i,\mathcal Q)$ 与 $T\,\mathbf P_{\mathbf M}(\tilde\varphi^j-\xi,\mathcal Q)$ 的结构——这正是下一课解出 $\check\varphi_k^{ij}=\lambda\,\mathbf P_{\mathbf M}(\tilde\varphi_k^i,\mathcal Q)+(1-\lambda)\,\mathbf P_{\mathbf M}(\tilde\varphi_k^j,\mathcal Q)$ 的原料，其中 $\lambda=\mathcal U/\mathcal H$ 由 $i$ 自己算。</p>
+<section class="exercise-box"><h3>练习一：对账——谁手里多了什么</h3><p>交互结束后，列出 $j$ 知道但交互前不知道的东西；再列出 $j$ 仍然不知道的关于 $i$ 的关键量。这套“知道/不知道”的清单为什么重要？</p><details><summary>展开答案与解释</summary><div class="answer">$j$ 新知道：$i$ 的两个密文、公钥、编码参数（这些都是 $i$ 主动发的）。$j$ 仍不知道：$i$ 的明文 $\tilde\varphi^i,\tilde\chi^i$（没有私钥），以及 $i$ 从回传里解出的最终融合量。清单重要在于：安全性分析（0112 课）就是把“每个角色知道什么”列成清单，再论证敏感数据不在清单里。</div></details></section>
+<section class="exercise-box"><h3>练习二：掩码为什么与 $i$ 同号</h3><p>如果步骤 4 生成的 $\xi$ 与 $i$ 的量符号模式不一致，Lemma 2 就用不上。此时步骤 7–8 的构造会在哪一步卡住？</p><details><summary>展开答案与解释</summary><div class="answer">Lemma 2 的前提是两个编码量逐元素同号，同号保证“编码—加密—幂次—相乘”这一串的符号项可以干净地提出。符号不一致时，倍数 $\mathcal R$ 会变负或零，同态的两条规则（式 3 的正整数幂）覆盖不了。所以协议用步骤 4 强制对齐符号——这是“设计为引理服务”的典型例子。</div></details></section>
+<section class="exercise-box"><h3>练习三：数一数通信次数</h3><p>节点 $i$ 有 4 个邻居（不含自己），完成一轮安全交互，$i$ 发出和接收各多少条消息？对比 0108 课的基线 CI（只发自己的两个量），多了多少？</p><details><summary>展开答案与解释</summary><div class="answer">一来一回：$i$ 对每个邻居发 1 次（自己的两个密文打包），收 1 次（$j$ 的五个量打包），共 $2\times4=8$ 次传输，即原文 Remark 1 的 $2|\mathcal N_i|$（注意 $|\mathcal N_i|$ 按论文定义含自己，这里按“其他邻居”数就是 4）。基线只需发 $|\mathcal N_i|-1$ 轮自己的量。加密换来隐私，通信与计算的账单都要记在加密头上——0114 课做总账。</div></details></section>
+<div class="callout"><strong>本课带走的一句话</strong><p>Algorithm 2 的全部戏法：$j$ 用随机掩码拆分自己、用随机份额 $U,T$ 给双方“定份数”，在密文上完成 $T\cdot\text{影子}+U\cdot i$ 的组合并回传；$i$ 拿到“合计除以 $H$”的原料，却始终没有 $j$ 的明文，$j$ 也没有 $i$ 的明文。</p><p>下一课把回传的五个量正式解开，推出随机权重 $\lambda$，并装进完整估计器 Algorithm 3。后续页面尚未发布，本页暂不放置无效跳转；卡住了就把小节标题或练习答案发给我。</p></div>
+<h2>原文阅读定位</h2>
+<p>本课对应原文 Section 3.1 的 Algorithm 2 与其前后说明段（含通信次数从 $|\mathcal N_i|$ 到 $2|\mathcal N_i|$ 的说明）。来源：<a href="https://doi.org/10.1016/j.automatica.2026.112863" target="_blank" rel="noopener">论文 DOI</a>。本课是中文教学解读，不是逐字翻译。</p>
+</div>
+<nav class="nav"><a href="0109-改进Paillier编码与同态.html">← 上一课：改进 Paillier 编码与同态</a><a class="back-home" href="../index.html">← 返回 PaperLesson 主页</a><a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">回到本课开头 ↑</a></nav>
+<p class="footnote">Xingquan Fu, Guanghui Wen, Dan Zhao, Christoforos N. Hadjicostis, “Privacy-preserving distributed state estimation: A modified Paillier cryptosystem-based approach” · Automatica 186 (2026) 112863 · DOI: 10.1016/j.automatica.2026.112863</p>
+</main>
+<script src="../shared/lesson-tools.js"></script>
+</body>
+</html>
